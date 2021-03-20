@@ -68,27 +68,3 @@ size_t strbufcat(char* buf, const String& str, size_t start, size_t buf_size)
     buf[start + offset] = '\0';
     return offset;
 }
-
-size_t vstrbufprintf(char* buf, size_t buf_size, const String& fmt, va_list args)
-{
-    if (buf == nullptr)
-        return 0;
-
-    buf[0] = '\0';
-    size_t buf_pos = 0;
-
-    const auto& add_string_to_buf = [&](const String& str) -> bool {
-        buf_pos += strbufcat(buf, str, buf_pos, buf_size);
-        return buf_pos + 1 < buf_size;
-    };
-    vfnprintf(add_string_to_buf, fmt, args);
-    return buf_pos + 1;
-}
-
-size_t strbufprintf(char* buf, size_t buf_size, const String& fmt, ...)
-{
-    va_list args;
-    // FIXME: Clang-tidy is freaking out that va_start with a reference has undefined behavior...
-    va_start(args, fmt);
-    return vstrbufprintf(buf, buf_size, fmt, args);
-}
