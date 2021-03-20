@@ -1,4 +1,5 @@
 #include <pine/console.hpp>
+#include <pine/printf.hpp>
 #include <pine/string.hpp>
 
 void inline console_put(char ch)
