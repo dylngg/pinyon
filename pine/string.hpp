@@ -3,12 +3,14 @@
 //       https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#Other-Builtins
 #include "stdarg.h"
 #include <pine/badmath.hpp>
+#include <pine/iter.hpp>
 #include <pine/types.hpp>
 
 size_t strlen(const char* string);
 int strcmp(const char* first, const char* second);
 
 struct String {
+public:
     String(const char* string)
         : __chars(string)
         , __length(strlen(string))
@@ -21,18 +23,20 @@ struct String {
             return false;
         return strcmp(__chars, other.__chars) == 0;
     }
-
-    char operator[](size_t pos) const
+    const char& operator[](size_t pos) const
     {
         // FIXME: I'd rather have an assert here than this wackyness; this will just
         //        hide bugs
         if (pos >= __length)
-            return '?';
+            return __chars[__length - 1];
         return __chars[pos];
     }
 
-    const char* begin() const { return __chars ? __chars : ""; }
-    const char* end() const { return __chars + __length; }
+    using ConstIter = FwdIter<const String, const char>;
+    ConstIter begin() const { return ConstIter::begin(*this); }
+    ConstIter end() const { return ConstIter::end(*this); }
+
+    size_t length() const { return __length; }
 
 private:
     const char* __chars;
