@@ -7,23 +7,23 @@ void inline console_put(char ch)
     *(volatile size_t*)(UART0_BASE) = ch;
 }
 
-void console(const String& message)
+void console(const StringView& message)
 {
     for (auto ch : message)
         console_put(ch);
 }
 
-void consoleln(const String& message)
+void consoleln(const StringView& message)
 {
     console(message);
     console_put('\n');
 }
 
-void consolef(const String& fmt, ...)
+void consolef(const StringView& fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    const auto& try_add_wrapper = [](const String& message) -> bool {
+    const auto& try_add_wrapper = [](const StringView& message) -> bool {
         console(message);
         return true;
     };
