@@ -7,8 +7,8 @@
 
 void console_put(char ch);
 
-void console(const String& message);
+void console(const StringView& message);
 
-void consoleln(const String& message);
+void consoleln(const StringView& message);
 
-void consolef(const String& fmt, ...);
+void consolef(const StringView& fmt, ...);

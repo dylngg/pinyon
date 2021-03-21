@@ -9,15 +9,15 @@ size_t strlen(const char* string);
 int strcmp(const char* first, const char* second);
 void itoa10(char* buf, int num);
 
-struct String {
+struct StringView {
 public:
-    String(const char* string)
+    StringView(const char* string)
         : __chars(string)
         , __length(strlen(string))
     {
     }
 
-    bool operator==(const String& other) const
+    bool operator==(const StringView& other) const
     {
         if (__length != other.__length)
             return false;
@@ -32,7 +32,7 @@ public:
         return __chars[pos];
     }
 
-    using ConstIter = FwdIter<const String, const char>;
+    using ConstIter = FwdIter<const StringView, const char>;
     ConstIter begin() const { return ConstIter::begin(*this); }
     ConstIter end() const { return ConstIter::end(*this); }
 

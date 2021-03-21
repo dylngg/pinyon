@@ -52,7 +52,7 @@ void itoa10(char* buf, int num)
     buf[pos] = '\0';
 }
 
-size_t strbufcat(char* buf, const String& str, size_t start, size_t buf_size)
+size_t strbufcat(char* buf, const StringView& str, size_t start, size_t buf_size)
 {
     if (start >= buf_size)
         return 0;

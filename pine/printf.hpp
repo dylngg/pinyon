@@ -6,7 +6,7 @@
 #include <pine/string.hpp>
 
 template <typename TryAddStringFunc>
-size_t vfnprintf(TryAddStringFunc& try_add_string, const String& fmt, va_list args)
+size_t vfnprintf(TryAddStringFunc& try_add_string, const StringView& fmt, va_list args)
 {
     // Keep a fake two char string on the stack for easy adding of single or dual chars
     char chstr[2] = " ";
