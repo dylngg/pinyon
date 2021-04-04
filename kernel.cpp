@@ -1,14 +1,23 @@
+#include "kmalloc.hpp"
 #include <pine/console.hpp>
 
 extern "C" [[noreturn]] void init();
 
 void init()
 {
-    console("Initializing... ");
-    // Do initializing stuff here...
-    consoleln("");
+    consoleln("Initializing... ");
+    kmalloc_init();
 
-    consolef("Welcome to %s! (%c) %d\n", "Pinyon", 'c', 2021);
+    // No good reason for this, beyond using new kmalloc calls
+    char* pinyon = (char*)kmalloc(7);
+    strcpy(pinyon, "Pinyon");
+    char* pine = (char*)kmalloc(6);
+    strcpy(pine, "+Pine");
+
+    consolef("Welcome to %s%s! (%c) %d\n", pinyon, pine, 'c', 2021);
+
+    kfree((void*)pinyon);
+    kfree((void*)pine);
 
     while (1) {
     }
