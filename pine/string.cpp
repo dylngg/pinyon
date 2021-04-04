@@ -52,6 +52,31 @@ void itoa10(char* buf, int num)
     buf[pos] = '\0';
 }
 
+void ultoa16(char* buf, unsigned long num)
+{
+    buf[0] = '0';
+    buf[1] = 'x';
+    buf += 2;
+
+    int pos = 0;
+    for (; pos < 8; pos++)
+        buf[pos] = '0';
+
+    buf[8] = '\0';
+
+    pos = 7;
+    while (pos >= 0 && num > 0) {
+        long hex_num = num % 16;
+        if (hex_num < 10)
+            buf[pos] = hex_num + '0';
+        else
+            buf[pos] = hex_num + ('A' - 10);
+
+        num >>= 4; // divide by 16, but no need for division
+        pos--;
+    }
+}
+
 size_t strbufcat(char* buf, const StringView& str, size_t start, size_t buf_size)
 {
     if (start >= buf_size)
