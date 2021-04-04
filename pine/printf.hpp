@@ -58,6 +58,16 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const StringView& fmt, va_lis
 
             break;
         }
+        case 'x': {
+            // FIXME: This should be lx but we don't support that yet...
+            unsigned long num = va_arg(args, unsigned long);
+            char hex[11];
+            ultoa16(hex, num);
+            if (!try_add_string(hex))
+                return false;
+
+            break;
+        }
         default: {
             // FIXME: We would assert here if we could, but we do not have
             //        that so just print the incorrect fmt ch with a %

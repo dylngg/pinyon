@@ -8,6 +8,7 @@
 size_t strlen(const char* string);
 int strcmp(const char* first, const char* second);
 void itoa10(char* buf, int num);
+void ultoa16(char* buf, unsigned long num);
 
 struct StringView {
 public:

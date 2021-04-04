@@ -26,14 +26,14 @@ run: pinyon.elf
 .PHONY: debug
 debug: pinyon.elf
 	# FIXME: Get a newer QEMU that supports raspi3
-	qemu-system-arm -s -S -nographic -m 1G -M raspi2 -kernel pinyon.elf 1>/dev/null &
+	qemu-system-arm -s -S -nographic -m 1G -M raspi2 -kernel pinyon.elf 1>pinyon.out &
 	sleep 1  # hack
 	arm-none-eabi-gdb pinyon.elf
 	killall qemu-system-arm
 
 .PHONY: clean
 clean:
-	rm -rf obj/ pinyon.elf
+	rm -rf obj/ pinyon.elf pinyon.out
 
 $(OBJDIR)/%.o: %.cpp
 	$(CC) $(ARCHFLAGS) $(INCLUDE) $(CXXFLAGS) -c $< -o $@
