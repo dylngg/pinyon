@@ -5,6 +5,8 @@
 #include <pine/iter.hpp>
 #include <pine/types.hpp>
 
+void zero_out(void* target, size_t size);
+void strcpy(char* __restrict__ to, const char* from);
 size_t strlen(const char* string);
 int strcmp(const char* first, const char* second);
 void itoa10(char* buf, int num);

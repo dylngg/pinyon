@@ -5,6 +5,22 @@
 #include <pine/badmath.hpp>
 #include <pine/types.hpp>
 
+void zero_out(void* target, size_t size)
+{
+    unsigned char* _target = (unsigned char*)target;
+    while (size-- > 0)
+        *_target = 0;
+}
+
+void strcpy(char* __restrict__ to, const char* from)
+{
+    while (*from != '\0') {
+        *to = *from;
+        to++;
+        from++;
+    }
+}
+
 size_t strlen(const char* string)
 {
     size_t offset = 0;
