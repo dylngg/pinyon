@@ -2,7 +2,7 @@ CC=arm-none-eabi-g++
 OBJDIR=obj
 ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -nostdlib
 INCLUDE=-I.
-CXXFLAGS=-Wall -Wextra -std=c++11
+CXXFLAGS=-Wall -Wextra -std=c++14 -g
 
 .PHONY: all
 all: pinyon.elf
@@ -22,6 +22,14 @@ fmt:
 run: pinyon.elf
 	# FIXME: Get a newer QEMU that supports raspi3
 	qemu-system-arm -m 1024 -M raspi2 -serial stdio -kernel pinyon.elf
+
+.PHONY: debug
+debug: pinyon.elf
+	# FIXME: Get a newer QEMU that supports raspi3
+	qemu-system-arm -s -S -nographic -m 1G -M raspi2 -kernel pinyon.elf 1>/dev/null &
+	sleep 1  # hack
+	arm-none-eabi-gdb pinyon.elf
+	killall qemu-system-arm
 
 .PHONY: clean
 clean:
