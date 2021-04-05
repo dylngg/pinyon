@@ -80,7 +80,7 @@ struct Header {
 
         if (next && next->free) {
             // Coalesce right block into ours
-            size += sizeof(*this) + next->size;
+            size += sizeof(*next) + next->size;
             next = next->next; // now our next is our adopted's next
 
             if (next && next->prev) {
@@ -130,7 +130,7 @@ void* kmalloc(size_t requested_size)
         auto* next_header = curr_header->next_header();
         if (!next_header) {
             // Allocate more memory, setup new header
-            auto* new_header = curr_header->create_next_header(NEW_SIZE);
+            auto* new_header = curr_header->create_next_header(requested_size);
             new_header->reserve(requested_size);
             return new_header->user_ptr();
         }
