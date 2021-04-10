@@ -107,14 +107,19 @@ private:
 #define NEW_SIZE ((NEW_BLOCK_SIZE) - (sizeof(Header)))
 
 static Header* first_free_header = (Header*)HEAP_START;
+static KMallocStats stats;
 
 void kmalloc_init()
 {
     *first_free_header = Header { nullptr, nullptr, NEW_SIZE, true };
+    stats.heap_size = NEW_BLOCK_SIZE;
+    stats.amount_used = 0;
+    stats.num_mallocs = 0;
 }
 
 void* kmalloc(size_t requested_size)
 {
+    stats.num_mallocs++;
     if (requested_size > MAX_SIZE) {
         consolef("kmalloc:\trequested_size requested is too large!");
         return nullptr;
@@ -124,13 +129,23 @@ void* kmalloc(size_t requested_size)
     while ((PtrData)curr_header < HEAP_END) {
         if (curr_header->is_free(requested_size)) {
             curr_header->reserve(requested_size);
+            stats.amount_used += requested_size;
             return curr_header->user_ptr();
         }
 
         auto* next_header = curr_header->next_header();
         if (!next_header) {
             // Allocate more memory, setup new header
-            auto* new_header = curr_header->create_next_header(requested_size);
+            Header* new_header;
+            if (requested_size < NEW_SIZE) {
+                stats.amount_used += NEW_SIZE;
+                stats.heap_size += NEW_BLOCK_SIZE;
+                new_header = curr_header->create_next_header(NEW_SIZE);
+            } else {
+                stats.heap_size += requested_size + sizeof(Header);
+                new_header = curr_header->create_next_header(requested_size);
+            }
+
             new_header->reserve(requested_size);
             return new_header->user_ptr();
         }
@@ -144,6 +159,12 @@ void* kmalloc(size_t requested_size)
 
 void kfree(void* ptr)
 {
+    stats.num_frees++;
     auto* freed_header = (Header*)((unsigned char*)ptr - sizeof(Header));
     freed_header->destroy();
+}
+
+KMallocStats kmemstats()
+{
+    return stats;
 }
