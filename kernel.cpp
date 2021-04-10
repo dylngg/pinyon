@@ -1,5 +1,5 @@
 #include "kmalloc.hpp"
-#include <pine/console.hpp>
+#include "console.hpp"
 
 extern "C" [[noreturn]] void init();
 

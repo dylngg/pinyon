@@ -1,5 +1,5 @@
 #include "kmalloc.hpp"
-#include <pine/console.hpp>
+#include "console.hpp"
 #include <pine/types.hpp>
 
 // Somewhat arbitrary, but if we're allocating more than 64MiB I'm concerned...
