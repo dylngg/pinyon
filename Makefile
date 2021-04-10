@@ -8,11 +8,11 @@ CXXFLAGS=-Wall -Wextra -std=c++14 -g
 all: pinyon.elf
 
 # Pine: the shared Userspace and Kernel library
-pine: $(OBJDIR) $(OBJDIR)/pine/badmath.o $(OBJDIR)/pine/string.o $(OBJDIR)/pine/console.o
+pine: $(OBJDIR) $(OBJDIR)/pine/badmath.o $(OBJDIR)/pine/string.o
 
-pinyon.elf: $(OBJDIR) pine $(OBJDIR)/kernel.o $(OBJDIR)/kmalloc.o
+pinyon.elf: $(OBJDIR) pine $(OBJDIR)/kernel.o $(OBJDIR)/kmalloc.o $(OBJDIR)/console.o
 	$(CC) $(ARCHFLAGS) -c bootup.S -o $(OBJDIR)/bootup.o
-	$(CC) -T linker.ld -o pinyon.elf $(ARCHFLAGS) $(OBJDIR)/bootup.o $(OBJDIR)/kernel.o $(OBJDIR)/kmalloc.o $(OBJDIR)/pine/badmath.o $(OBJDIR)/pine/console.o $(OBJDIR)/pine/string.o
+	$(CC) -T linker.ld -o pinyon.elf $(ARCHFLAGS) $(OBJDIR)/bootup.o $(OBJDIR)/kernel.o $(OBJDIR)/kmalloc.o $(OBJDIR)/console.o $(OBJDIR)/pine/badmath.o $(OBJDIR)/pine/string.o
 
 .PHONY: fmt
 fmt:
