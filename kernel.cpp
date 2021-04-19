@@ -3,34 +3,6 @@
 
 extern "C" [[noreturn]] void init();
 
-static void readline(char* buf, size_t bufsize)
-{
-    size_t offset = 0;
-    char ch;
-
-    for (;;) {
-        ch = console_get();
-        if (ch == '\r')
-            break;
-        if (ch == '\n')
-            break;
-
-        if (offset >= bufsize - 1)
-            continue;
-
-        // For some reason local echo doesn't work on my machine, so we'll just
-        // echo it here...
-        console_put(ch);
-
-        buf[offset] = ch;
-        offset++;
-    }
-
-    console_put('\n');
-    buf[offset] = '\0';
-    return;
-}
-
 static void builtin_memstat()
 {
     auto malloc_stats = kmemstats();
@@ -46,7 +18,7 @@ static void start_shell()
 
     for (;;) {
         console("# ");
-        readline(buf, 1024);
+        console_readline(buf, 1024);
 
         if (strcmp(buf, "exit") == 0)
             break;
