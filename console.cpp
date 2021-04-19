@@ -78,6 +78,52 @@ char console_get()
     return *(volatile u32*)(UART_DATA);
 }
 
+void console_readline(char* buf, size_t bufsize)
+{
+    size_t offset = 0;
+    char ch;
+
+    for (;;) {
+        ch = console_get();
+
+        if (offset >= bufsize - 1)
+            continue;
+
+        bool stop = false;
+        switch (ch) {
+        case '\r':
+            stop = true;
+            break;
+        case '\n':
+            stop = true;
+            break;
+        case '\t':
+            // ignore; messes with delete :P
+            continue;
+        case 127:
+            // delete
+            if (offset >= 1) {
+                offset--;
+                // move left one char (D), then delete one (P)
+                console("\x1b[1D\x1b[1P");
+            }
+            continue;
+        default:
+            // local echo
+            console_put(ch);
+        }
+        if (stop)
+            break;
+
+        buf[offset] = ch;
+        offset++;
+    }
+
+    console_put('\n');
+    buf[offset] = '\0';
+    return;
+}
+
 void console(const StringView& message)
 {
     for (auto ch : message)

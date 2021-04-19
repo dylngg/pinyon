@@ -41,8 +41,10 @@ void console_put(char);
 
 char console_get();
 
-void console(const StringView& message);
+void console_readline(char*, size_t);
 
-void consoleln(const StringView& message);
+void console(const StringView&);
 
-void consolef(const StringView& fmt, ...);
+void consoleln(const StringView&);
+
+void consolef(const StringView&, ...);
