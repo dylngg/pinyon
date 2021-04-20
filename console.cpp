@@ -124,23 +124,23 @@ void console_readline(char* buf, size_t bufsize)
     return;
 }
 
-void console(const StringView& message)
+void console(const char* message)
 {
-    for (auto ch : message)
-        console_put(ch);
+    for (size_t i = 0; message[i] != '\0'; i++)
+        console_put(message[i]);
 }
 
-void consoleln(const StringView& message)
+void consoleln(const char* message)
 {
     console(message);
     console_put('\n');
 }
 
-void consolef(const StringView& fmt, ...)
+void consolef(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    const auto& try_add_wrapper = [](const StringView& message) -> bool {
+    const auto& try_add_wrapper = [](const char* message) -> bool {
         console(message);
         return true;
     };

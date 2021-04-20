@@ -9,8 +9,15 @@ void zero_out(void* target, size_t size);
 void strcpy(char* __restrict__ to, const char* from);
 size_t strlen(const char* string);
 int strcmp(const char* first, const char* second);
-void itoa10(char* buf, int num);
-void ultoa16(char* buf, unsigned long num);
+
+enum ToAFlag {
+    ToAUpper,
+    ToALower,
+};
+
+void ltoa10(char* buf, long num);
+void ultoa10(char* buf, unsigned long num);
+void ultoa16(char* buf, unsigned long num, ToAFlag flag);
 
 struct StringView {
 public:
@@ -28,10 +35,11 @@ public:
     }
     const char& operator[](size_t pos) const
     {
+        static char dummy = '\0';
         // FIXME: I'd rather have an assert here than this wackyness; this will just
         //        hide bugs
         if (pos >= __length)
-            return __chars[__length - 1];
+            return dummy;
         return __chars[pos];
     }
 

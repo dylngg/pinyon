@@ -1,7 +1,7 @@
 #pragma once
 
-unsigned int absui(int num);
+unsigned long absl(long num);
 
 unsigned int powui(unsigned int num, unsigned int power);
 
-unsigned int log10ui(unsigned int num);
+unsigned long log10ul(unsigned long num);

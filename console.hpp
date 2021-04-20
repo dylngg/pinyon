@@ -43,8 +43,8 @@ char console_get();
 
 void console_readline(char*, size_t);
 
-void console(const StringView&);
+void console(const char*);
 
-void consoleln(const StringView&);
+void consoleln(const char*);
 
-void consolef(const StringView&, ...);
+void consolef(const char*, ...) __attribute__((format(printf, 1, 2)));

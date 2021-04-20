@@ -6,8 +6,8 @@ extern "C" [[noreturn]] void init();
 static void builtin_memstat()
 {
     auto malloc_stats = kmemstats();
-    int pct_mem_util = (malloc_stats.amount_used * 100) / malloc_stats.heap_size;
-    consolef("heap size: %d bytes\nused: %d bytes (%d%% util)\nnmallocs: %d\nnfrees: %d\n",
+    unsigned int pct_mem_util = (malloc_stats.amount_used * 100) / malloc_stats.heap_size;
+    consolef("heap size: %d bytes\nused: %d bytes (%u%% util)\nnmallocs: %d\nnfrees: %d\n",
         malloc_stats.heap_size, malloc_stats.amount_used, pct_mem_util, malloc_stats.num_mallocs,
         malloc_stats.num_frees);
 }
