@@ -44,17 +44,25 @@ int strcmp(const char* first, const char* second)
     return first[offset] != second[offset];
 }
 
-void itoa10(char* buf, int num)
+void ltoa10(char* buf, long num)
 {
     // FIXME: This function is not particularly efficient, partly thanks
     //        to the following log madness and the overzealous %, pow and / below
-    unsigned int absnum = absui(num);
-    unsigned int len = log10ui(absnum) + 1;
-    unsigned int pos = 0;
+    unsigned long absnum = absl(num);
     if (num < 0) {
         buf[0] = '-';
         buf++;
     }
+
+    ultoa10(buf, absnum);
+}
+
+void ultoa10(char* buf, unsigned long num)
+{
+    // FIXME: This function is not particularly efficient, partly thanks
+    //        to the following log madness and the overzealous %, pow and / below
+    unsigned long len = log10ul(num) + 1;
+    unsigned int pos = 0;
 
     for (; pos < len; pos++) {
         // Basically we strip the leading digits till pos and then divide by
@@ -62,13 +70,13 @@ void itoa10(char* buf, int num)
         // e.g. want 3 of 345 -> 345 % 10^3 (=345) / 10^2 (=3.45)
         //           4 of 345 -> 345 % 10^2 (=45)  / 10^1 (=4.5)
         //           5 of 345 -> 345 % 10^1 (=5)   / 10^0 (=5.0)
-        unsigned int digit = (absnum % powui(10, len - pos)) / powui(10, len - pos - 1);
+        unsigned int digit = (num % powui(10, len - pos)) / powui(10, len - pos - 1);
         buf[pos] = '0' + digit;
     }
     buf[pos] = '\0';
 }
 
-void ultoa16(char* buf, unsigned long num)
+void ultoa16(char* buf, unsigned long num, ToAFlag flag)
 {
     buf[0] = '0';
     buf[1] = 'x';
@@ -86,7 +94,7 @@ void ultoa16(char* buf, unsigned long num)
         if (hex_num < 10)
             buf[pos] = hex_num + '0';
         else
-            buf[pos] = hex_num + ('A' - 10);
+            buf[pos] = hex_num + ((flag == ToAUpper ? 'A' : 'a') - 10);
 
         num >>= 4; // divide by 16, but no need for division
         pos--;

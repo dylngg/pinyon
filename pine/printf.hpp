@@ -5,81 +5,134 @@
 #include <pine/badmath.hpp>
 #include <pine/string.hpp>
 
+enum ArgModifiers {
+    ModNone,
+    ModPointer,
+    ModLong,
+};
+
 template <typename TryAddStringFunc>
-size_t vfnprintf(TryAddStringFunc& try_add_string, const StringView& fmt, va_list args)
+size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list args)
 {
+    ArgModifiers mod;
     // Keep a fake two char string on the stack for easy adding of single or dual chars
     char chstr[2] = " ";
 
-    bool expect_fmt_ch = false;
-    for (auto iter = fmt.begin(); !iter.at_end(); iter++) {
+    auto fmt_view = StringView(fmt);
+    for (auto iter = fmt_view.begin(); !iter.at_end(); iter++) {
         auto ch = *iter;
         chstr[0] = ch;
 
-        if (!expect_fmt_ch) {
-            if (ch == '%') {
-                expect_fmt_ch = true;
-                continue;
-            }
-            if (!try_add_string(chstr))
-                return false;
-
+        if (ch != '%') {
+            // Literal
+            try_add_string(chstr);
             continue;
         }
 
         // Format specifier: %s
-        switch (ch) {
-        case 's': {
-            const char* str = va_arg(args, const char*);
-            if (!try_add_string(str))
-                return false;
 
-            break;
+        iter++; // consume '%'
+        mod = ModNone;
+
+        char type_or_mod_ch = *iter;
+        if (type_or_mod_ch == 'l') {
+            mod = ModLong;
+            iter++; // consume 'l'
         }
+
+        char type_ch = *iter;
+        switch (type_ch) {
+        case 's':
+            if (!print_string(args, try_add_string))
+                return false;
+            break;
+
         case '%':
             if (!try_add_string(chstr))
                 return false;
-
             break;
-        case 'c': {
-            int arg_ch = va_arg(args, int);
-            chstr[0] = arg_ch;
-            if (!try_add_string(chstr))
+
+        case 'c':
+            if (!print_char(args, try_add_string))
                 return false;
-
             break;
-        }
-        case 'd': {
-            int num = va_arg(args, int);
-            char digits[12];
-            itoa10(digits, num);
-            if (!try_add_string(digits))
+
+        case 'u':
+            [[fallthrough]];
+        case 'd':
+            if (!print_int(type_ch, args, try_add_string, mod))
                 return false;
-
             break;
-        }
-        case 'x': {
-            // FIXME: This should be lx but we don't support that yet...
-            unsigned long num = va_arg(args, unsigned long);
-            char hex[11];
-            ultoa16(hex, num);
-            if (!try_add_string(hex))
+
+        case 'p':
+            if (!print_pointer(args, try_add_string))
                 return false;
-
             break;
-        }
-        default: {
-            // FIXME: We would assert here if we could, but we do not have
-            //        that so just print the incorrect fmt ch with a %
-            int fmt_ch = va_arg(args, int); // va_arg upcasts to int...
-            char fmt_strch[3] = { '%', (char)fmt_ch, '\0' };
-            if (!try_add_string(fmt_strch))
-                return false;
 
-            break;
+        default:
+            // Bail here. The caller may have provided an argument and if we
+            // proceed then future arguments may be misaligned...
+            // FIXME: Perhaps there is a better way to deal with this...
+            console_put('\n');
+            consolef("printf:\tUnknown character '%c'! Cannot safely proceed.\n", type_ch);
+            return false;
         }
-        }
-        expect_fmt_ch = false;
     }
     return true;
+}
+
+template <typename TryAddStringFunc>
+bool print_string(va_list& args, TryAddStringFunc& try_add_string)
+{
+    // No such modifiers for const char*
+    const char* str = va_arg(args, const char*);
+    return try_add_string(str);
+}
+
+template <typename TryAddStringFunc>
+bool print_char(va_list& args, TryAddStringFunc& try_add_string)
+{
+    // We'll ignore the long modifier here... wide chars is not
+    // something we care about
+    int arg_ch = va_arg(args, int);
+    char str[2] = " ";
+    str[0] = arg_ch;
+    return try_add_string(str);
+}
+
+template <typename TryAddStringFunc>
+bool print_int(char type_ch, va_list& args, TryAddStringFunc& try_add_string, ArgModifiers mod)
+{
+    char digits[12];
+
+    if (type_ch == 'u') {
+        unsigned long num;
+        if (mod == ModLong)
+            num = va_arg(args, unsigned long);
+        else
+            num = va_arg(args, unsigned int);
+
+        ultoa10(digits, num);
+    } else {
+        long num;
+        if (mod == ModLong)
+            num = va_arg(args, long);
+        else
+            num = va_arg(args, int);
+
+        ltoa10(digits, num);
+    }
+
+    return try_add_string(digits);
+}
+
+template <typename TryAddStringFunc>
+bool print_pointer(va_list& args, TryAddStringFunc& try_add_string)
+{
+    void* ptr = va_arg(args, void*);
+    auto ptr_data = (unsigned long)ptr;
+
+    char hex[11];
+    ultoa16(hex, ptr_data, ToALower);
+    return try_add_string(hex);
 }

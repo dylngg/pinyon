@@ -6,7 +6,7 @@
  */
 #include <pine/badmath.hpp>
 
-unsigned int absui(int num)
+unsigned long absl(long num)
 {
     return num >= 0 ? num : -num;
 }
@@ -24,9 +24,9 @@ unsigned int powui(unsigned int num, unsigned int power)
     return result;
 }
 
-unsigned int log10ui(unsigned int num)
+unsigned long log10ul(unsigned long num)
 {
-    unsigned log = 0;
+    unsigned long log = 0;
     while (num >= 10) {
         // log10(x) = y if b^y = x
         num /= 10;
