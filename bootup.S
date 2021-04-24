@@ -1,5 +1,6 @@
 .section .boot
 .global start
+.global halt
 
 start:
     /* -- Disable all but one core --*/
@@ -35,6 +36,9 @@ zbss:
 ckzbssbnds:
     cmp r2, r7
     blo zbss            /* r2 < r7; r2 is curr addr, r7 is the end of bss */
+
+preinit:
+    bl setup_vtable     /* Set up vector interrupt table */
 
     mov sp, #0x8000     /* Set up stack */
 

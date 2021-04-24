@@ -1,7 +1,9 @@
 #include "console.hpp"
+#include "interrupts.hpp"
 #include "kmalloc.hpp"
+#include "timer.hpp"
 
-extern "C" [[noreturn]] void init();
+extern "C" void init();
 
 static void builtin_memstat()
 {
@@ -10,6 +12,13 @@ static void builtin_memstat()
     consolef("heap size: %d bytes\nused: %d bytes (%u%% util)\nnmallocs: %d\nnfrees: %d\n",
         malloc_stats.heap_size, malloc_stats.amount_used, pct_mem_util, malloc_stats.num_mallocs,
         malloc_stats.num_frees);
+}
+
+static void builtin_uptime()
+{
+    auto jifs = jiffies();
+    auto seconds = jifs / SYS_HZ;
+    consolef("uptime: %lus (%lu jif)\n", seconds, jifs);
 }
 
 static void start_shell()
@@ -26,16 +35,23 @@ static void start_shell()
             builtin_memstat();
             continue;
         }
+        if (strcmp(buf, "uptime") == 0) {
+            builtin_uptime();
+            continue;
+        }
         consolef("Unknown command '%s'\n", buf);
     }
 
     kfree((void*)buf);
 }
 
-[[noreturn]] void init()
+void init()
 {
     console_init();
     consoleln("Initializing... ");
+    timer_init();
+    interrupts_init();
+
     kmalloc_init();
 
     // No good reason for this, beyond using new kmalloc calls
@@ -52,6 +68,5 @@ static void start_shell()
     start_shell();
 
     consoleln("goodbye.");
-    while (1) {
-    }
+    asm volatile("b halt");
 }
