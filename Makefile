@@ -3,16 +3,19 @@ OBJDIR=obj
 ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -nostdlib
 INCLUDE=-I.
 CXXFLAGS=-Wall -Wextra -std=c++14 -g
+PINEOBJ=$(OBJDIR)/pine/badmath.o $(OBJDIR)/pine/string.o
+KERNELOBJ=$(OBJDIR)/kernel.o $(OBJDIR)/kmalloc.o $(OBJDIR)/console.o $(OBJDIR)/interrupts.o $(OBJDIR)/timer.o
 
 .PHONY: all
 all: pinyon.elf
 
 # Pine: the shared Userspace and Kernel library
-pine: $(OBJDIR) $(OBJDIR)/pine/badmath.o $(OBJDIR)/pine/string.o
+pine: $(OBJDIR) $(PINEOBJ)
 
-pinyon.elf: $(OBJDIR) pine $(OBJDIR)/kernel.o $(OBJDIR)/kmalloc.o $(OBJDIR)/console.o
+pinyon.elf: $(OBJDIR) pine $(KERNELOBJ)
 	$(CC) $(ARCHFLAGS) -c bootup.S -o $(OBJDIR)/bootup.o
-	$(CC) -T linker.ld -o pinyon.elf $(ARCHFLAGS) $(OBJDIR)/bootup.o $(OBJDIR)/kernel.o $(OBJDIR)/kmalloc.o $(OBJDIR)/console.o $(OBJDIR)/pine/badmath.o $(OBJDIR)/pine/string.o
+	$(CC) $(ARCHFLAGS) -c vector.S -o $(OBJDIR)/vector.o
+	$(CC) -T linker.ld -o pinyon.elf $(ARCHFLAGS) $(OBJDIR)/bootup.o $(OBJDIR)/vector.o $(KERNELOBJ) $(PINEOBJ)
 
 .PHONY: fmt
 fmt:

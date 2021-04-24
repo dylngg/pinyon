@@ -1,0 +1,98 @@
+.section .text
+.global setup_vtable
+.global enable_irq
+
+setup_vtable:
+    ldr r0, =vtable
+    mov r1, #0         /* Load vtable address */
+
+    /*
+     * First load the 8 words of r0 (vtable) into corresponding r2-r9 registers;
+     * Here, the ia is the magic: after loading a particular register, the
+     * address for the next register increments. The result is a cascading 8
+     * word load of the contents of r0 into 8 registers.
+     */
+    ldmia r0!, {r2-r9}
+    /*
+     * Now do the opposite, take those 8 registers (vtable entries) and write
+     * them to r1, the location of the vector table using the same tricks.
+     */
+    stmia r1!, {r2-r9}
+    /*
+     * r0 is now pointing to immediately _after_ the vector table thanks to the
+     * magic ! char on r0!, which says to store the address after the last load
+     * into r0.
+     *
+     * Now we load and store our branch-to-abs-branch stuff to the piece of
+     * memory after the vector table. Same magic with r1!.
+     */
+    ldmia r0!, {r2-r8}
+    stmia r1!, {r2-r8}
+
+    /* Each mode, including IRQ mode, has their own stack. We'll use this to save
+     * registers in the IRQ handler. */
+    cps #0x12           /* Enter IRQ mode*/
+    mov sp, #0x1000     /* Small IRQ stack of 4KiB, this maybe a problem in the future... */
+    cps #0x13           /* Go back to supervisor mode */
+    bx lr
+
+enable_irq:
+    cpsie i             /* Enable IRQ interrupts */
+    bx lr
+
+    /*
+     * Vector tables on arm are basically a table of 4 byte code, so we want
+     * to setup a table here where we branch to particular C function. The
+     * positions of each function needs to be relative to the vector table
+     * location (at 0) due to us using -fpic (position independent code), so
+     * our solution is to branch to another branch set up relative to the
+     * table.
+     */
+vtable:
+    ldr pc, reset_b
+    ldr pc, undef_instr_b
+    ldr pc, swi_b
+    ldr pc, prefch_abrt_b
+    ldr pc, data_abrt_b
+    nop                     /* hypervisor trap; not used */
+    ldr pc, irq_b
+    ldr pc, fiq_b
+
+    /* Branch-to-another-abs-branch part */
+reset_b:        .word halt
+undef_instr_b:  .word undefined_instruction_handler
+swi_b:          .word software_interrupt_handler
+prefch_abrt_b:  .word prefetch_abort_handler
+data_abrt_b:    .word data_abort_handler
+irq_b:          .word irq_b_wrap
+fiq_b:          .word fast_irq_handler
+
+irq_b_wrap:
+    /*
+     * At this point we're in IRQ mode. The processor has saved the old PC
+     * into LR, and the old LR is saved in the old mode's LR. The old CPSR is
+     * also saved into this mode's SPSR, so we'll have to save that upon
+     * restoration.
+     *
+     * It should be noted that each mode also has their own stack, we've set
+     * this up in setup_vtable. We use this to save caller registers before
+     * our C handler.
+     *
+     * Also, this code does not handle nested interrupts well or at all.
+     *
+     * The following slide deck found on the internet were a godsend:
+     * http://s3-us-west-2.amazonaws.com/valpont/uploads/20160326012043/Exception_handling.pdf
+     *
+     * See also B1.8.3 in ARMv7 Reference Manual
+     */
+    sub lr, lr, #4          /* LR points to next instruction; undo that quirk */
+    srsdb #0x12!            /* Save SPRS and LR on the IRQ stack */
+    // FIXME: add f to i when FIQ support is added
+    cpsid i                 /* Disable interrupts; I don't know how to deal with nested interrupts. */
+    push {r0-r4, r12, lr}   /* We're going to b to C code, so we need to save caller registers */
+    and r4, sp, #4          /* Align the stack */
+    sub sp, sp, r4
+    bl irq_handler
+    add sp, sp, r4          /* Undo stack alignment */
+    pop {r0-r4, r12, lr}
+    rfeia sp!               /* Return to LR, restore SPRS into CPRS (e.g. returns back to old mode) */
