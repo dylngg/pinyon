@@ -48,7 +48,6 @@ void irq_handler(void)
         timer->reinit();
     }
 }
-
 }
 
 void IRQManager::enable_timer() volatile

@@ -1,4 +1,5 @@
 #include "console.hpp"
+#include "interrupts.hpp"
 #include <pine/printf.hpp>
 #include <pine/string.hpp>
 
@@ -12,6 +13,7 @@ static inline void spin(int32_t count)
 
 void console_init()
 {
+    MemoryBarrier barrier {};
     /*
      * This bit of code was modified from:
      * https://jsandler18.github.io/explanations/kernel_c.html
@@ -126,6 +128,7 @@ void console_readline(char* buf, size_t bufsize)
 
 void console(const char* message)
 {
+    MemoryBarrier barrier {};
     for (size_t i = 0; message[i] != '\0'; i++)
         console_put(message[i]);
 }
