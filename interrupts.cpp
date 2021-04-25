@@ -1,5 +1,6 @@
 #include "interrupts.hpp"
 #include "console.hpp"
+#include "tasks.hpp"
 #include "timer.hpp"
 
 extern "C" {
@@ -18,8 +19,7 @@ void undefined_instruction_handler(void)
 
 void software_interrupt_handler(void)
 {
-    consolef("interrupt:\tHandling syscall...\n");
-    asm volatile("b halt");
+    TaskManager::manager().schedule();
 }
 
 void prefetch_abort_handler(void)
@@ -48,10 +48,12 @@ void irq_handler(void)
         timer->reinit();
     }
 }
+
 }
 
 void IRQManager::enable_timer() volatile
 {
+    MemoryBarrier barrier {};
     enable_irq1 = 0x00000002;
 }
 

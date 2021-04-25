@@ -11,10 +11,10 @@
  * If we get virtual memory working I estimate we'll keep
  * our page tables, stack, etc under this mark...
  *
- * Devices start at 0x3F000000, so avoid going past that.
+ * Stacks end at 0x3EE00000 (devices start at 0x3F000000), so avoid going past that.
  */
 #define HEAP_START 0x00440000
-#define HEAP_END 0x3EFFF000
+#define HEAP_END 0x3EE00000
 
 struct Header {
     Header(Header* prev_header, Header* next_header, size_t block_size, bool is_free)
