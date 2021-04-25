@@ -39,6 +39,41 @@ private:
     u32 disable_basic_irq = 0;
 };
 
+// Forces a data memory barrier on creation and destroy. This is only needed
+// when the underlying virtual memory map is not strongly ordered.
+class MemoryBarrier {
+public:
+    MemoryBarrier() __attribute__((always_inline))
+    {
+        asm volatile("dmb");
+    }
+
+    ~MemoryBarrier() __attribute__((always_inline))
+    {
+        asm volatile("dmb");
+    }
+
+    static void sync() __attribute__((always_inline))
+    {
+        asm volatile("dmb");
+    }
+};
+
+class InterruptDisabler {
+public:
+    InterruptDisabler() __attribute__((always_inline))
+    {
+        asm volatile("cpsid i");
+    }
+
+    ~InterruptDisabler() __attribute__((always_inline))
+    {
+        asm volatile("cpsie i");
+    }
+};
+
+void interrupts_init();
+
 extern "C" {
 
 void reset_handler(void) __attribute__((interrupt("ABORT")));
@@ -63,25 +98,3 @@ void irq_handler(void);
 // See vector.S for implementation
 void enable_irq(void);
 }
-
-void interrupts_init();
-
-// Forces a data memory barrier on creation and destroy. This is only needed
-// when the underlying virtual memory map is not strongly ordered.
-class MemoryBarrier {
-public:
-    MemoryBarrier() __attribute__((always_inline))
-    {
-        asm volatile("dmb");
-    }
-
-    ~MemoryBarrier() __attribute__((always_inline))
-    {
-        asm volatile("dmb");
-    }
-
-    static void sync() __attribute__((always_inline))
-    {
-        asm volatile("dmb");
-    }
-};

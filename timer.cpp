@@ -14,6 +14,9 @@ void SystemTimer::init() volatile
     {
         MemoryBarrier barrier {};
         compare1 = lower_bits + timer_counter_match;
+
+        // Clear timer match flag
+        control |= (1 << 1);
     }
 }
 
@@ -39,7 +42,7 @@ bool SystemTimer::matched() const volatile
 
 void timer_init()
 {
-    g_system_timer->init();
+    SystemTimer::timer()->init();
     IRQManager::manager()->enable_timer();
 }
 

@@ -1,11 +1,23 @@
 #pragma once
 #include <pine/types.hpp>
 
+/*
+ * The system timer on the BCM2835 is uh... interesting.
+ *
+ * It has a single counter that contiously goes up. You can match against that
+ * counter using four comparison registers, but the GPU uses registers 0 and 2,
+ * so you can't use those (undocumented of course).
+ *
+ * When your timer goes off your interrupt is supposed to set a new counter
+ * value based on the current counter. This of course leads to race conditions.
+ */
+
 // The CPU runs at 1 MHz
 #define TIMER_HZ 1000000
 
-// Interrupt ourselves every 100ms
-#define SYS_HZ 100
+// Interrupt ourselves every 1s, with QEMU this is the safe option, otherwise
+// we might miss a IRQ and are left with no timer.
+#define SYS_HZ 1
 
 /*
  * System timer base. See section 12.1 on page 172 in the BCM2835 Manual for
@@ -15,9 +27,10 @@
 
 struct SystemTimer;
 
-static volatile SystemTimer* g_system_timer = (volatile SystemTimer*)TIM_BASE;
+static auto* g_system_timer = (volatile SystemTimer*)TIM_BASE;
 
 struct SystemTimer {
+public:
     void init() volatile;
 
     void reinit() volatile;

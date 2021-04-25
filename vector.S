@@ -38,6 +38,7 @@ setup_vtable:
 
 enable_irq:
     cpsie i             /* Enable IRQ interrupts */
+    dmb
     bx lr
 
     /*
@@ -61,7 +62,7 @@ vtable:
     /* Branch-to-another-abs-branch part */
 reset_b:        .word halt
 undef_instr_b:  .word undefined_instruction_handler
-swi_b:          .word software_interrupt_handler
+swi_b:          .word swi_b_wrap
 prefch_abrt_b:  .word prefetch_abort_handler
 data_abrt_b:    .word data_abort_handler
 irq_b:          .word irq_b_wrap
@@ -80,19 +81,37 @@ irq_b_wrap:
      *
      * Also, this code does not handle nested interrupts well or at all.
      *
-     * The following slide deck found on the internet were a godsend:
+     * The following slide deck found on the internet is extremely useful:
      * http://s3-us-west-2.amazonaws.com/valpont/uploads/20160326012043/Exception_handling.pdf
      *
      * See also B1.8.3 in ARMv7 Reference Manual
      */
     sub lr, lr, #4          /* LR points to next instruction; undo that quirk */
     srsdb #0x12!            /* Save SPRS and LR on the IRQ stack */
-    // FIXME: add f to i when FIQ support is added
-    cpsid i                 /* Disable interrupts; I don't know how to deal with nested interrupts. */
-    push {r0-r4, r12, lr}   /* We're going to b to C code, so we need to save caller registers */
+    push {r0-r4, r12, lr}   /* We're going to B to C code, so we need to save caller registers */
     and r4, sp, #4          /* Align the stack */
     sub sp, sp, r4
     bl irq_handler
     add sp, sp, r4          /* Undo stack alignment */
     pop {r0-r4, r12, lr}
     rfeia sp!               /* Return to LR, restore SPRS into CPRS (e.g. returns back to old mode) */
+
+swi_b_wrap:
+    /*
+     * At this point we are in supervisor mode, so SP is our supervisor stack
+     * and LR is our supervisor link register, which points to after the SWI
+     * instruction. If we want to get the number assicated with the SWI, we
+     * basically have to load the SWI instruction (LR-4) into a register and
+     * mask off the first 8 bits (the opcode).
+     *
+     * The following docs were useful:
+     * https://heyrick.eu/assembler/swi.html
+     */
+    // FIXME: Switch back to old CPSR; we can get away with it right now because we never drop privs
+    push {r0-r4, r12, lr}   /* We're going to B to C code, so we need to save caller registers */
+    and r4, sp, #4          /* Align the stack */
+    sub sp, sp, r4
+    bl software_interrupt_handler
+    add sp, sp, r4          /* Undo stack alignment */
+    pop {r0-r4, r12, lr}
+    bx lr
