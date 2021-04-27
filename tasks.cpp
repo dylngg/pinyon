@@ -1,6 +1,7 @@
 #include "tasks.hpp"
 #include "interrupts.hpp"
 #include "kmalloc.hpp"
+#include "timer.hpp"
 #include <pine/string.hpp>
 
 extern "C" {
@@ -15,6 +16,8 @@ Task::Task(const char* name, u32 stack_pointer, u32 pc)
     m_sp = stack_pointer;
     m_pc = pc;
     m_state = TaskNew;
+    m_sleep_period = 0;
+    m_sleep_start_time = 0;
     m_name = (char*)kmalloc(sizeof *name * (strlen(name) + 1));
     strcpy(m_name, name);
 }
@@ -33,6 +36,36 @@ void Task::start()
 {
     m_state = TaskRunnable;
     task_start(m_pc, m_sp);
+}
+
+void Task::sleep(u32 secs)
+{
+    m_state = TaskSleeping;
+    m_sleep_start_time = jiffies();
+    m_sleep_period = secs;
+}
+
+void Task::update_state()
+{
+    if (m_state == TaskSleeping && m_sleep_start_time + m_sleep_period <= jiffies()) {
+        m_state = TaskRunnable;
+        m_sleep_start_time = 0;
+        m_sleep_period = 0;
+    }
+}
+
+Task& TaskManager::pick_next_task()
+{
+    do {
+        // Round robben
+        m_running_task_index++;
+        if (m_running_task_index >= m_num_tasks)
+            m_running_task_index = 0;
+
+        m_tasks[m_running_task_index].update_state();
+    } while (!m_tasks[m_running_task_index].can_run());
+
+    return m_tasks[m_running_task_index];
 }
 
 void TaskManager::schedule()
@@ -64,7 +97,7 @@ extern "C" {
 [[noreturn]] void spin_task()
 {
 top:
-    asm volatile("swi 0");
+    asm volatile("swi 0"); // yield
     goto top;
 }
 }
@@ -85,6 +118,9 @@ TaskManager::TaskManager()
                  : "=r"(shell_task_addr));
 
     m_tasks[0] = Task("shell", 0x3EF00000, shell_task_addr);
+    // The idea behind this task is that it will always be runnable so we
+    // never have to deal with no runnable tasks. It will spin of course,
+    // which is not ideal :P
     m_tasks[1] = Task("spin", 0x3F000000, spin_task_addr);
     m_num_tasks = 2;
     m_running_task_index = 0;

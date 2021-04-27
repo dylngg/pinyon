@@ -1,6 +1,7 @@
 #include "shell.hpp"
 #include "console.hpp"
 #include "kmalloc.hpp"
+#include "syscall.hpp"
 #include "timer.hpp"
 
 static void builtin_memstat()
@@ -40,7 +41,13 @@ void shell()
             continue;
         }
         if (strcmp(buf, "yield") == 0) {
+            syscall_yield();
             asm volatile("swi 0"); // yield
+            continue;
+        }
+        if (strcmp(buf, "sleep") == 0) {
+            consoleln("Sleeping for 2 seconds.");
+            syscall_sleep(2);
             continue;
         }
         consolef("Unknown command '%s'\n", buf);

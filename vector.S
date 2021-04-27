@@ -103,15 +103,19 @@ swi_b_wrap:
      * and LR is our supervisor link register, which points to after the SWI
      * instruction. If we want to get the number assicated with the SWI, we
      * basically have to load the SWI instruction (LR-4) into a register and
-     * mask off the first 8 bits (the opcode).
+     * mask off the last 8 bits (the opcode, bits 31-24).
      *
      * The following docs were useful:
      * https://heyrick.eu/assembler/swi.html
+     * https://iitd-plos.github.io/col718/ref/arm-instructionset.pdf
      */
     // FIXME: Switch back to old CPSR; we can get away with it right now because we never drop privs
     push {r0-r4, r12, lr}   /* We're going to B to C code, so we need to save caller registers */
     and r4, sp, #4          /* Align the stack */
     sub sp, sp, r4
+    mov r1, r0              /* Copy user args into user defined arg */
+    ldr r0, [lr, #-4]       /* Get SWI instruction */
+    bic r0, r0, #0xFF000000 /* Mask off last 8 bits to get syscall id */
     bl software_interrupt_handler
     add sp, sp, r4          /* Undo stack alignment */
     pop {r0-r4, r12, lr}
