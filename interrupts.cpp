@@ -17,9 +17,26 @@ void undefined_instruction_handler(void)
     asm volatile("b halt");
 }
 
-void software_interrupt_handler(void)
+void software_interrupt_handler(u32 syscall_id, u32 arg)
 {
-    TaskManager::manager().schedule();
+    auto& task_manager = TaskManager::manager();
+    auto& task = task_manager.running_task();
+
+    //consolef("Handling syscall %ld with args %ld\n", syscall_id, arg);
+
+    switch (syscall_id) {
+    case 0:
+        // yield()
+        task_manager.schedule();
+        break;
+    case 1:
+        // sleep()
+        task.sleep(arg);
+        task_manager.schedule();
+        break;
+    default:
+        consolef("kernel:\tUnknown syscall_id number %ld\n", syscall_id);
+    }
 }
 
 void prefetch_abort_handler(void)
