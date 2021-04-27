@@ -46,6 +46,7 @@ void irq_handler(void)
     if (timer->matched()) {
         increase_jiffies();
         timer->reinit();
+        TaskManager::manager().schedule();
     }
 }
 }

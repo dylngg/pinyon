@@ -87,7 +87,8 @@ irq_b_wrap:
      * See also B1.8.3 in ARMv7 Reference Manual
      */
     sub lr, lr, #4          /* LR points to next instruction; undo that quirk */
-    srsdb #0x12!            /* Save SPRS and LR on the IRQ stack */
+    srsdb #0x13!            /* Save SPRS and LR on the supervisor stack */
+    cps #0x13               /* Switch to supervisor mode */
     push {r0-r4, r12, lr}   /* We're going to B to C code, so we need to save caller registers */
     and r4, sp, #4          /* Align the stack */
     sub sp, sp, r4
