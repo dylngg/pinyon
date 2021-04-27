@@ -19,6 +19,7 @@ void strcpy(char* __restrict__ to, const char* from)
         to++;
         from++;
     }
+    *to = '\0';
 }
 
 size_t strlen(const char* string)
