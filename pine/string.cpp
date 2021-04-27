@@ -35,7 +35,7 @@ int strcmp(const char* first, const char* second)
 {
     size_t offset = 0;
     while (first[offset] != '\0' && second[offset] != '\0') {
-        int diff = first[offset] - second[offset];
+        int diff = (unsigned char) first[offset] - (unsigned char) second[offset];
         if (diff > 0)
             return 1;
         if (diff < 0)
