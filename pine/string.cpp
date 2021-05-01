@@ -91,7 +91,7 @@ void ultoa16(char* buf, unsigned long num, ToAFlag flag)
 
     pos = 7;
     while (pos >= 0 && num > 0) {
-        long hex_num = num % 16;
+        unsigned long hex_num = num % 16;
         if (hex_num < 10)
             buf[pos] = hex_num + '0';
         else
