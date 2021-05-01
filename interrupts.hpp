@@ -80,7 +80,7 @@ void reset_handler(void) __attribute__((interrupt("ABORT")));
 
 void undefined_instruction_handler(void) __attribute__((interrupt("UNDEF")));
 
-void software_interrupt_handler(u32 syscall_id, u32 arg) __attribute__((interrupt("SWI")));
+void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2) __attribute__((interrupt("SWI")));
 
 void prefetch_abort_handler(void) __attribute__((interrupt("ABORT")));
 

@@ -4,7 +4,7 @@ ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -nostdlib
 INCLUDE=-I.
 CXXFLAGS=-Wall -Wextra -std=c++14 -g
 PINE_OBJ=$(OBJDIR)/pine/badmath.o $(OBJDIR)/pine/string.o
-KERNEL_OBJ=$(OBJDIR)/kernel.o $(OBJDIR)/kmalloc.o $(OBJDIR)/console.o $(OBJDIR)/interrupts.o $(OBJDIR)/timer.o $(OBJDIR)/tasks.o $(OBJDIR)/shell.o
+KERNEL_OBJ=$(OBJDIR)/kernel.o $(OBJDIR)/kmalloc.o $(OBJDIR)/console.o $(OBJDIR)/interrupts.o $(OBJDIR)/timer.o $(OBJDIR)/tasks.o $(OBJDIR)/shell.o $(OBJDIR)/lib.o
 KERNEL_ASM_OBJ=$(OBJDIR)/bootup.o $(OBJDIR)/vector.o $(OBJDIR)/switch.o $(OBJDIR)/syscall.o
 
 .PHONY: all

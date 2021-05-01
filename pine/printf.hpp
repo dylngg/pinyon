@@ -73,8 +73,6 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list args
             // Bail here. The caller may have provided an argument and if we
             // proceed then future arguments may be misaligned...
             // FIXME: Perhaps there is a better way to deal with this...
-            console_put('\n');
-            consolef("printf:\tUnknown character '%c'! Cannot safely proceed.\n", type_ch);
             return false;
         }
     }
