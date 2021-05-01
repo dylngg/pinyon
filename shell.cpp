@@ -41,7 +41,6 @@ void shell()
         }
         if (strcmp(buf, "yield") == 0) {
             yield();
-            asm volatile("swi 0"); // yield
             continue;
         }
         if (strcmp(buf, "sleep") == 0) {
