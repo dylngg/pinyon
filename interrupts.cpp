@@ -17,7 +17,7 @@ void undefined_instruction_handler(void)
     asm volatile("b halt");
 }
 
-void software_interrupt_handler(u32 syscall_id, u32 arg)
+void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
 {
     auto& task_manager = TaskManager::manager();
     auto& task = task_manager.running_task();
@@ -31,8 +31,16 @@ void software_interrupt_handler(u32 syscall_id, u32 arg)
         break;
     case 1:
         // sleep()
-        task.sleep(arg);
+        task.sleep(arg1);
         task_manager.schedule();
+        break;
+    case 2:
+        // readline()
+        task.readline((char*)arg1, arg2);
+        break;
+    case 3:
+        // write()
+        task.write((char*)arg1, arg2);
         break;
     default:
         consolef("kernel:\tUnknown syscall_id number %ld\n", syscall_id);
@@ -61,9 +69,11 @@ void irq_handler(void)
 {
     auto timer = SystemTimer::timer();
     if (timer->matched()) {
-        increase_jiffies();
         timer->reinit();
-        TaskManager::manager().schedule();
+        increase_jiffies();
+
+        auto& task_manager = TaskManager::manager();
+        task_manager.schedule();
     }
 }
 }

@@ -113,7 +113,8 @@ swi_b_wrap:
     push {r0-r4, r12, lr}   /* We're going to B to C code, so we need to save caller registers */
     and r4, sp, #4          /* Align the stack */
     sub sp, sp, r4
-    mov r1, r0              /* Copy user args into user defined arg */
+    mov r2, r1              /* Copy user args into user defined arg */
+    mov r1, r0
     ldr r0, [lr, #-4]       /* Get SWI instruction */
     bic r0, r0, #0xFF000000 /* Mask off last 8 bits to get syscall id */
     bl software_interrupt_handler

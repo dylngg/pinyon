@@ -45,6 +45,17 @@ void Task::sleep(u32 secs)
     m_sleep_period = secs;
 }
 
+void Task::readline(char* buf, size_t at_most_bytes)
+{
+    console_readline(buf, at_most_bytes);
+}
+
+void Task::write(char* buf, size_t bytes)
+{
+    for (size_t i = 0; i < bytes; i++)
+        console_put(buf[i]);
+}
+
 void Task::update_state()
 {
     if (m_state == TaskSleeping && m_sleep_start_time + m_sleep_period <= jiffies()) {
