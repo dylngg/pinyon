@@ -4,7 +4,7 @@
  * performance and correctness problems, partly stemming from the author's
  * ignorance of math.
  */
-#include <pine/badmath.hpp>
+#include "badmath.hpp"
 
 unsigned long absl(long num)
 {

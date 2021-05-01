@@ -1,4 +1,4 @@
-#include <pine/string.hpp>
+#include "string.hpp"
 // Note: this magic header comes from GCC's builtin functions
 //       https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#Other-Builtins
 #include "stdarg.h"
