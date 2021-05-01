@@ -37,13 +37,11 @@
 
 void console_init();
 
-void console_put(char);
-
-char console_get();
-
 void console_readline(char*, size_t);
 
 void console(const char*);
+
+void console(const char*, size_t);
 
 void consoleln(const char*);
 

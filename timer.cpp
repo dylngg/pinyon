@@ -1,5 +1,6 @@
 #include "timer.hpp"
 #include "interrupts.hpp"
+#include <pine/barrier.hpp>
 
 static u32 timer_counter_match;
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "console.hpp"
+#include <pine/barrier.hpp>
 #include <pine/types.hpp>
 
 /*
@@ -11,14 +12,14 @@
 
 struct IRQManager;
 
-static volatile IRQManager* g_irq_manager = (IRQManager*)IRQ_BASE;
-
 struct IRQManager {
     IRQManager() {};
 
     void enable_timer() volatile;
     static volatile IRQManager* manager()
     {
+        static volatile IRQManager* g_irq_manager = (IRQManager*)IRQ_BASE;
+        MemoryBarrier::sync();
         return g_irq_manager;
     }
 
@@ -37,26 +38,6 @@ private:
     u32 disable_irq1 = 0;
     u32 disable_irq2 = 0;
     u32 disable_basic_irq = 0;
-};
-
-// Forces a data memory barrier on creation and destroy. This is only needed
-// when the underlying virtual memory map is not strongly ordered.
-class MemoryBarrier {
-public:
-    MemoryBarrier() __attribute__((always_inline))
-    {
-        asm volatile("dmb");
-    }
-
-    ~MemoryBarrier() __attribute__((always_inline))
-    {
-        asm volatile("dmb");
-    }
-
-    static void sync() __attribute__((always_inline))
-    {
-        asm volatile("dmb");
-    }
 };
 
 class InterruptDisabler {
