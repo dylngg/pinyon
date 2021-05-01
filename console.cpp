@@ -1,9 +1,9 @@
 #include "console.hpp"
-#include "interrupts.hpp"
+#include <pine/barrier.hpp>
 #include <pine/printf.hpp>
 #include <pine/string.hpp>
 
-static inline void spin(int32_t count)
+static inline void spin(u32 count)
 {
     asm volatile("__spin_%=: subs %[count], %[count], #1; bne __spin_%=\n"
                  : "=r"(count)
@@ -64,7 +64,8 @@ void console_init()
     // Enable the UART (0), enable transmit/recieve (8, 9)
     *(volatile u32*)(UART_CR) = (1 << 0) | (1 << UART_CR_TXE) | (1 << UART_CR_RXE);
 }
-void console_put(char ch)
+
+static void console_put(char ch)
 {
     // 5: TXFF bit; set when transmit FIFO is full
     while (*(volatile u32*)(UART_FR) & (1 << 5)) {
@@ -72,7 +73,7 @@ void console_put(char ch)
     *(volatile u32*)(UART_DATA) = ch;
 }
 
-char console_get()
+static char console_get()
 {
     // 4: RXFE bit; set when recieve FIFO is full
     while (*(volatile u32*)(UART_FR) & (1 << 4)) {
@@ -133,8 +134,16 @@ void console(const char* message)
         console_put(message[i]);
 }
 
+void console(const char* message, size_t bytes)
+{
+    MemoryBarrier barrier {};
+    for (size_t i = 0; i < bytes; i++)
+        console_put(message[i]);
+}
+
 void consoleln(const char* message)
 {
+    MemoryBarrier barrier {};
     console(message);
     console_put('\n');
 }

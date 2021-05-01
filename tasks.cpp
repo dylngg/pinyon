@@ -2,6 +2,7 @@
 #include "interrupts.hpp"
 #include "kmalloc.hpp"
 #include "timer.hpp"
+#include <pine/barrier.hpp>
 #include <pine/string.hpp>
 
 extern "C" {
@@ -52,8 +53,7 @@ void Task::readline(char* buf, size_t at_most_bytes)
 
 void Task::write(char* buf, size_t bytes)
 {
-    for (size_t i = 0; i < bytes; i++)
-        console_put(buf[i]);
+    console(buf, bytes);
 }
 
 void Task::update_state()
@@ -92,10 +92,10 @@ void TaskManager::schedule()
     curr_task.switch_to(to_run_task);
 }
 
-static TaskManager g_task_manager;
-
 TaskManager& TaskManager::manager()
 {
+    static TaskManager g_task_manager {};
+    MemoryBarrier::sync();
     return g_task_manager;
 }
 
@@ -139,7 +139,5 @@ TaskManager::TaskManager()
 
 void tasks_init()
 {
-    TaskManager manager {};
-    g_task_manager = manager;
-    g_task_manager.start_scheduler();
+    TaskManager::manager().start_scheduler();
 }

@@ -1,6 +1,6 @@
 CC=arm-none-eabi-g++
 OBJDIR=obj
-ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -nostdlib
+ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -nostdlib -fno-threadsafe-statics
 INCLUDE=-I.
 CXXFLAGS=-Wall -Wextra -std=c++14 -g
 PINE_OBJ=$(OBJDIR)/pine/badmath.o $(OBJDIR)/pine/string.o
