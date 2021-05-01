@@ -12,14 +12,12 @@
 
 struct IRQManager;
 
-struct IRQManager {
-    IRQManager() {};
+static auto* g_irq_manager = (volatile IRQManager*)IRQ_BASE;
 
+struct IRQManager {
     void enable_timer() volatile;
     static volatile IRQManager* manager()
     {
-        static volatile IRQManager* g_irq_manager = (IRQManager*)IRQ_BASE;
-        MemoryBarrier::sync();
         return g_irq_manager;
     }
 
@@ -28,16 +26,16 @@ private:
      * See section 7.5 on page 112 in the BCM2835 manual for the
      * definition of these
      */
-    u32 pending_basic_irq = 0;
-    u32 pending_irq1 = 0;
-    u32 pending_irq2 = 0;
-    u32 fiq_ctrl = 0;
-    u32 enable_irq1 = 0;
-    u32 enable_irq2 = 0;
-    u32 enable_basic_irq = 0;
-    u32 disable_irq1 = 0;
-    u32 disable_irq2 = 0;
-    u32 disable_basic_irq = 0;
+    u32 pending_basic_irq;
+    u32 pending_irq1;
+    u32 pending_irq2;
+    u32 fiq_ctrl;
+    u32 enable_irq1;
+    u32 enable_irq2;
+    u32 enable_basic_irq;
+    u32 disable_irq1;
+    u32 disable_irq2;
+    u32 disable_basic_irq;
 };
 
 class InterruptDisabler {
