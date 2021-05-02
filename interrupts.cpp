@@ -42,6 +42,19 @@ void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
         // write()
         task.write((char*)arg1, arg2);
         break;
+    case 4: {
+        // heap_allocate()
+        void** start_addr_ptr = (void**)arg1;
+        *start_addr_ptr = (void*)task.heap_allocate();
+        break;
+    }
+    case 5: {
+        // heap_incr()
+        size_t incr_bytes = (size_t)arg1;
+        size_t* actual_incr_size = (size_t*)arg2;
+        *actual_incr_size = task.heap_increase(incr_bytes);
+        break;
+    }
     default:
         consolef("kernel:\tUnknown syscall_id number %ld\n", syscall_id);
     }

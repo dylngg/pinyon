@@ -1,11 +1,7 @@
 #include "kmalloc.hpp"
 #include "console.hpp"
+#include <pine/barrier.hpp>
 #include <pine/types.hpp>
-
-// Somewhat arbitrary, but if we're allocating more than 64MiB I'm concerned...
-#define MAX_SIZE 67108864
-#define MIN_SIZE 8
-#define NEW_BLOCK_SIZE 4096
 
 /*
  * If we get virtual memory working I estimate we'll keep
@@ -16,155 +12,74 @@
 #define HEAP_START 0x00440000
 #define HEAP_END 0x3EE00000
 
-struct Header {
-    Header(Header* prev_header, Header* next_header, size_t block_size, bool is_free)
-        : prev(prev_header)
-        , next(next_header)
-        , size(block_size)
-        , free(is_free)
-    {
-    }
-
-    constexpr bool is_free(size_t requested_size) const
-    {
-        return free && size >= requested_size;
-    }
-    constexpr void* user_ptr()
-    {
-        return this + 1;
-    }
-    constexpr Header* next_header() const
-    {
-        return next;
-    }
-    Header* calc_next_header()
-    {
-        return (Header*)((unsigned char*)(this) + sizeof(*this) + size);
-    }
-
-    Header* create_next_header(size_t requested_size)
-    {
-        auto* new_next_header = calc_next_header();
-        *new_next_header = { this, next, requested_size, true };
-
-        if (next) {
-            // Ensure next points back to this new split, rather than ourselves
-            next->prev = new_next_header;
-        }
-
-        next = new_next_header;
-        return new_next_header;
-    }
-
-    void reserve(size_t requested_size)
-    {
-        size_t min_block_size = sizeof(*this) + MIN_SIZE;
-
-        if (size - requested_size > min_block_size) {
-            // can split into two blocks
-            size_t remaining_size = size - requested_size - sizeof(*this);
-            size = requested_size;
-            free = false;
-
-            create_next_header(remaining_size);
-            return;
-        }
-
-        // no need for splitting, or really anything at all... :)
-        free = false;
-    }
-
-    void destroy()
-    {
-        free = true;
-
-        if (next && next->free) {
-            // Coalesce right block into ours
-            size += sizeof(*next) + next->size;
-            next = next->next; // now our next is our adopted's next
-
-            if (next && next->prev) {
-                // ensure next's prev header (previously next->next) points to
-                // us, rather than the coalesced block we've adopted
-                next->prev = this;
-            }
-        }
-        if (prev && prev->free) {
-            // Coalese left block; take recursive approach and let prev adopt us
-            prev->destroy();
-            return;
-        }
-        return;
-    }
-
-private:
-    Header* prev;
-    Header* next;
-    u32 size;
-    bool free;
-};
-
-#define NEW_SIZE ((NEW_BLOCK_SIZE) - (sizeof(Header)))
-
-static Header* first_free_header = (Header*)HEAP_START;
-static KMallocStats stats;
-
-void kmalloc_init()
+KernelMemoryBounds::KernelMemoryBounds(PtrData heap_start, PtrData heap_end_bound)
 {
-    *first_free_header = Header { nullptr, nullptr, NEW_SIZE, true };
-    stats.heap_size = NEW_BLOCK_SIZE;
-    stats.amount_used = 0;
-    stats.num_mallocs = 0;
+    m_heap_start = heap_start;
+    m_heap_size = 0;
+    m_heap_end_bound = heap_end_bound;
+}
+
+PtrData KernelMemoryBounds::heap_start() const
+{
+    return m_heap_start;
+}
+
+PtrData KernelMemoryBounds::heap_end() const
+{
+    return m_heap_start + m_heap_size;
+}
+
+size_t KernelMemoryBounds::try_extend_heap(size_t by_size)
+{
+    if (heap_start() + by_size <= m_heap_end_bound) {
+        m_heap_size += by_size;
+        return by_size;
+    }
+
+    // Cannot allocate memory!
+    return 0;
+}
+
+PtrData KernelMemoryBounds::try_reserve_topdown_space(size_t stack_size)
+{
+    if (m_heap_end_bound - stack_size < heap_end()) {
+        consolef("kmalloc:\tCannot allocate space at top for %d!\n", stack_size);
+        return 0;
+    }
+
+    PtrData stack_start = m_heap_end_bound;
+    m_heap_end_bound -= stack_size;
+    return stack_start;
+}
+
+KernelMemoryBounds& KernelMemoryBounds::bounds()
+{
+    static KernelMemoryBounds g_kernel_heap_bounds { HEAP_START, HEAP_END };
+    MemoryBarrier::sync();
+    return g_kernel_heap_bounds;
+}
+
+KernelMemoryAllocator& kmem_allocator()
+{
+    static KernelMemoryAllocator g_kernel_allocator { KernelMemoryBounds::bounds() };
+    return g_kernel_allocator;
 }
 
 void* kmalloc(size_t requested_size)
 {
-    stats.num_mallocs++;
-    if (requested_size > MAX_SIZE) {
-        consolef("kmalloc:\trequested_size requested is too large!");
-        return nullptr;
-    }
+    void* ptr = kmem_allocator().allocate(requested_size);
+    if (!ptr)
+        consolef("kmalloc:\tNo free space available?!\n");
 
-    auto* curr_header = first_free_header;
-    while ((PtrData)curr_header < HEAP_END) {
-        if (curr_header->is_free(requested_size)) {
-            curr_header->reserve(requested_size);
-            stats.amount_used += requested_size;
-            return curr_header->user_ptr();
-        }
-
-        auto* next_header = curr_header->next_header();
-        if (!next_header) {
-            // Allocate more memory, setup new header
-            Header* new_header;
-            if (requested_size < NEW_SIZE) {
-                stats.amount_used += NEW_SIZE;
-                stats.heap_size += NEW_BLOCK_SIZE;
-                new_header = curr_header->create_next_header(NEW_SIZE);
-            } else {
-                stats.heap_size += requested_size + sizeof(Header);
-                new_header = curr_header->create_next_header(requested_size);
-            }
-
-            new_header->reserve(requested_size);
-            return new_header->user_ptr();
-        }
-        curr_header = next_header;
-    }
-
-    // No free space?!
-    consolef("kmalloc:\tNo free space available?!");
-    return nullptr;
+    return ptr;
 }
 
 void kfree(void* ptr)
 {
-    stats.num_frees++;
-    auto* freed_header = (Header*)((unsigned char*)ptr - sizeof(Header));
-    freed_header->destroy();
+    kmem_allocator().free(ptr);
 }
 
-KMallocStats kmemstats()
+MallocStats kmemstats()
 {
-    return stats;
+    return kmem_allocator().stats();
 }

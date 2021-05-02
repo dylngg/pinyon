@@ -3,6 +3,8 @@
 .global syscall_sleep
 .global syscall_readline
 .global syscall_write
+.global syscall_heap_reserve
+.global syscall_heap_incr
 
 /*
  * I'm not sure if this is a standard thing, or a bug, but the link
@@ -33,5 +35,17 @@ syscall_readline:
 syscall_write:
     push {lr}
     swi 3
+    pop {lr}
+    bx lr
+
+syscall_heap_reserve:
+    push {lr}
+    swi 4
+    pop {lr}
+    bx lr
+
+syscall_heap_incr:
+    push {lr}
+    swi 5
     pop {lr}
     bx lr

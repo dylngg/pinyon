@@ -17,6 +17,8 @@ public:
     void sleep(u32 ms);
     void readline(char* buf, size_t at_most_bytes);
     void write(char* buf, size_t bytes);
+    PtrData heap_allocate();
+    PtrData heap_increase(size_t bytes);
 
     friend TaskManager;
 
@@ -33,6 +35,9 @@ private:
     u32 m_sleep_start_time;
     char* m_name;
     TaskState m_state;
+    size_t m_heap_start;
+    size_t m_heap_size;
+    size_t m_heap_reserved;
 };
 
 extern "C" {
