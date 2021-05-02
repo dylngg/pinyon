@@ -121,7 +121,7 @@ extern "C" {
 [[noreturn]] void spin_task()
 {
 top:
-    asm volatile("swi 0"); // yield
+    asm volatile("wfe");
     goto top;
 }
 }

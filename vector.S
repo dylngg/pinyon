@@ -73,13 +73,10 @@ irq_b_wrap:
      * At this point we're in IRQ mode. The processor has saved the old PC
      * into LR, and the old LR is saved in the old mode's LR. The old CPSR is
      * also saved into this mode's SPSR, so we'll have to save that upon
-     * restoration.
+     * restoration. Also, interrupts are disabled.
      *
-     * It should be noted that each mode also has their own stack, we've set
-     * this up in setup_vtable. We use this to save caller registers before
-     * our C handler.
-     *
-     * Also, this code does not handle nested interrupts well or at all.
+     * It should be noted that each mode also has their own stack, but this
+     * feature is not presently used.
      *
      * The following slide deck found on the internet is extremely useful:
      * http://s3-us-west-2.amazonaws.com/valpont/uploads/20160326012043/Exception_handling.pdf
@@ -95,6 +92,7 @@ irq_b_wrap:
     bl irq_handler
     add sp, sp, r4          /* Undo stack alignment */
     pop {r0-r4, r12, lr}
+    cpsie i                 /* Reenable interrupts so we don't get stuck in that task */
     rfeia sp!               /* Return to LR, restore SPRS into CPRS (e.g. returns back to old mode) */
 
 swi_b_wrap:
@@ -105,12 +103,15 @@ swi_b_wrap:
      * basically have to load the SWI instruction (LR-4) into a register and
      * mask off the last 8 bits (the opcode, bits 31-24).
      *
+     * Also, interrupts were disabled when we entered.
+     *
      * The following docs were useful:
      * https://heyrick.eu/assembler/swi.html
      * https://iitd-plos.github.io/col718/ref/arm-instructionset.pdf
      */
     // FIXME: Switch back to old CPSR; we can get away with it right now because we never drop privs
     push {r0-r4, r12, lr}   /* We're going to B to C code, so we need to save caller registers */
+    cpsie i                 /* Re-enable interrupts; allow for interrupt nesting to occur */
     and r4, sp, #4          /* Align the stack */
     sub sp, sp, r4
     mov r2, r1              /* Copy user args into user defined arg */
