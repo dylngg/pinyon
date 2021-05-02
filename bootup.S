@@ -47,5 +47,5 @@ preinit:
     blx r1
 
 halt:
-    wfe                 /* wait for exception; puts processor in low power mode */
+    wfi                 /* wait for interrupt; puts processor in low power mode */
     b halt

@@ -43,6 +43,7 @@ task_start:
      */
     ldr lr, =halt       /* If the task returns, stop. Could be improved. */
     mov sp, r1          /* Set new stack pointer */
+    cpsie i             /* Reenable interrupts if they were disabled */
     mov pc, r0          /* Set new program counter */
 
 task_resume:
