@@ -25,7 +25,6 @@ void printf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 class TaskMemoryBounds {
 public:
     TaskMemoryBounds();
-    static TaskMemoryBounds& bounds();
 
     size_t try_extend_heap(size_t by_size);
     PtrData heap_start() const;
@@ -43,3 +42,5 @@ void free(void*);
 void* malloc(size_t) __attribute__((malloc));
 
 MallocStats memstats();
+
+void mem_init();

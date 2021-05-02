@@ -19,20 +19,20 @@ void undefined_instruction_handler(void)
 
 void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
 {
-    auto& task_manager = TaskManager::manager();
-    auto& task = task_manager.running_task();
+    auto& task_mgr = task_manager();
+    auto& task = task_mgr.running_task();
 
     //consolef("Handling syscall %ld with args %ld\n", syscall_id, arg);
 
     switch (syscall_id) {
     case 0:
         // yield()
-        task_manager.schedule();
+        task_mgr.schedule();
         break;
     case 1:
         // sleep()
         task.sleep(arg1);
-        task_manager.schedule();
+        task_mgr.schedule();
         break;
     case 2:
         // readline()
@@ -80,13 +80,13 @@ void fast_irq_handler(void)
 
 void irq_handler(void)
 {
-    auto timer = SystemTimer::timer();
+    auto timer = system_timer();
     if (timer->matched()) {
         timer->reinit();
         increase_jiffies();
 
-        auto& task_manager = TaskManager::manager();
-        task_manager.schedule();
+        auto& task_mgr = task_manager();
+        task_mgr.schedule();
     }
 }
 }
@@ -95,6 +95,13 @@ void IRQManager::enable_timer() volatile
 {
     MemoryBarrier barrier {};
     enable_irq1 = 0x00000002;
+}
+
+static auto* g_irq_manager = (volatile IRQManager*)IRQ_BASE;
+
+volatile IRQManager* irq_manager()
+{
+    return g_irq_manager;
 }
 
 void interrupts_init()

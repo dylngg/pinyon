@@ -119,12 +119,12 @@ private:
 template <class MemoryBounds>
 class MemoryAllocator {
 public:
-    MemoryAllocator(MemoryBounds& mem_bounds)
+    MemoryAllocator(MemoryBounds* mem_bounds)
         : m_mem_bounds(mem_bounds)
     {
-        size_t heap_size = m_mem_bounds.try_extend_heap(NEW_BLOCK_SIZE * 8);
+        size_t heap_size = m_mem_bounds->try_extend_heap(NEW_BLOCK_SIZE * 8);
         m_stats = { .heap_size = heap_size, .amount_used = 0, .num_mallocs = 0, .num_frees = 0 };
-        m_first_free_header = (Header*)m_mem_bounds.heap_start();
+        m_first_free_header = (Header*)m_mem_bounds->heap_start();
         *m_first_free_header = Header { nullptr, nullptr, NEW_SIZE, true };
     }
 
@@ -142,7 +142,7 @@ public:
             auto* next_header = curr_header->next_header();
             if (!next_header) {
                 size_t extend_size = requested_size > NEW_SIZE ? requested_size : NEW_SIZE;
-                size_t heap_incr_size = m_mem_bounds.try_extend_heap(extend_size);
+                size_t heap_incr_size = m_mem_bounds->try_extend_heap(extend_size);
                 if (heap_incr_size == 0)
                     // Out of memory!
                     return nullptr;
@@ -173,7 +173,7 @@ public:
     MallocStats stats() const { return m_stats; };
 
 private:
-    MemoryBounds& m_mem_bounds;
+    MemoryBounds* m_mem_bounds;
     MallocStats m_stats;
     Header* m_first_free_header {};
 };

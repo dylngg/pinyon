@@ -10,16 +10,8 @@
  */
 #define IRQ_BASE 0x3F00B200
 
-struct IRQManager;
-
-static auto* g_irq_manager = (volatile IRQManager*)IRQ_BASE;
-
 struct IRQManager {
     void enable_timer() volatile;
-    static volatile IRQManager* manager()
-    {
-        return g_irq_manager;
-    }
 
 private:
     /*
@@ -50,6 +42,8 @@ public:
         asm volatile("cpsie i");
     }
 };
+
+volatile IRQManager* irq_manager();
 
 void interrupts_init();
 

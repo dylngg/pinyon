@@ -52,17 +52,23 @@ PtrData KernelMemoryBounds::try_reserve_topdown_space(size_t stack_size)
     return stack_start;
 }
 
-KernelMemoryBounds& KernelMemoryBounds::bounds()
+static KernelMemoryBounds g_kernel_memory_bounds { 0, 0 };
+static KernelMemoryAllocator g_kernel_allocator { &g_kernel_memory_bounds };
+
+KernelMemoryBounds& kmem_bounds()
 {
-    static KernelMemoryBounds g_kernel_heap_bounds { HEAP_START, HEAP_END };
-    MemoryBarrier::sync();
-    return g_kernel_heap_bounds;
+    return g_kernel_memory_bounds;
 }
 
 KernelMemoryAllocator& kmem_allocator()
 {
-    static KernelMemoryAllocator g_kernel_allocator { KernelMemoryBounds::bounds() };
     return g_kernel_allocator;
+}
+
+void kmem_init()
+{
+    g_kernel_memory_bounds = KernelMemoryBounds { HEAP_START, HEAP_END };
+    g_kernel_allocator = KernelMemoryAllocator { &g_kernel_memory_bounds };
 }
 
 void* kmalloc(size_t requested_size)

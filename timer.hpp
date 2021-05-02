@@ -25,10 +25,6 @@
  */
 #define TIM_BASE 0x3F003000
 
-struct SystemTimer;
-
-static auto* g_system_timer = (volatile SystemTimer*)TIM_BASE;
-
 struct SystemTimer {
 public:
     void init() volatile;
@@ -36,10 +32,6 @@ public:
     void reinit() volatile;
 
     bool matched() const volatile;
-    static volatile SystemTimer* timer()
-    {
-        return g_system_timer;
-    }
 
 private:
     volatile u32 control;
@@ -50,6 +42,8 @@ private:
     volatile u32 compare2;
     volatile u32 compare3;
 };
+
+volatile SystemTimer* system_timer();
 
 void timer_init();
 
