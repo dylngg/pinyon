@@ -16,6 +16,12 @@ void sleep(u32 secs)
     syscall_sleep(secs);
 }
 
+u32 uptime() {
+    u32 jif;
+    syscall_uptime(&jif);
+    return jif;
+}
+
 __attribute__((format(printf, 1, 2))) void printf(const char* fmt, ...)
 {
     va_list args;

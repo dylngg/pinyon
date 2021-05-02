@@ -1,6 +1,6 @@
 #include "shell.hpp"
 #include "lib.hpp"
-#include "timer.hpp"
+#include <pine/units.hpp>
 
 static void builtin_memstat()
 {
@@ -13,9 +13,9 @@ static void builtin_memstat()
 
 static void builtin_uptime()
 {
-    auto jifs = jiffies();
+    auto jifs = uptime();
     auto seconds = jifs / SYS_HZ;
-    printf("uptime: %lus (%lu jif)\n", seconds, jifs);
+    printf("uptime: %lus (%lu jiffies)\n", seconds, jifs);
 }
 
 extern "C" {
