@@ -4,21 +4,30 @@ ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -nostdlib -fno-th
 INCLUDE=-I.
 CXXFLAGS=-Wall -Wextra -std=c++14 -g
 PINE_OBJ=$(OBJDIR)/pine/badmath.o $(OBJDIR)/pine/string.o
-KERNEL_OBJ=$(OBJDIR)/kernel.o $(OBJDIR)/kmalloc.o $(OBJDIR)/console.o $(OBJDIR)/interrupts.o $(OBJDIR)/timer.o $(OBJDIR)/tasks.o $(OBJDIR)/shell.o $(OBJDIR)/lib.o
-KERNEL_ASM_OBJ=$(OBJDIR)/bootup.o $(OBJDIR)/vector.o $(OBJDIR)/switch.o $(OBJDIR)/syscall.o
+KERNEL_OBJ=$(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/interrupts.o $(OBJDIR)/kernel/timer.o $(OBJDIR)/kernel/tasks.o
+KERNEL_ASM_OBJ=$(OBJDIR)/kernel/bootup.o $(OBJDIR)/kernel/vector.o $(OBJDIR)/kernel/switch.o
+USER_OBJ=$(OBJDIR)/userspace/shell.o $(OBJDIR)/userspace/lib.o
+USER_ASM_OBJ=$(OBJDIR)/userspace/syscall.o
 
 .PHONY: all
 all: pinyon.elf
 
 # Pine: the shared Userspace and Kernel library
+.PHONY: pine
 pine: $(OBJDIR) $(PINE_OBJ)
 
-pinyon.elf: $(OBJDIR) pine $(KERNEL_ASM_OBJ) $(KERNEL_OBJ)
-	$(CC) -T linker.ld -o pinyon.elf $(ARCHFLAGS) $(KERNEL_ASM_OBJ) $(KERNEL_OBJ) $(PINE_OBJ)
+.PHONY: userspace
+userspace: $(OBJDIR) $(USER_ASM_OBJ) $(USER_OBJ)
+
+.PHONY: kernel
+kernel: $(OBJDIR) $(KERNEL_ASM_OBJ) $(KERNEL_OBJ)
+
+pinyon.elf: $(OBJDIR) pine userspace kernel
+	$(CC) -T linker.ld -o pinyon.elf $(ARCHFLAGS) $(KERNEL_ASM_OBJ) $(KERNEL_OBJ) $(USER_OBJ) $(USER_ASM_OBJ) $(PINE_OBJ)
 
 .PHONY: fmt
 fmt:
-	clang-format -i -style=WebKit *.cpp *.hpp pine/*.hpp pine/*.cpp
+	clang-format -i -style=WebKit *.cpp *.hpp pine/*.hpp pine/*.cpp userspace/*.hpp userspace/*.cpp
 
 .PHONY: run
 run: pinyon.elf
@@ -44,5 +53,6 @@ $(OBJDIR)/%.o: %.S
 	$(CC) $(ARCHFLAGS) -c $< -o $@
 
 $(OBJDIR):
+	mkdir -p $(OBJDIR)/kernel
+	mkdir -p $(OBJDIR)/userspace
 	mkdir -p $(OBJDIR)/pine
-	mkdir -p $(OBJDIR)

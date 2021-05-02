@@ -1,6 +1,5 @@
 #pragma once
 #include "console.hpp"
-#include "shell.hpp"
 #include <pine/types.hpp>
 
 enum TaskState {
