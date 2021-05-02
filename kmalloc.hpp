@@ -1,17 +1,27 @@
 #pragma once
+#include <pine/malloc.hpp>
 #include <pine/types.hpp>
 
-void kmalloc_init();
+class KernelMemoryBounds {
+public:
+    KernelMemoryBounds(PtrData heap_start, PtrData heap_end_bound);
+    static KernelMemoryBounds& bounds();
+
+    size_t try_extend_heap(size_t by_size);
+    PtrData try_reserve_topdown_space(size_t stack_size);
+    PtrData heap_start() const;
+    PtrData heap_end() const;
+
+private:
+    PtrData m_heap_start;
+    PtrData m_heap_size;
+    PtrData m_heap_end_bound;
+};
+
+using KernelMemoryAllocator = MemoryAllocator<KernelMemoryBounds>;
 
 void kfree(void*);
 
 void* kmalloc(size_t) __attribute__((malloc));
 
-struct KMallocStats {
-    size_t heap_size;
-    size_t amount_used;
-    u16 num_mallocs;
-    u16 num_frees;
-};
-
-KMallocStats kmemstats();
+MallocStats kmemstats();

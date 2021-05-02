@@ -1,11 +1,10 @@
 #include "shell.hpp"
-#include "kmalloc.hpp"
 #include "lib.hpp"
 #include "timer.hpp"
 
 static void builtin_memstat()
 {
-    auto malloc_stats = kmemstats();
+    auto malloc_stats = memstats();
     unsigned int pct_mem_util = (malloc_stats.amount_used * 100) / malloc_stats.heap_size;
     printf("heap size: %d bytes\nused: %d bytes (%u%% util)\nnmallocs: %d\nnfrees: %d\n",
         malloc_stats.heap_size, malloc_stats.amount_used, pct_mem_util, malloc_stats.num_mallocs,
@@ -23,7 +22,7 @@ extern "C" {
 
 void shell()
 {
-    char* buf = (char*)kmalloc(1024);
+    char* buf = (char*)malloc(1024);
 
     for (;;) {
         printf("# ");
@@ -51,7 +50,7 @@ void shell()
         printf("Unknown command '%s'\n", buf);
     }
 
-    kfree((void*)buf);
+    free((void*)buf);
 
     printf("goodbye.\n");
     asm volatile("b halt");

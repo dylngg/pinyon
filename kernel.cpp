@@ -9,10 +9,12 @@ extern "C" void init();
 void init()
 {
     console_init();
-    consoleln("Initializing... ");
+    console("Initializing... ");
+    console("timer ");
     timer_init();
+    console("interrupts");
     interrupts_init();
-    kmalloc_init();
+    consoleln("");
 
     // No good reason for this, beyond using new kmalloc calls
     char* pinyon = (char*)kmalloc(7);

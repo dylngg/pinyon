@@ -4,6 +4,7 @@
 #include "timer.hpp"
 #include <pine/barrier.hpp>
 #include <pine/string.hpp>
+#include <pine/units.hpp>
 
 extern "C" {
 // These are in switch.S. They either save, resume, or start a task.
@@ -54,6 +55,26 @@ void Task::readline(char* buf, size_t at_most_bytes)
 void Task::write(char* buf, size_t bytes)
 {
     console(buf, bytes);
+}
+
+PtrData Task::heap_allocate()
+{
+    m_heap_size = 4 * MiB; // Fixed; cannot change so be liberal
+    size_t top_addr = KernelMemoryBounds::bounds().try_reserve_topdown_space(m_heap_size);
+    m_heap_start = top_addr - m_heap_size;
+    m_heap_reserved = 0;
+    return m_heap_start;
+}
+
+PtrData Task::heap_increase(size_t bytes)
+{
+    size_t incr = bytes;
+    if (m_heap_reserved + incr > m_heap_size) {
+        incr = m_heap_size - m_heap_reserved;
+    }
+
+    m_heap_reserved += incr;
+    return incr;
 }
 
 void Task::update_state()
@@ -128,11 +149,15 @@ TaskManager::TaskManager()
     asm volatile("ldr %0, =shell"
                  : "=r"(shell_task_addr));
 
-    m_tasks[0] = Task("shell", 0x3EF00000, shell_task_addr);
+    PtrData shell_stack_start = KernelMemoryBounds::bounds().try_reserve_topdown_space(1 * MiB);
+    m_tasks[0] = Task("shell", shell_stack_start, shell_task_addr);
+
     // The idea behind this task is that it will always be runnable so we
     // never have to deal with no runnable tasks. It will spin of course,
     // which is not ideal :P
-    m_tasks[1] = Task("spin", 0x3F000000, spin_task_addr);
+    PtrData spin_stack_start = KernelMemoryBounds::bounds().try_reserve_topdown_space(Page);
+    m_tasks[1] = Task("spin", spin_stack_start, spin_task_addr);
+
     m_num_tasks = 2;
     m_running_task_index = 0;
 }
