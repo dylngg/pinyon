@@ -15,10 +15,6 @@
 // The CPU runs at 1 MHz
 #define TIMER_HZ 1000000
 
-// Interrupt ourselves every 0.01s, with QEMU this is the safe option, otherwise
-// we might miss a IRQ and are left with no timer.
-#define SYS_HZ 100
-
 /*
  * System timer base. See section 12.1 on page 172 in the BCM2835 Manual for
  * details.

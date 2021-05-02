@@ -55,6 +55,12 @@ void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
         *actual_incr_size = task.heap_increase(incr_bytes);
         break;
     }
+    case 6: {
+        // uptime()
+        u32* jiffies_ret = (u32*) arg1;
+        *jiffies_ret = jiffies();
+        break;
+    }
     default:
         consolef("kernel:\tUnknown syscall_id number %ld\n", syscall_id);
     }
