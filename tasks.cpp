@@ -2,7 +2,6 @@
 #include "interrupts.hpp"
 #include "kmalloc.hpp"
 #include "timer.hpp"
-#include <pine/barrier.hpp>
 #include <pine/string.hpp>
 #include <pine/units.hpp>
 
@@ -60,7 +59,7 @@ void Task::write(char* buf, size_t bytes)
 PtrData Task::heap_allocate()
 {
     m_heap_size = 4 * MiB; // Fixed; cannot change so be liberal
-    size_t top_addr = KernelMemoryBounds::bounds().try_reserve_topdown_space(m_heap_size);
+    size_t top_addr = kmem_bounds().try_reserve_topdown_space(m_heap_size);
     m_heap_start = top_addr - m_heap_size;
     m_heap_reserved = 0;
     return m_heap_start;
@@ -113,13 +112,6 @@ void TaskManager::schedule()
     curr_task.switch_to(to_run_task);
 }
 
-TaskManager& TaskManager::manager()
-{
-    static TaskManager g_task_manager {};
-    MemoryBarrier::sync();
-    return g_task_manager;
-}
-
 void TaskManager::start_scheduler()
 {
     m_tasks[0].start();
@@ -149,20 +141,28 @@ TaskManager::TaskManager()
     asm volatile("ldr %0, =shell"
                  : "=r"(shell_task_addr));
 
-    PtrData shell_stack_start = KernelMemoryBounds::bounds().try_reserve_topdown_space(1 * MiB);
+    PtrData shell_stack_start = kmem_bounds().try_reserve_topdown_space(1 * MiB);
     m_tasks[0] = Task("shell", shell_stack_start, shell_task_addr);
 
     // The idea behind this task is that it will always be runnable so we
     // never have to deal with no runnable tasks. It will spin of course,
     // which is not ideal :P
-    PtrData spin_stack_start = KernelMemoryBounds::bounds().try_reserve_topdown_space(Page);
+    PtrData spin_stack_start = kmem_bounds().try_reserve_topdown_space(Page);
     m_tasks[1] = Task("spin", spin_stack_start, spin_task_addr);
 
     m_num_tasks = 2;
     m_running_task_index = 0;
 }
 
+static TaskManager g_task_manager;
+
+TaskManager& task_manager()
+{
+    return g_task_manager;
+}
+
 void tasks_init()
 {
-    TaskManager::manager().start_scheduler();
+    g_task_manager = TaskManager {};
+    task_manager().start_scheduler();
 }

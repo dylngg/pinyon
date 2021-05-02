@@ -49,7 +49,6 @@ public:
     TaskManager();
     void start_scheduler();
     void schedule();
-    static TaskManager& manager();
     Task& running_task() { return m_tasks[m_running_task_index]; }
 
 private:
@@ -59,5 +58,7 @@ private:
     int m_num_tasks;
     int m_running_task_index;
 };
+
+TaskManager& task_manager();
 
 void tasks_init();

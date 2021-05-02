@@ -22,6 +22,7 @@ extern "C" {
 
 void shell()
 {
+    mem_init();
     char* buf = (char*)malloc(1024);
 
     for (;;) {

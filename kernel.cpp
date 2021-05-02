@@ -10,6 +10,8 @@ void init()
 {
     console_init();
     console("Initializing... ");
+    console("memory ");
+    kmem_init();
     console("timer ");
     timer_init();
     console("interrupts");

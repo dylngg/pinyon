@@ -87,16 +87,22 @@ size_t TaskMemoryBounds::try_extend_heap(size_t by_size)
     return heap_incr_size;
 }
 
-TaskMemoryBounds& TaskMemoryBounds::bounds()
+static TaskMemoryBounds g_task_memory_bounds;
+static TaskMemoryAllocator g_task_allocator { nullptr };
+
+void mem_init()
 {
-    static TaskMemoryBounds g_task_heap_bounds {};
-    MemoryBarrier::sync();
-    return g_task_heap_bounds;
+    g_task_memory_bounds = TaskMemoryBounds {};
+    g_task_allocator = TaskMemoryAllocator { &g_task_memory_bounds };
+}
+
+TaskMemoryBounds& mem_bounds()
+{
+    return g_task_memory_bounds;
 }
 
 TaskMemoryAllocator& mem_allocator()
 {
-    static TaskMemoryAllocator g_task_allocator { TaskMemoryBounds::bounds() };
     return g_task_allocator;
 }
 

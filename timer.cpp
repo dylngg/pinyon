@@ -41,10 +41,17 @@ bool SystemTimer::matched() const volatile
     return (control & 0x2) > 0;
 }
 
+static auto* g_system_timer = (volatile SystemTimer*)TIM_BASE;
+
+volatile SystemTimer* system_timer()
+{
+    return g_system_timer;
+}
+
 void timer_init()
 {
-    SystemTimer::timer()->init();
-    IRQManager::manager()->enable_timer();
+    system_timer()->init();
+    irq_manager()->enable_timer();
 }
 
 // 32 bits should ought to be enough for anyone ;)
