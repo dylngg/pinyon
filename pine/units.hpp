@@ -5,4 +5,5 @@
 #define GiB 1073741824
 #define Page 4096
 
-#define SYS_HZ 100
+#define SYS_HZ 8
+#define SYS_HZ_BITS 3

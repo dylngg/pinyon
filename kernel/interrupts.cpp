@@ -93,9 +93,9 @@ void irq_handler(void)
 {
     auto timer = system_timer();
     if (timer->matched()) {
+        u32 jif_diff = timer->jiffies_since_last_match();
         timer->reinit();
-        increase_jiffies();
-
+        increase_jiffies(jif_diff);
         auto& task_mgr = task_manager();
         task_mgr.schedule();
     }
