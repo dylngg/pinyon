@@ -13,29 +13,40 @@ void task_start(u32 new_pc, u32 new_sp);
 }
 
 Task::Task(const char* name, u32 stack_pointer, u32 pc)
+    : m_sp(stack_pointer)
+    , m_pc(pc)
+    , m_sleep_period(0)
+    , m_sleep_start_time(0)
+    , m_state(TaskNew)
+    , m_heap_start(0)
+    , m_heap_size(0)
+    , m_heap_reserved(0)
+    , m_jiffies_when_scheduled(0)
+    , m_cpu_jiffies(0)
 {
-    m_sp = stack_pointer;
-    m_pc = pc;
-    m_state = TaskNew;
-    m_sleep_period = 0;
-    m_sleep_start_time = 0;
     m_name = (char*)kmalloc(sizeof *name * (strlen(name) + 1));
     strcpy(m_name, name);
 }
 
+Task::~Task() {
+    kfree(m_name);
+}
+
 void Task::switch_to(Task& to_run_task)
 {
+    m_cpu_jiffies += jiffies() - m_jiffies_when_scheduled;
     task_save(&m_sp);
 
     if (to_run_task.has_not_started())
         to_run_task.start();
     else
-        task_resume(to_run_task.m_sp);
+        to_run_task.resume();
 }
 
 void Task::start()
 {
     m_state = TaskRunnable;
+    m_jiffies_when_scheduled = jiffies();
     task_start(m_pc, m_sp);
 }
 
@@ -43,7 +54,7 @@ void Task::sleep(u32 secs)
 {
     m_state = TaskSleeping;
     m_sleep_start_time = jiffies();
-    m_sleep_period = secs;
+    m_sleep_period = secs * SYS_HZ;
 }
 
 void Task::readline(char* buf, size_t at_most_bytes)
@@ -85,6 +96,18 @@ void Task::update_state()
     }
 }
 
+void Task::resume() {
+    m_jiffies_when_scheduled = jiffies();
+    task_resume(m_sp);
+}
+
+u32 Task::cputime() {
+    if (&(task_manager().running_task()) == this)
+        return m_cpu_jiffies + jiffies() - m_jiffies_when_scheduled;
+
+    return m_cpu_jiffies;
+}
+
 Task& TaskManager::pick_next_task()
 {
     do {
@@ -121,7 +144,7 @@ extern "C" {
 [[noreturn]] void spin_task()
 {
 top:
-    asm volatile("wfe");
+    asm volatile("wfi");
     goto top;
 }
 }

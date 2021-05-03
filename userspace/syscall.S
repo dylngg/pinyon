@@ -6,6 +6,7 @@
 .global syscall_heap_reserve
 .global syscall_heap_incr
 .global syscall_uptime
+.global syscall_cputime
 
 /*
  * I'm not sure if this is a standard thing, or a bug, but the link
@@ -54,5 +55,11 @@ syscall_heap_incr:
 syscall_uptime:
     push {lr}
     swi 6
+    pop {lr}
+    bx lr
+
+syscall_cputime:
+    push {lr}
+    swi 7
     pop {lr}
     bx lr

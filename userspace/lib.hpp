@@ -13,6 +13,7 @@ void syscall_write(char* buf, u32 bytes);
 void syscall_heap_reserve(void** start_addr);
 void syscall_heap_incr(size_t by_bytes, size_t* incr_size);
 void syscall_uptime(u32* jiffies);
+void syscall_cputime(u32* jiffies);
 }
 
 void readline(char* buf, u32 bytes);
@@ -22,6 +23,8 @@ void yield();
 void sleep(u32 secs);
 
 u32 uptime();
+
+u32 cputime();
 
 void printf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 

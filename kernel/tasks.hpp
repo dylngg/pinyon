@@ -13,9 +13,11 @@ class TaskManager;
 class Task {
 public:
     Task(const char* name, u32 stack_pointer, u32 pc);
+    ~Task();
     void sleep(u32 ms);
     void readline(char* buf, size_t at_most_bytes);
     void write(char* buf, size_t bytes);
+    u32 cputime();
     PtrData heap_allocate();
     PtrData heap_increase(size_t bytes);
 
@@ -24,6 +26,7 @@ public:
 private:
     void update_state();
     void start();
+    void resume();
     void switch_to(Task& task);
     bool has_not_started() const { return m_state == TaskNew; }
     bool can_run() const { return m_state == TaskNew || m_state == TaskRunnable; };
@@ -37,6 +40,8 @@ private:
     size_t m_heap_start;
     size_t m_heap_size;
     size_t m_heap_reserved;
+    u32 m_jiffies_when_scheduled;
+    u32 m_cpu_jiffies;
 };
 
 extern "C" {

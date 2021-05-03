@@ -22,7 +22,13 @@ u32 uptime() {
     return jif;
 }
 
-__attribute__((format(printf, 1, 2))) void printf(const char* fmt, ...)
+u32 cputime() {
+    u32 jif;
+    syscall_cputime(&jif);
+    return jif;
+}
+
+void printf(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
