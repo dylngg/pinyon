@@ -50,7 +50,21 @@ void shell()
             sleep(2);
             continue;
         }
-        printf("Unknown command '%s'\n", buf);
+        if (strcmp(buf, "help") == 0) {
+            printf("The following commands are available to you:\n");
+            printf("  - memstat\tProvides statistics on the amount of memory used by this task.\n");
+            printf("  - uptime\tProvides statistics on the time since boot in seconds, as well as the CPU time used by this task.\n");
+            printf("  - yield\tYields to the spin task. The spin task simply spins until it is preempted. You should see control return to this task shortly.\n");
+            printf("  - sleep\tPuts this task to sleep for 2 seconds.\n");
+            printf("  - exit\tSays goodbye. Please hit Ctrl-C to actually exit.\n");
+            printf("\n");
+            printf("Known Bugs (because we're honest around here!):\n");
+            printf("  - You may encounter periods of a second or more of unresponsiveness. This is a known issue related to emulation and the design the system timer peripheral.\n");
+            printf("  - 'sleep' can sleep for more than 2 seconds. Related to the above issue.\n");
+            printf("  - Time slowly drifts away from real time.\n");
+            continue;
+        }
+        printf("Unknown command '%s'. Use 'help'.\n", buf);
     }
 
     free((void*)buf);
