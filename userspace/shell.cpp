@@ -13,9 +13,11 @@ static void builtin_memstat()
 
 static void builtin_uptime()
 {
-    auto jifs = uptime();
-    auto seconds = jifs / SYS_HZ;
-    printf("uptime: %lus (%lu jiffies)\n", seconds, jifs);
+    auto uptime_jiffies = uptime();
+    auto uptime_seconds = uptime_jiffies / SYS_HZ;
+    auto cputime_jiffies = cputime();
+    auto cpu_usage = cputime_jiffies  * 100 / uptime_jiffies;
+    printf("up %lds, usage: %lu%% (%lu / %lu jiffies)\n", uptime_seconds, cpu_usage, cputime_jiffies, uptime_jiffies);
 }
 
 extern "C" {
@@ -44,7 +46,7 @@ void shell()
             continue;
         }
         if (strcmp(buf, "sleep") == 0) {
-            printf("Sleeping for 2 seconds.");
+            printf("Sleeping for 2 seconds.\n");
             sleep(2);
             continue;
         }
