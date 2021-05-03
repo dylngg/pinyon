@@ -14,7 +14,7 @@ class Task {
 public:
     Task(const char* name, u32 stack_pointer, u32 pc);
     ~Task();
-    void sleep(u32 ms);
+    void sleep(u32 secs);
     void readline(char* buf, size_t at_most_bytes);
     void write(char* buf, size_t bytes);
     u32 cputime();

@@ -9,11 +9,16 @@
  * so you can't use those (undocumented of course).
  *
  * When your timer goes off your interrupt is supposed to set a new counter
- * value based on the current counter. This of course leads to race conditions.
+ * value based on the current counter. This of course leads to race conditions,
+ * see reinit for how we deal with this.
  */
 
 // The CPU runs at 1 MHz
 #define TIMER_HZ 1000000
+
+// See reinit for details on these
+#define FALLBACK_SYS_HZ_SCALER 32
+#define FALLBACK_SYS_HZ_SCALER_BITS 5
 
 /*
  * System timer base. See section 12.1 on page 172 in the BCM2835 Manual for
@@ -24,10 +29,9 @@
 struct SystemTimer {
 public:
     void init() volatile;
-
     void reinit() volatile;
-
     bool matched() const volatile;
+    u32 jiffies_since_last_match() const volatile;
 
 private:
     volatile u32 control;
@@ -43,6 +47,6 @@ volatile SystemTimer* system_timer();
 
 void timer_init();
 
-void increase_jiffies();
+void increase_jiffies(u32 by);
 
 u32 jiffies();
