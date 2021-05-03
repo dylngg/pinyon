@@ -1,6 +1,6 @@
 # Pinyon
 
-Pinyon is a really basic toy ARMv7 kernel targeting the Raspberry Pi 2. Right now the project is in the early stages. It presently has the following features:
+Pinyon is a really basic toy ARMv7 kernel targeting the Raspberry Pi 2. It presently has the following features:
 
 - [x] Booting
 - [x] UART console output
