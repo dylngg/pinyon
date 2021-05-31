@@ -27,7 +27,7 @@ pinyon.elf: $(OBJDIR) pine userspace kernel
 
 .PHONY: fmt
 fmt:
-	clang-format -i -style=WebKit *.cpp *.hpp pine/*.hpp pine/*.cpp userspace/*.hpp userspace/*.cpp
+	clang-format -i -style=WebKit kernel/*.cpp kernel/*.hpp pine/*.hpp pine/*.cpp userspace/*.hpp userspace/*.cpp
 
 .PHONY: run
 run: pinyon.elf
