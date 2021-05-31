@@ -83,9 +83,9 @@ bool SystemTimer::matched() const volatile
     return (control & 0x3) > 0;
 }
 
-static auto* g_system_timer = (volatile SystemTimer*)TIM_BASE;
+static auto* g_system_timer = (SystemTimer*)TIM_BASE;
 
-volatile SystemTimer* system_timer()
+SystemTimer* system_timer()
 {
     return g_system_timer;
 }
