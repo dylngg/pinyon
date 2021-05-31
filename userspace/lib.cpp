@@ -16,13 +16,15 @@ void sleep(u32 secs)
     syscall_sleep(secs);
 }
 
-u32 uptime() {
+u32 uptime()
+{
     u32 jif;
     syscall_uptime(&jif);
     return jif;
 }
 
-u32 cputime() {
+u32 cputime()
+{
     u32 jif;
     syscall_cputime(&jif);
     return jif;

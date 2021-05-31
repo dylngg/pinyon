@@ -28,7 +28,8 @@ Task::Task(const char* name, u32 stack_pointer, u32 pc)
     strcpy(m_name, name);
 }
 
-Task::~Task() {
+Task::~Task()
+{
     kfree(m_name);
 }
 
@@ -96,12 +97,14 @@ void Task::update_state()
     }
 }
 
-void Task::resume() {
+void Task::resume()
+{
     m_jiffies_when_scheduled = jiffies();
     task_resume(m_sp);
 }
 
-u32 Task::cputime() {
+u32 Task::cputime()
+{
     if (&(task_manager().running_task()) == this)
         return m_cpu_jiffies + jiffies() - m_jiffies_when_scheduled;
 

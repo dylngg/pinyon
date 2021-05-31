@@ -67,7 +67,8 @@ void SystemTimer::reinit() volatile
     control |= (1 << 1);
 }
 
-u32 SystemTimer::jiffies_since_last_match() const volatile {
+u32 SystemTimer::jiffies_since_last_match() const volatile
+{
     MemoryBarrier::sync();
     if (compare3 < lower_bits) {
         //consoleln("\033[0;31mkernel:\tFallback timer match encountered!\033[0m");
