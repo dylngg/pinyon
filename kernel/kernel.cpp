@@ -8,7 +8,7 @@ extern "C" void init();
 
 void init()
 {
-    console_init();
+    uart_init();
     console("Initializing... ");
     console("memory ");
     kmem_init();
