@@ -108,9 +108,9 @@ void IRQManager::enable_timer() volatile
     enable_irq1 = 0x00000002;
 }
 
-static auto* g_irq_manager = (volatile IRQManager*)IRQ_BASE;
+static auto* g_irq_manager = (IRQManager*)IRQ_BASE;
 
-volatile IRQManager* irq_manager()
+IRQManager* irq_manager()
 {
     return g_irq_manager;
 }

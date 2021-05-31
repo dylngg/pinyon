@@ -18,16 +18,16 @@ private:
      * See section 7.5 on page 112 in the BCM2835 manual for the
      * definition of these
      */
-    u32 pending_basic_irq;
-    u32 pending_irq1;
-    u32 pending_irq2;
-    u32 fiq_ctrl;
-    u32 enable_irq1;
-    u32 enable_irq2;
-    u32 enable_basic_irq;
-    u32 disable_irq1;
-    u32 disable_irq2;
-    u32 disable_basic_irq;
+    volatile u32 pending_basic_irq;
+    volatile u32 pending_irq1;
+    volatile u32 pending_irq2;
+    volatile u32 fiq_ctrl;
+    volatile u32 enable_irq1;
+    volatile u32 enable_irq2;
+    volatile u32 enable_basic_irq;
+    volatile u32 disable_irq1;
+    volatile u32 disable_irq2;
+    volatile u32 disable_basic_irq;
 };
 
 class InterruptDisabler {
@@ -43,7 +43,7 @@ public:
     }
 };
 
-volatile IRQManager* irq_manager();
+IRQManager* irq_manager();
 
 void interrupts_init();
 
