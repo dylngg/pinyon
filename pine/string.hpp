@@ -10,9 +10,9 @@ void strcpy(char* __restrict__ to, const char* from);
 size_t strlen(const char* string);
 int strcmp(const char* first, const char* second);
 
-enum ToAFlag {
-    ToAUpper,
-    ToALower,
+enum class ToAFlag : int {
+    Upper,
+    Lower,
 };
 
 void ltoa10(char* buf, long num);

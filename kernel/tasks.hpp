@@ -2,10 +2,11 @@
 #include "console.hpp"
 #include <pine/types.hpp>
 
-enum TaskState {
-    TaskNew,
-    TaskRunnable,
-    TaskSleeping,
+enum class TaskState : int {
+    New = 0,
+    Runnable,
+    Sleeping,
+    Waiting,
 };
 
 class TaskManager;
@@ -28,8 +29,8 @@ private:
     void start();
     void resume();
     void switch_to(Task& task);
-    bool has_not_started() const { return m_state == TaskNew; }
-    bool can_run() const { return m_state == TaskNew || m_state == TaskRunnable; };
+    bool has_not_started() const { return m_state == TaskState::New; }
+    bool can_run() const { return m_state == TaskState::New || m_state == TaskState::Runnable; };
 
     u32 m_sp;
     u32 m_pc;

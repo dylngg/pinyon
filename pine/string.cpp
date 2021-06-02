@@ -95,7 +95,7 @@ void ultoa16(char* buf, unsigned long num, ToAFlag flag)
         if (hex_num < 10)
             buf[pos] = hex_num + '0';
         else
-            buf[pos] = hex_num + ((flag == ToAUpper ? 'A' : 'a') - 10);
+            buf[pos] = hex_num + ((flag == ToAFlag::Upper ? 'A' : 'a') - 10);
 
         num >>= 4; // divide by 16, but no need for division
         pos--;
