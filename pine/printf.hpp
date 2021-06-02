@@ -5,10 +5,10 @@
 #include <pine/badmath.hpp>
 #include <pine/string.hpp>
 
-enum ArgModifiers {
-    ModNone,
-    ModPointer,
-    ModLong,
+enum class ArgModifiers : int {
+    None,
+    Pointer,
+    Long,
 };
 
 template <typename TryAddStringFunc>
@@ -32,11 +32,11 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list args
         // Format specifier: %s
 
         iter++; // consume '%'
-        mod = ModNone;
+        mod = ArgModifiers::None;
 
         char type_or_mod_ch = *iter;
         if (type_or_mod_ch == 'l') {
-            mod = ModLong;
+            mod = ArgModifiers::Long;
             iter++; // consume 'l'
         }
 
@@ -105,7 +105,7 @@ bool print_int(char type_ch, va_list& args, TryAddStringFunc& try_add_string, Ar
 
     if (type_ch == 'u') {
         unsigned long num;
-        if (mod == ModLong)
+        if (mod == ArgModifiers::Long)
             num = va_arg(args, unsigned long);
         else
             num = va_arg(args, unsigned int);
@@ -113,7 +113,7 @@ bool print_int(char type_ch, va_list& args, TryAddStringFunc& try_add_string, Ar
         ultoa10(digits, num);
     } else {
         long num;
-        if (mod == ModLong)
+        if (mod == ArgModifiers::Long)
             num = va_arg(args, long);
         else
             num = va_arg(args, int);
@@ -131,6 +131,6 @@ bool print_pointer(va_list& args, TryAddStringFunc& try_add_string)
     auto ptr_data = (unsigned long)ptr;
 
     char hex[11];
-    ultoa16(hex, ptr_data, ToALower);
+    ultoa16(hex, ptr_data, ToAFlag::Lower);
     return try_add_string(hex);
 }

@@ -17,7 +17,7 @@ Task::Task(const char* name, u32 stack_pointer, u32 pc)
     , m_pc(pc)
     , m_sleep_period(0)
     , m_sleep_start_time(0)
-    , m_state(TaskNew)
+    , m_state(TaskState::New)
     , m_heap_start(0)
     , m_heap_size(0)
     , m_heap_reserved(0)
@@ -46,14 +46,14 @@ void Task::switch_to(Task& to_run_task)
 
 void Task::start()
 {
-    m_state = TaskRunnable;
+    m_state = TaskState::Runnable;
     m_jiffies_when_scheduled = jiffies();
     task_start(m_pc, m_sp);
 }
 
 void Task::sleep(u32 secs)
 {
-    m_state = TaskSleeping;
+    m_state = TaskState::Sleeping;
     m_sleep_start_time = jiffies();
     m_sleep_period = secs * SYS_HZ;
 }
@@ -90,8 +90,8 @@ PtrData Task::heap_increase(size_t bytes)
 
 void Task::update_state()
 {
-    if (m_state == TaskSleeping && m_sleep_start_time + m_sleep_period <= jiffies()) {
-        m_state = TaskRunnable;
+    if (m_state == TaskState::Sleeping && m_sleep_start_time + m_sleep_period <= jiffies()) {
+        m_state = TaskState::Runnable;
         m_sleep_start_time = 0;
         m_sleep_period = 0;
     }
