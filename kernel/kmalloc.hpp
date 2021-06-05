@@ -6,8 +6,8 @@ class KernelMemoryBounds {
 public:
     KernelMemoryBounds(PtrData heap_start, PtrData heap_end_bound);
 
-    size_t try_extend_heap(size_t by_size);
-    PtrData try_reserve_topdown_space(size_t stack_size);
+    Maybe<size_t> try_extend_heap(size_t by_size);
+    Maybe<PtrData> try_reserve_topdown_space(size_t stack_size);
     PtrData heap_start() const;
     PtrData heap_end() const;
 

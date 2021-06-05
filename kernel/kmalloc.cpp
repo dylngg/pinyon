@@ -29,27 +29,26 @@ PtrData KernelMemoryBounds::heap_end() const
     return m_heap_start + m_heap_size;
 }
 
-size_t KernelMemoryBounds::try_extend_heap(size_t by_size)
+Maybe<size_t> KernelMemoryBounds::try_extend_heap(size_t by_size)
 {
     if (heap_start() + by_size <= m_heap_end_bound) {
         m_heap_size += by_size;
-        return by_size;
+        return Maybe<size_t>(by_size);
     }
 
     // Cannot allocate memory!
-    return 0;
+    return Maybe<size_t>::No();
 }
 
-PtrData KernelMemoryBounds::try_reserve_topdown_space(size_t stack_size)
+Maybe<PtrData> KernelMemoryBounds::try_reserve_topdown_space(size_t stack_size)
 {
     if (m_heap_end_bound - stack_size < heap_end()) {
-        panicf("kmalloc:\tCannot allocate space at top for %d!\n", stack_size);
-        return 0;
+        return Maybe<PtrData>::No();
     }
 
     PtrData stack_start = m_heap_end_bound;
     m_heap_end_bound -= stack_size;
-    return stack_start;
+    return Maybe<PtrData>(stack_start);
 }
 
 static KernelMemoryBounds g_kernel_memory_bounds { 0, 0 };
