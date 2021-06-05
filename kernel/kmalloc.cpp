@@ -1,5 +1,5 @@
 #include "kmalloc.hpp"
-#include "console.hpp"
+#include "panic.hpp"
 #include <pine/barrier.hpp>
 #include <pine/types.hpp>
 
@@ -43,7 +43,7 @@ size_t KernelMemoryBounds::try_extend_heap(size_t by_size)
 PtrData KernelMemoryBounds::try_reserve_topdown_space(size_t stack_size)
 {
     if (m_heap_end_bound - stack_size < heap_end()) {
-        consolef("kmalloc:\tCannot allocate space at top for %d!\n", stack_size);
+        panicf("kmalloc:\tCannot allocate space at top for %d!\n", stack_size);
         return 0;
     }
 
@@ -75,7 +75,7 @@ void* kmalloc(size_t requested_size)
 {
     void* ptr = kmem_allocator().allocate(requested_size);
     if (!ptr)
-        consolef("kmalloc:\tNo free space available?!\n");
+        panic("kmalloc:\tNo free memory space available?!\n");
 
     return ptr;
 }

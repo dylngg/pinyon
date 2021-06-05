@@ -6,9 +6,13 @@
 #include <pine/types.hpp>
 
 void zero_out(void* target, size_t size);
-void strcpy(char* __restrict__ to, const char* from);
+void memcopy(void* __restrict__ to, const void* __restrict__ from, size_t size);
+size_t strcopy(char* __restrict__ to, const char* from);
+size_t strbufcopy(char* __restrict__ buf, size_t bufsize, const char* from);
 size_t strlen(const char* string);
 int strcmp(const char* first, const char* second);
+size_t sbufprintf(char* buf, size_t bufsize, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
+size_t vsbufprintf(char* buf, size_t bufsize, const char* fmt, va_list args);
 
 enum class ToAFlag : int {
     Upper,

@@ -48,7 +48,7 @@ void printf(const char* fmt, ...)
             print_buf = (char*)malloc(bufsize);
         }
 
-        strcpy(print_buf + print_buf_pos, message);
+        strcopy(print_buf + print_buf_pos, message);
         print_buf_pos += message_size;
         return true;
     };

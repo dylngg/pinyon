@@ -1,6 +1,7 @@
 #include "tasks.hpp"
 #include "interrupts.hpp"
 #include "kmalloc.hpp"
+#include "panic.hpp"
 #include "timer.hpp"
 #include <pine/string.hpp>
 #include <pine/units.hpp>
@@ -25,7 +26,7 @@ Task::Task(const char* name, u32 stack_pointer, u32 pc)
     , m_cpu_jiffies(0)
 {
     m_name = (char*)kmalloc(sizeof *name * (strlen(name) + 1));
-    strcpy(m_name, name);
+    strcopy(m_name, name);
 }
 
 Task::~Task()

@@ -1,4 +1,5 @@
 #include "string.hpp"
+#include <pine/printf.hpp>
 // Note: this magic header comes from GCC's builtin functions
 //       https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#Other-Builtins
 #include <cstdarg>
@@ -12,14 +13,41 @@ void zero_out(void* target, size_t size)
         *_target = 0;
 }
 
-void strcpy(char* __restrict__ to, const char* from)
+void memcopy(void* __restrict__ to, const void* __restrict__ from, size_t size)
 {
+    unsigned char* _to = (unsigned char*)to;
+    unsigned char* _from = (unsigned char*)from;
+    while (size-- > 0)
+        *_to = *_from;
+}
+
+size_t strcopy(char* __restrict__ to, const char* from)
+{
+    size_t copied = 0;
     while (*from != '\0') {
         *to = *from;
         to++;
         from++;
+        copied++;
     }
     *to = '\0';
+    return copied;
+}
+
+size_t strbufcopy(char* __restrict__ buf, size_t bufsize, const char* from)
+{
+    if (bufsize == 0)
+        return 0;
+
+    size_t copied = 0;
+    while (*from != '\0' && copied + 1 < bufsize) { // + '\0'
+        *buf = *from;
+        buf++;
+        from++;
+        copied++;
+    }
+    *buf = '\0';
+    return copied;
 }
 
 size_t strlen(const char* string)
@@ -102,19 +130,26 @@ void ultoa16(char* buf, unsigned long num, ToAFlag flag)
     }
 }
 
-size_t strbufcat(char* buf, const StringView& str, size_t start, size_t buf_size)
+size_t sbufprintf(char* buf, size_t bufsize, const char* fmt, ...)
 {
-    if (start >= buf_size)
+    va_list args;
+    va_start(args, fmt);
+    vsbufprintf(buf, bufsize, fmt, args);
+}
+
+size_t vsbufprintf(char* buf, size_t bufsize, const char* fmt, va_list args)
+{
+    size_t buf_pos = 0;
+    if (bufsize == 0)
         return 0;
 
-    size_t offset = 0;
-    for (auto ch : str) {
-        if (start + offset + 1 >= buf_size)
-            break;
+    const auto& try_add_wrapper = [&](const char* message) -> bool {
+        size_t message_size = strlen(message);
+        size_t copied = strbufcopy(buf + buf_pos, bufsize - buf_pos, message);
+        buf_pos += copied;
+        return copied == message_size;
+    };
 
-        buf[start + offset] = ch;
-        offset++;
-    }
-    buf[start + offset] = '\0';
-    return offset;
+    vfnprintf(try_add_wrapper, fmt, args);
+    return buf_pos;
 }
