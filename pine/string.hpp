@@ -1,7 +1,7 @@
 #pragma once
 // Note: this magic header comes from GCC's builtin functions
 //       https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#Other-Builtins
-#include "stdarg.h"
+#include <cstdarg>
 #include <pine/iter.hpp>
 #include <pine/types.hpp>
 
