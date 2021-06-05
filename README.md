@@ -17,7 +17,9 @@ and aims to support the following in the future:
 
 ## Prequesites
 
-You can obtain the ARM EABI GCC Toolchain with the following commands if using MacPorts:
+GNU Make is required for building. On MacOS, the default `make` seems to work.
+
+You can obtain the ARM EABI GCC Toolchain with the following commands if using MacPorts on MacOS:
 
 ```bash
 port install arm-none-eabi-binutils   # @2.34_1
