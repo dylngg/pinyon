@@ -134,7 +134,7 @@ size_t sbufprintf(char* buf, size_t bufsize, const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    vsbufprintf(buf, bufsize, fmt, args);
+    return vsbufprintf(buf, bufsize, fmt, args);
 }
 
 size_t vsbufprintf(char* buf, size_t bufsize, const char* fmt, va_list args)

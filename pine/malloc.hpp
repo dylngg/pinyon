@@ -122,7 +122,12 @@ public:
     MemoryAllocator(MemoryBounds* mem_bounds)
         : m_mem_bounds(mem_bounds)
     {
-        size_t heap_size = m_mem_bounds->try_extend_heap(NEW_BLOCK_SIZE * 8);
+        auto maybe_heap_size = m_mem_bounds->try_extend_heap(NEW_BLOCK_SIZE * 8);
+        // FIXME: Handle this better
+        size_t heap_size = 0;
+        if (maybe_heap_size.has_value())
+            heap_size = maybe_heap_size.value();
+
         m_stats = { .heap_size = heap_size, .amount_used = 0, .num_mallocs = 0, .num_frees = 0 };
         m_first_free_header = (Header*)m_mem_bounds->heap_start();
         *m_first_free_header = Header { nullptr, nullptr, NEW_SIZE, true };
@@ -142,10 +147,12 @@ public:
             auto* next_header = curr_header->next_header();
             if (!next_header) {
                 size_t extend_size = requested_size > NEW_SIZE ? requested_size : NEW_SIZE;
-                size_t heap_incr_size = m_mem_bounds->try_extend_heap(extend_size);
-                if (heap_incr_size == 0)
-                    // Out of memory!
+                auto maybe_heap_incr_size = m_mem_bounds->try_extend_heap(extend_size);
+                if (!maybe_heap_incr_size.has_value())
+                    // No free space?!
                     return nullptr;
+
+                size_t heap_incr_size = maybe_heap_incr_size.value();
 
                 m_stats.heap_size += heap_incr_size;
 

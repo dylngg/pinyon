@@ -32,7 +32,7 @@ class TaskMemoryBounds {
 public:
     TaskMemoryBounds();
 
-    size_t try_extend_heap(size_t by_size);
+    Maybe<size_t> try_extend_heap(size_t by_size);
     PtrData heap_start() const;
     PtrData heap_end() const;
 
