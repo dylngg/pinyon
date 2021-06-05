@@ -20,9 +20,9 @@ void init()
 
     // No good reason for this, beyond using new kmalloc calls
     char* pinyon = (char*)kmalloc(19);
-    strcpy(pinyon, "\033[0;33mPinyon\033[0m");
+    strcopy(pinyon, "\033[0;33mPinyon\033[0m");
     char* pine = (char*)kmalloc(17);
-    strcpy(pine, "+\033[0;32mPine\033[0m");
+    strcopy(pine, "+\033[0;32mPine\033[0m");
 
     consolef("Welcome to %s%s! (%c) %d\n", pinyon, pine, 'c', 2021);
     consoleln("Use 'help' for a list of commands to run.");

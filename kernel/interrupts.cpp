@@ -1,5 +1,5 @@
 #include "interrupts.hpp"
-#include "console.hpp"
+#include "panic.hpp"
 #include "tasks.hpp"
 #include "timer.hpp"
 
@@ -7,14 +7,12 @@ extern "C" {
 
 void reset_handler(void)
 {
-    consolef("interrupt:\tResetting. Goodbye.\n");
-    asm volatile("b halt");
+    panic("interrupt:\tResetting. Goodbye.\n");
 }
 
 void undefined_instruction_handler(void)
 {
-    consolef("interrupt:\t\033[31mUndefined instruction! halting.\033[0m\n");
-    asm volatile("b halt");
+    panic("interrupt:\t\033[31mUndefined instruction! halting.\033[0m\n");
 }
 
 void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
@@ -73,20 +71,17 @@ void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
 
 void prefetch_abort_handler(void)
 {
-    consolef("interrupt:\t\033[31mPrefetch abort! halting.\033[0m\n");
-    asm volatile("b halt");
+    panic("interrupt:\t\033[31mPrefetch abort! halting.\033[0m\n");
 }
 
 void data_abort_handler(void)
 {
-    consolef("interrupt:\t\033[31mData abort! halting.\033[0m\n");
-    asm volatile("b halt");
+    panic("interrupt:\t\033[31mData abort! halting.\033[0m\n");
 }
 
 void fast_irq_handler(void)
 {
-    consolef("interrupt:\tHandling fast IRQ...");
-    asm volatile("b halt");
+    panic("interrupt:\tHandling fast IRQ...");
 }
 
 void irq_handler(void)
