@@ -58,7 +58,13 @@ struct Maybe {
             value().~Value();
     }
 
-    constexpr bool has_value() { return m_has_value; }
+    constexpr bool has_value() const { return m_has_value; }
+    constexpr explicit operator bool() const
+    {
+        /* Allow for if (maybe) ..., rather than if (!maybe.has_value()) */
+        return has_value();
+    }
+
     constexpr const Value& value() const { return *reinterpret_cast<const Value*>(&m_value_space); }
     inline Value& value() { return *reinterpret_cast<Value*>(&m_value_space); }
     constexpr static Maybe<Value> No() { return Maybe<Value>(); }

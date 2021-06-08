@@ -125,7 +125,7 @@ public:
         auto maybe_heap_size = m_mem_bounds->try_extend_heap(NEW_BLOCK_SIZE * 8);
         // FIXME: Handle this better
         size_t heap_size = 0;
-        if (maybe_heap_size.has_value())
+        if (maybe_heap_size)
             heap_size = maybe_heap_size.value();
 
         m_stats = { .heap_size = heap_size, .amount_used = 0, .num_mallocs = 0, .num_frees = 0 };
@@ -148,7 +148,7 @@ public:
             if (!next_header) {
                 size_t extend_size = requested_size > NEW_SIZE ? requested_size : NEW_SIZE;
                 auto maybe_heap_incr_size = m_mem_bounds->try_extend_heap(extend_size);
-                if (!maybe_heap_incr_size.has_value())
+                if (!maybe_heap_incr_size)
                     // No free space?!
                     return nullptr;
 
