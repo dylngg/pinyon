@@ -23,11 +23,10 @@ void panic(const char* message)
     asm volatile("mrs %0, cpsr"
                  : "=r"(cpsr));
     consoleln("KERNEL PANIC! (!!!)");
-    consoleln(panic_buffer);
     sbufprintf(panic_buffer, PANIC_BUFFER_SIZE, "cpsr: %lu, sp: %p, lr: %p", cpsr, (void*)sp, (void*)lr);
     consoleln(panic_buffer);
 
-    if (strlen(message) > 0) {
+    if (message[0] != '\0') {
         console("message: ");
         consoleln(message);
     }
