@@ -104,7 +104,7 @@ void UARTManager::init() volatile
     MemoryBarrier barrier {};
 
     /* Reset UART */
-    ctrl = 0; // Reset
+    cr = 0; // Reset
 
     /*
      * Disable the GPIO14 and GPIO15 pins (supports RXD input, TXD output). The
@@ -122,7 +122,7 @@ void UARTManager::init() volatile
     *(volatile u32*)(GPPUDCLK0) = 0; // ok now take effect
 
     /* Configure UART */
-    intr_clear = 0x7FF; // clear all pending interrupts; write 1s for 11 bits
+    icr = 0x7FF; // clear all pending interrupts; write 1s for 11 bits
 
     /*
      * We want a baud rate of 115200, speed is 250 MHz
@@ -132,13 +132,13 @@ void UARTManager::init() volatile
      * So we get 1.67. We store the integer in IBRD, and the fractional value
      * in FBRD. FBRD has a range of 0-63 (6 bits), so we take (67 / 100) * 63 = ~42.
      */
-    int_baud_rate_div = 1;
-    frac_baud_rate_div = 42;
+    ibrd = 1;
+    fbrd = 42;
 
     // 4: enable FIFO
     // 5/6: 0b11 - 8-bit words
     // rest should be 0 to disable parity, 2-stop bit, etc
-    line_ctrl = (1 << UART_LCRH_FEN) | (1 << UART_LCRH_LWEN0) | (1 << UART_LCRH_LWEN1);
+    lcrh = (1 << UART_LCRH_FEN) | (1 << UART_LCRH_LWEN0) | (1 << UART_LCRH_LWEN1);
 
     /*
      * Reset UART so that it disables all interrupts
@@ -146,28 +146,28 @@ void UARTManager::init() volatile
      * This is done by writing 1s to the interrupt mask register. Skip
      * 0,2,3 because the BCM2835 doesn't support those.
      */
-    intr_mask_set_clear = 0xFF2;
+    imsc = 0xFF2;
 
     /*
      * Finally enable the UART (0) and the transmit/recieve bits (8, 9).
      */
-    ctrl = (1 << UART_CR_EN) | (1 << UART_CR_TXE) | (1 << UART_CR_RXE);
+    cr = (1 << UART_CR_EN) | (1 << UART_CR_TXE) | (1 << UART_CR_RXE);
 }
 
 inline void UARTManager::put(char ch) volatile
 {
     // 5: TXFF bit; set when transmit FIFO is full
-    while (flag & (1 << 5)) {
+    while (fr & (1 << 5)) {
     }
-    data = ch;
+    dr = ch;
 }
 
 inline char UARTManager::get() volatile
 {
     // 4: RXFE bit; set when recieve FIFO is full
-    while (flag & (1 << 4)) {
+    while (fr & (1 << 4)) {
     }
-    return data;
+    return dr;
 }
 
 static auto* g_uart_manager = (UARTManager*)UART_BASE;

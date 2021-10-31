@@ -52,25 +52,25 @@ private:
      * See also the PrimeCell UART (PL011) Manual:
      * https://developer.arm.com/documentation/ddi0183/f/
      */
-    volatile u32 data; // DR
-    volatile u32 recv_status; // RSRECR
+    volatile u32 dr; // DR
+    volatile u32 rsrecr; // RSRECR
     volatile u32 unused1;
     volatile u32 unused2;
     volatile u32 unused3;
     volatile u32 unused4;
-    volatile u32 flag; // FR
+    volatile u32 fr; // FR
     volatile u32 ibrd; // IBPR
     volatile u32 ilrd; // ILPR
-    volatile u32 int_baud_rate_div; // IBRD
-    volatile u32 frac_baud_rate_div; // FBRD
-    volatile u32 line_ctrl; // LCRH
-    volatile u32 ctrl; // CR
-    volatile u32 intr_fifo_select; // IFLS
-    volatile u32 intr_mask_set_clear; // IMSC
-    volatile u32 raw_intr_status; // RIS
-    volatile u32 masked_intr_status; // MIS
-    volatile u32 intr_clear; // ICR
-    volatile u32 dma_ctrl; // DMACR
+    volatile u32 ibrd; // IBRD
+    volatile u32 fbrd; // FBRD
+    volatile u32 lcrh; // LCRH
+    volatile u32 cr; // CR
+    volatile u32 ifls; // IFLS
+    volatile u32 imsc; // IMSC
+    volatile u32 ris; // RIS
+    volatile u32 mis; // MIS
+    volatile u32 icr; // ICR
+    volatile u32 dmacr; // DMACR
 };
 
 inline UARTManager* uart_manager();
