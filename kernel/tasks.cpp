@@ -73,7 +73,7 @@ PtrData Task::heap_allocate()
 {
     m_heap_size = 4 * MiB; // Fixed; cannot change so be liberal
     auto maybe_top_addr = kmem_bounds().try_reserve_topdown_space(m_heap_size);
-    panic_if(!maybe_top_addr, "Cannot reserve memory for task heap!");
+    PANIC_IF(!maybe_top_addr, "Cannot reserve memory for task heap!");
 
     m_heap_start = maybe_top_addr.value() - m_heap_size;
     m_heap_reserved = 0;
@@ -171,7 +171,7 @@ TaskManager::TaskManager()
                  : "=r"(shell_task_addr));
 
     auto maybe_shell_stack_start = kmem_bounds().try_reserve_topdown_space(1 * MiB);
-    panic_if(!maybe_shell_stack_start, "Cannot allocate memory for shell stack!");
+    PANIC_IF(!maybe_shell_stack_start, "Cannot allocate memory for shell stack!");
 
     m_tasks[0] = Task("shell", maybe_shell_stack_start.value(), shell_task_addr);
 
@@ -179,7 +179,7 @@ TaskManager::TaskManager()
     // never have to deal with no runnable tasks. It will spin of course,
     // which is not ideal :P
     auto maybe_spin_stack_start = kmem_bounds().try_reserve_topdown_space(Page);
-    panic_if(!maybe_shell_stack_start, "Cannot allocate memory for spin stack!");
+    PANIC_IF(!maybe_shell_stack_start, "Cannot allocate memory for spin stack!");
 
     m_tasks[1] = Task("spin", maybe_spin_stack_start.value(), spin_task_addr);
 

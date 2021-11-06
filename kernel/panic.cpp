@@ -22,14 +22,12 @@ void panic(const char* message)
                  : "=r"(lr));
     asm volatile("mrs %0, cpsr"
                  : "=r"(cpsr));
-    consoleln("KERNEL PANIC! (!!!)");
+    consoleln("\nKERNEL PANIC! (!!!)");
+    if (message[0] != '\0')
+        consoleln(message);
+
     sbufprintf(panic_buffer, PANIC_BUFFER_SIZE, "cpsr: %lu, sp: %p, lr: %p", cpsr, (void*)sp, (void*)lr);
     consoleln(panic_buffer);
-
-    if (message[0] != '\0') {
-        console("message: ");
-        consoleln(message);
-    }
     asm volatile("b halt");
 }
 
@@ -38,13 +36,5 @@ void panicf(const char* fmt, ...)
     va_list args;
     va_start(args, fmt);
     vsbufprintf(panic_buffer, PANIC_BUFFER_SIZE, fmt, args);
-    console("message: ");
-    consoleln(panic_buffer);
-    panic("");
-}
-
-void panic_if(bool condition, const char* message)
-{
-    if (condition)
-        panic(message);
+    panic(panic_buffer);
 }
