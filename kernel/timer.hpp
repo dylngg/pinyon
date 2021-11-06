@@ -28,12 +28,14 @@
 
 struct SystemTimer {
 public:
-    void init() volatile;
-    void reinit() volatile;
-    bool matched() const volatile;
-    u32 jiffies_since_last_match() const volatile;
+    void init();
+    void handle_irq();
 
 private:
+    void reinit();
+    bool matched() const;
+    u32 jiffies_since_last_match() const;
+
     volatile u32 control;
     volatile u32 lower_bits;
     volatile u32 upper_bits;

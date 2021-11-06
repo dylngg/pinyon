@@ -12,6 +12,9 @@
 
 struct IRQManager {
     void enable_timer() volatile;
+    void enable_uart() volatile;
+    bool timer_pending() const;
+    bool uart_pending() const;
 
 private:
     /*

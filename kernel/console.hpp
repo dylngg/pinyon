@@ -1,5 +1,5 @@
 #pragma once
-#include <pine/string.hpp>
+#include <pine/types.hpp>
 
 /*
  * For the Raspberry Pi 2 we are using the PL011 UART.
@@ -20,10 +20,20 @@
 #define UART_CR_TXE 8
 #define UART_CR_RXE 9
 
+#define UART_FR_RXFE 4
+#define UART_FR_TXFF 5
+
+#define UART_IMSC_RXIM 4
+#define UART_IMSC_TXIM 5
+
 // See page 101 of Broadcom BCM2836 Datasheet
 #define GPPUD 0x3F200094
 #define GPPUDCLK0 0x3F200098
 
+/*
+ * Kernel functions that poll. This is meant for logging, not for userspace
+ * usage (use read/write for that).
+ */
 void console_readline(char*, size_t);
 
 void console(const char*);
@@ -36,11 +46,53 @@ void consolef(const char*, ...) __attribute__((format(printf, 1, 2)));
 
 struct UARTManager {
 public:
-    void init() volatile;
-    inline char get() volatile;
-    inline void put(char ch) volatile;
+    void init();
+    void handle_irq();
 
 private:
+    char poll_get();
+    void poll_put(char ch);
+    void poll_write(const char*);
+    void poll_write(const char*, size_t);
+
+    friend void console_readline(char*, size_t);
+    friend void console(const char*);
+    friend void console(const char*, size_t);
+    friend void consoleln(const char*);
+    friend void consolef(const char*, ...);
+
+    template <int offset1, int offset2>
+    class InterruptMask {
+    public:
+        // Compute mask at compile time; this also helps when offset1 == offset2
+        constexpr inline u32 mask() const
+        {
+            return (1 << offset1) | (1 << offset2);
+        }
+        InterruptMask(volatile UARTManager* uart) __attribute__((always_inline))
+        : m_uart(uart)
+        // Store prev so when the mask is already set (perhaps by a ancestor
+        // InterruptMask class in the call stack), we can put it in the
+        // previous state we found it in.
+        , m_prev(uart->imsc)
+        {
+            m_uart->imsc = m_prev & ~mask();
+        }
+
+        ~InterruptMask() __attribute__((always_inline))
+        {
+            m_uart->imsc |= m_prev & mask();
+        }
+
+    private:
+        volatile UARTManager* m_uart;
+        const u8 m_prev;
+    };
+
+    using ReadInterruptMask = InterruptMask<UART_IMSC_RXIM, UART_IMSC_RXIM>;
+    using WriteInterruptMask = InterruptMask<UART_IMSC_TXIM, UART_IMSC_TXIM>;
+    using ReadWriteInterruptMask = InterruptMask<UART_IMSC_RXIM, UART_IMSC_TXIM>;
+
     /*
      * See section 13.3 on page 176 in the BCM2835 manual for the
      * definition of these.
@@ -59,7 +111,7 @@ private:
     volatile u32 unused3;
     volatile u32 unused4;
     volatile u32 fr; // FR
-    volatile u32 ibrd; // IBPR
+    volatile u32 ibpr; // IBPR
     volatile u32 ilrd; // ILPR
     volatile u32 ibrd; // IBRD
     volatile u32 fbrd; // FBRD
@@ -73,6 +125,6 @@ private:
     volatile u32 dmacr; // DMACR
 };
 
-inline UARTManager* uart_manager();
+UARTManager* uart_manager();
 
 void uart_init();

@@ -1,11 +1,15 @@
 #include "timer.hpp"
 #include "interrupts.hpp"
+#include "panic.hpp"
+
 #include <pine/barrier.hpp>
 #include <pine/units.hpp>
 
+// 32 bits should ought to be enough for anyone ;)
+static u32 jiffies_since_boot;
 static u32 timer_counter_match;
 
-void SystemTimer::init() volatile
+void SystemTimer::init()
 {
     /*
      * Use system timer 1. GPU uses 0 and 2.
@@ -21,9 +25,20 @@ void SystemTimer::init() volatile
         // Clear timer match flag
         control |= (1 << 1);
     }
+
+    jiffies_since_boot = 0;
 }
 
-void SystemTimer::reinit() volatile
+void SystemTimer::handle_irq()
+{
+    PANIC_IF(!matched(), "IRQ handler for timer called, but not needed!");
+
+    u32 jif_diff = jiffies_since_last_match();
+    reinit();
+    jiffies_since_boot += jif_diff;
+}
+
+void SystemTimer::reinit()
 {
     MemoryBarrier barrier {};
     /*
@@ -67,7 +82,7 @@ void SystemTimer::reinit() volatile
     control |= (1 << 1);
 }
 
-u32 SystemTimer::jiffies_since_last_match() const volatile
+u32 SystemTimer::jiffies_since_last_match() const
 {
     MemoryBarrier::sync();
     if (compare3 < lower_bits) {
@@ -78,7 +93,7 @@ u32 SystemTimer::jiffies_since_last_match() const volatile
     return 1;
 }
 
-bool SystemTimer::matched() const volatile
+bool SystemTimer::matched() const
 {
     MemoryBarrier::sync();
     return (control & 0x3) > 0;
@@ -95,14 +110,6 @@ void timer_init()
 {
     system_timer()->init();
     irq_manager()->enable_timer();
-}
-
-// 32 bits should ought to be enough for anyone ;)
-static u32 jiffies_since_boot;
-
-void increase_jiffies(u32 by)
-{
-    jiffies_since_boot += by;
 }
 
 u32 jiffies()

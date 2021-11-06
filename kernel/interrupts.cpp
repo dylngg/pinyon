@@ -1,4 +1,5 @@
 #include "interrupts.hpp"
+#include "console.hpp"
 #include "panic.hpp"
 #include "tasks.hpp"
 #include "timer.hpp"
@@ -86,21 +87,48 @@ void fast_irq_handler(void)
 
 void irq_handler(void)
 {
-    auto timer = system_timer();
-    if (timer->matched()) {
-        u32 jif_diff = timer->jiffies_since_last_match();
-        timer->reinit();
-        increase_jiffies(jif_diff);
-        auto& task_mgr = task_manager();
-        task_mgr.schedule();
+    auto* irq = irq_manager();
+    bool should_reschedule = false;
+
+    // FIXME: Read pending_basic_irq1 once, then make decision based on that,
+    //        rather than reading a bunch of registers here! IRQ handlers
+    //        should be quick.
+    if (irq->timer_pending()) {
+        auto* timer = system_timer();
+        timer->handle_irq();
+
+        should_reschedule = true;
     }
+    if (irq->uart_pending()) {
+        auto* uart = uart_manager();
+        uart->handle_irq();
+    }
+
+    if (should_reschedule)
+        task_manager().schedule();
 }
 }
 
 void IRQManager::enable_timer() volatile
 {
     MemoryBarrier barrier {};
-    enable_irq1 = 0x00000002;
+    enable_irq1 = (1 << 1);
+}
+
+void IRQManager::enable_uart() volatile
+{
+    MemoryBarrier barrier {};
+    enable_irq2 = (1 << 25);
+}
+
+bool IRQManager::timer_pending() const
+{
+    return pending_irq1 & (1 << 1);
+}
+
+bool IRQManager::uart_pending() const
+{
+    return pending_basic_irq & (1 << 19);
 }
 
 static auto* g_irq_manager = (IRQManager*)IRQ_BASE;

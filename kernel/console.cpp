@@ -1,25 +1,31 @@
 #include "console.hpp"
+#include "interrupts.hpp"
 #include <pine/barrier.hpp>
 #include <pine/printf.hpp>
 #include <pine/string.hpp>
 
-static inline void console_put(char ch)
+void UARTManager::poll_write(const char* message)
 {
-    uart_manager()->put(ch);
+    for (size_t i = 0; message[i] != '\0'; i++)
+        poll_put(message[i]);
 }
 
-static inline char console_get()
+void UARTManager::poll_write(const char* message, size_t bytes)
 {
-    return uart_manager()->get();
+    for (size_t i = 0; i < bytes; i++)
+        poll_put(message[i]);
 }
 
 void console_readline(char* buf, size_t bufsize)
 {
+    MemoryBarrier barrier;
+    auto* uart = uart_manager();
+    UARTManager::ReadWriteInterruptMask mask(uart);
+
     size_t offset = 0;
     char ch;
-
     for (;;) {
-        ch = console_get();
+        ch = uart->poll_get();
 
         if (offset >= bufsize - 1)
             continue;
@@ -40,12 +46,12 @@ void console_readline(char* buf, size_t bufsize)
             if (offset >= 1) {
                 offset--;
                 // move left one char (D), then delete one (P)
-                console("\x1b[1D\x1b[1P");
+                uart->poll_write("\x1b[1D\x1b[1P");
             }
             continue;
         default:
             // local echo
-            console_put(ch);
+            uart->poll_put(ch);
         }
         if (stop)
             break;
@@ -54,38 +60,50 @@ void console_readline(char* buf, size_t bufsize)
         offset++;
     }
 
-    console_put('\n');
+    uart->poll_put('\n');
     buf[offset] = '\0';
     return;
 }
 
 void console(const char* message)
 {
-    MemoryBarrier barrier {};
-    for (size_t i = 0; message[i] != '\0'; i++)
-        console_put(message[i]);
+    MemoryBarrier barrier;
+    auto* uart = uart_manager();
+    UARTManager::WriteInterruptMask mask(uart);
+
+    uart->poll_write(message);
 }
 
 void console(const char* message, size_t bytes)
 {
-    MemoryBarrier barrier {};
-    for (size_t i = 0; i < bytes; i++)
-        console_put(message[i]);
+    MemoryBarrier barrier;
+    auto* uart = uart_manager();
+    UARTManager::WriteInterruptMask mask(uart);
+
+    uart->poll_write(message, bytes);
 }
 
 void consoleln(const char* message)
 {
-    MemoryBarrier barrier {};
-    console(message);
-    console_put('\n');
+    MemoryBarrier barrier;
+    auto* uart = uart_manager();
+    UARTManager::WriteInterruptMask mask(uart);
+
+    uart->poll_write(message);
+    uart->poll_put('\n');
 }
 
 void consolef(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    const auto& try_add_wrapper = [](const char* message) -> bool {
-        console(message);
+
+    MemoryBarrier barrier;
+    auto* uart = uart_manager();
+    UARTManager::WriteInterruptMask mask(uart);
+
+    const auto& try_add_wrapper = [&](const char* message) -> bool {
+        uart->poll_write(message);
         return true;
     };
     vfnprintf(try_add_wrapper, fmt, args);
@@ -99,9 +117,9 @@ static inline void spin(u32 count)
                  : "cc");
 }
 
-void UARTManager::init() volatile
+void UARTManager::init()
 {
-    MemoryBarrier barrier {};
+    MemoryBarrier barrier;
 
     /* Reset UART */
     cr = 0; // Reset
@@ -141,12 +159,15 @@ void UARTManager::init() volatile
     lcrh = (1 << UART_LCRH_FEN) | (1 << UART_LCRH_LWEN0) | (1 << UART_LCRH_LWEN1);
 
     /*
-     * Reset UART so that it disables all interrupts
-     *
-     * This is done by writing 1s to the interrupt mask register. Skip
-     * 0,2,3 because the BCM2835 doesn't support those.
+     * Reset UART and disable all interrupts.
      */
-    imsc = 0xFF2;
+    imsc = 0;
+
+    /*
+     * Set the FIFO level select to 1/8 full for both transmit (0-2 bits) and
+     * recieve (3-5)
+     */
+    ifls = 0;
 
     /*
      * Finally enable the UART (0) and the transmit/recieve bits (8, 9).
@@ -154,25 +175,29 @@ void UARTManager::init() volatile
     cr = (1 << UART_CR_EN) | (1 << UART_CR_TXE) | (1 << UART_CR_RXE);
 }
 
-inline void UARTManager::put(char ch) volatile
+void UARTManager::handle_irq()
+{
+}
+
+void UARTManager::poll_put(char ch)
 {
     // 5: TXFF bit; set when transmit FIFO is full
-    while (fr & (1 << 5)) {
+    while (fr & (1 << UART_FR_TXFF)) {
     }
     dr = ch;
 }
 
-inline char UARTManager::get() volatile
+char UARTManager::poll_get()
 {
-    // 4: RXFE bit; set when recieve FIFO is full
-    while (fr & (1 << 4)) {
+    // 4: RXFE bit; set when recieve FIFO is empty
+    while (fr & (1 << UART_FR_RXFE)) {
     }
     return dr;
 }
 
 static auto* g_uart_manager = (UARTManager*)UART_BASE;
 
-inline UARTManager* uart_manager()
+UARTManager* uart_manager()
 {
     return g_uart_manager;
 }
@@ -180,4 +205,5 @@ inline UARTManager* uart_manager()
 void uart_init()
 {
     uart_manager()->init();
+    irq_manager()->enable_uart();
 }

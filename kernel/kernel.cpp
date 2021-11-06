@@ -4,18 +4,19 @@
 #include "tasks.hpp"
 #include "timer.hpp"
 
+#include <pine/string.hpp>
+
 extern "C" void init();
 
 void init()
 {
+    interrupts_init();
     uart_init();
     console("Initializing... ");
     console("memory ");
     kmem_init();
     console("timer ");
     timer_init();
-    console("interrupts");
-    interrupts_init();
     consoleln("");
 
     // No good reason for this, beyond using new kmalloc calls
