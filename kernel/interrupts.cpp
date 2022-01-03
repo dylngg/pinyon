@@ -21,7 +21,7 @@ void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
     auto& task_mgr = task_manager();
     auto& task = task_mgr.running_task();
 
-    //consolef("Handling syscall %ld with args %ld\n", syscall_id, arg);
+    //consolef("Handling syscall %u with args %u\n", syscall_id, arg);
 
     switch (syscall_id) {
     case 0:
@@ -66,7 +66,7 @@ void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
         break;
     }
     default:
-        consolef("kernel:\tUnknown syscall_id number %ld\n", syscall_id);
+        consolef("kernel:\tUnknown syscall_id number %u\n", syscall_id);
     }
 }
 

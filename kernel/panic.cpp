@@ -26,7 +26,7 @@ void panic(const char* message)
     if (message[0] != '\0')
         consoleln(message);
 
-    sbufprintf(panic_buffer, PANIC_BUFFER_SIZE, "cpsr: %lu, sp: %p, lr: %p", cpsr, (void*)sp, (void*)lr);
+    sbufprintf(panic_buffer, PANIC_BUFFER_SIZE, "cpsr: %u, sp: %p, lr: %p", cpsr, (void*)sp, (void*)lr);
     consoleln(panic_buffer);
     asm volatile("b halt");
 }
