@@ -66,7 +66,7 @@ void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
         break;
     }
     default:
-        consolef("kernel:\tUnknown syscall_id number %u\n", syscall_id);
+        consolef("kernel:\tUnknown syscall_id number %lu\n", syscall_id);
     }
 }
 
