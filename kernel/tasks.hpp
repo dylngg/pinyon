@@ -15,6 +15,11 @@ class Task {
 public:
     Task(const char* name, u32 stack_pointer, u32 pc);
     ~Task();
+    Task(const Task& other) = delete;
+    Task(Task&& other) = delete;
+    Task& operator=(const Task& other) = delete;
+    Task& operator=(Task&& other) = delete;
+
     void sleep(u32 secs);
     void readline(char* buf, size_t at_most_bytes);
     void write(char* buf, size_t bytes);

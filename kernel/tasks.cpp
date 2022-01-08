@@ -173,7 +173,7 @@ TaskManager::TaskManager()
     auto maybe_shell_stack_start = kmem_bounds().try_reserve_topdown_space(1 * MiB);
     PANIC_IF(!maybe_shell_stack_start, "Cannot allocate memory for shell stack!");
 
-    m_tasks[0] = Task("shell", maybe_shell_stack_start.value(), shell_task_addr);
+    new (&m_tasks[0]) Task("shell", maybe_shell_stack_start.value(), shell_task_addr);
 
     // The idea behind this task is that it will always be runnable so we
     // never have to deal with no runnable tasks. It will spin of course,
@@ -181,7 +181,7 @@ TaskManager::TaskManager()
     auto maybe_spin_stack_start = kmem_bounds().try_reserve_topdown_space(Page);
     PANIC_IF(!maybe_shell_stack_start, "Cannot allocate memory for spin stack!");
 
-    m_tasks[1] = Task("spin", maybe_spin_stack_start.value(), spin_task_addr);
+    new (&m_tasks[1]) Task("spin", maybe_spin_stack_start.value(), spin_task_addr);
 
     m_num_tasks = 2;
     m_running_task_index = 0;

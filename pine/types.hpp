@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <new> // GCC provides this with -ffreestanding
 
+/*
+ * Define easier to type aliases for sized integers here.
+ */
 using u64 = uint64_t;
 using u32 = uint32_t;
 using u16 = uint16_t;
@@ -28,9 +31,7 @@ using PtrData = u32;
  */
 template <typename Value>
 struct Maybe {
-    constexpr Maybe()
-        : m_value_space()
-        , m_has_value(false) {};
+    Maybe() = default;
     constexpr Maybe(const Value& value)
         : m_has_value(true)
     {
@@ -71,5 +72,5 @@ struct Maybe {
 
 private:
     alignas(Value) u8 m_value_space[sizeof(Value)];
-    bool m_has_value;
+    bool m_has_value = false;
 };
