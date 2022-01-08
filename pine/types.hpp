@@ -19,7 +19,7 @@ using i8 = int8_t;
 // ARCH: 32-bit dependent
 // We do necessary pointer arithmetic that we cannot do with void* unless
 // we're ok with the compiler constantly screaming at us.
-using PtrData = u32;
+using PtrData = uintptr_t;
 
 /*
  * Our own std::optional, complete with the arcane placement new operator, and
@@ -73,4 +73,10 @@ struct Maybe {
 private:
     alignas(Value) u8 m_value_space[sizeof(Value)];
     bool m_has_value = false;
+};
+
+template <class First, class Second>
+struct Pair {
+    First first;
+    Second second;
 };

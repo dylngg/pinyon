@@ -6,7 +6,7 @@ static void builtin_memstat()
 {
     auto malloc_stats = memstats();
     unsigned int pct_mem_util = (malloc_stats.amount_used * 100) / malloc_stats.heap_size;
-    printf("heap size: %d bytes\nused: %d bytes (%u%% util)\nnmallocs: %d\nnfrees: %d\n",
+    printf("heap size: %d bytes\nused: %d bytes (%u%% util)\nnmallocs: %llu\nnfrees: %llu\n",
         malloc_stats.heap_size, malloc_stats.amount_used, pct_mem_util, malloc_stats.num_mallocs,
         malloc_stats.num_frees);
 }
@@ -24,7 +24,6 @@ extern "C" {
 
 void shell()
 {
-    mem_init();
     char* buf = (char*)malloc(1024);
 
     for (;;) {

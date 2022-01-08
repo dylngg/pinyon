@@ -11,13 +11,15 @@ public:
     PtrData heap_start() const;
     PtrData heap_end() const;
 
+    bool in_bounds(void* ptr) const;
+
 private:
     PtrData m_heap_start;
     PtrData m_heap_size;
     PtrData m_heap_end_bound;
 };
 
-using KernelMemoryAllocator = MemoryAllocator<KernelMemoryBounds>;
+using KernelMemoryAllocator = MemoryAllocator<KernelMemoryBounds, FreeList>;
 
 void kfree(void*);
 
@@ -26,5 +28,3 @@ void* kmalloc(size_t) __attribute__((malloc));
 MallocStats kmemstats();
 
 KernelMemoryBounds& kmem_bounds();
-
-void kmem_init();

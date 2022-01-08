@@ -1,186 +1,111 @@
 #pragma once
-#include <pine/barrier.hpp>
-#include <pine/types.hpp>
+#include "linked_list.hpp"
+#include "twomath.hpp"
+#include "types.hpp"
 
 /*
- * This is an absolutely terrible implementation of malloc. It is extremely
- * slow due to each memory allocation requiring a walk of the _entire_ memory
- * allocation list... shield your eyes if they are sensitive to that kind of
- * thing.
+ * Memory allocation here is done in a generic templated manner, allowing for
+ * reuse between userspace and the kernel. Allocation is controlled with the
+ * MemoryAllocator class, which takes in a MemoryBounds singleton that
+ * controls the memory bounds of defined memory range, as well as a
+ * SpaceManager template that defines the particular space management system
+ * to use (e.g. free list, buddy allocation, etc).
  *
- * Implemented in a header because we use template to allow for a kernel and
- * "userspace" malloc implementation. The alternative to this is virtual
- * classes, but those don't play well in our embedded environment.
+ * Right now a generic first fit free-list space management scheme is used by
+ * both userspace and the kernel. This is not the best, but it works well
+ * enough to kick the can of replacing it down the road...
  */
 
-#define MIN_SIZE 8
-#define NEW_BLOCK_SIZE 4096
+#define NEW_BLOCK_SIZE ((size_t)4096)
+#define MIN_FREE_LIST_SIZE ((size_t)8)
 
 struct MallocStats {
-    size_t heap_size;
-    size_t amount_used;
-    u16 num_mallocs;
-    u16 num_frees;
+    size_t heap_size = 0;
+    size_t amount_used = 0;
+    u64 num_mallocs = 0;
+    u64 num_frees = 0;
 };
 
-struct Header {
-    Header(Header* prev_header, Header* next_header, size_t block_size, bool is_free)
-        : prev(prev_header)
-        , next(next_header)
-        , size(block_size)
-        , free(is_free)
+class FreeList {
+    using SizeNode = LinkedList<size_t>::Node;
+
+public:
+    FreeList() = default;
+
+    static size_t new_allocation_size(size_t requested_size)
     {
+        return align_up_two(requested_size + sizeof(SizeNode), NEW_BLOCK_SIZE);
     }
 
-    constexpr bool is_free(size_t requested_size) const
-    {
-        return free && size >= requested_size;
-    }
-    constexpr void* user_ptr()
-    {
-        return this + 1;
-    }
-    constexpr size_t user_size()
-    {
-        return size;
-    }
-    constexpr Header* next_header() const
-    {
-        return next;
-    }
-    Header* calc_next_header()
-    {
-        return (Header*)((unsigned char*)(this) + sizeof(*this) + size);
-    }
-
-    Header* create_next_header(size_t requested_size)
-    {
-        auto* new_next_header = calc_next_header();
-        *new_next_header = { this, next, requested_size, true };
-
-        if (next) {
-            // Ensure next points back to this new split, rather than ourselves
-            next->prev = new_next_header;
-        }
-
-        next = new_next_header;
-        return new_next_header;
-    }
-
-    void reserve(size_t requested_size)
-    {
-        size_t min_block_size = sizeof(*this) + MIN_SIZE;
-
-        if (size - requested_size > min_block_size) {
-            // can split into two blocks
-            size_t remaining_size = size - requested_size - sizeof(*this);
-            size = requested_size;
-            free = false;
-
-            create_next_header(remaining_size);
-            return;
-        }
-
-        // no need for splitting, or really anything at all... :)
-        free = false;
-    }
-
-    size_t destroy()
-    {
-        free = true;
-
-        if (next && next->free) {
-            // Coalesce right block into ours
-            size += sizeof(*next) + next->size;
-            next = next->next; // now our next is our adopted's next
-
-            if (next && next->prev) {
-                // ensure next's prev header (previously next->next) points to
-                // us, rather than the coalesced block we've adopted
-                next->prev = this;
-            }
-        }
-        if (prev && prev->free) {
-            // Coalese left block; take recursive approach and let prev adopt us
-            return prev->destroy();
-        }
-        return size;
-    }
+    Pair<void*, size_t> try_find_memory(size_t size);
+    void add_memory(void* new_location, size_t new_size);
+    size_t free_memory(void* ptr);
 
 private:
-    Header* prev;
-    Header* next;
-    u32 size;
-    bool free;
+    static void* user_addr_from_node_ptr(SizeNode* node_ptr, size_t offset = 0);
+    static SizeNode* node_ptr_from_user_addr(void* addr);
+    static bool nodes_are_contiguous_in_memory(SizeNode* left_node_ptr, SizeNode* right_node_ptr);
+    static void adopt_right_node_size(SizeNode* left_node_ptr, SizeNode* right_node_ptr);
+    static SizeNode* construct_node(size_t region_size, void* node_location);
+
+    Pair<SizeNode*, SizeNode*> try_find_neighboring_memory_nodes(SizeNode* node_ptr);
+
+    LinkedList<size_t> m_free_list;
 };
 
-#define NEW_SIZE ((NEW_BLOCK_SIZE) - (sizeof(Header)))
-
-template <class MemoryBounds>
+/*
+ * Defines a wrapper class which simply acts as a middle man between the given
+ * MemoryBounds singleton (which defines the bounds of a memory range) and the
+ * particular SpaceManager defined (which allows for different allocation
+ * schemes such as free lists, buddy system, etc...).
+ */
+template <class MemoryBounds, class SpaceManager>
 class MemoryAllocator {
 public:
-    MemoryAllocator(MemoryBounds* mem_bounds)
+    MemoryAllocator(MemoryBounds& mem_bounds)
         : m_mem_bounds(mem_bounds)
-    {
-        auto maybe_heap_size = m_mem_bounds->try_extend_heap(NEW_BLOCK_SIZE * 8);
-        // FIXME: Handle this better
-        size_t heap_size = 0;
-        if (maybe_heap_size)
-            heap_size = maybe_heap_size.value();
-
-        m_stats = { .heap_size = heap_size, .amount_used = 0, .num_mallocs = 0, .num_frees = 0 };
-        m_first_free_header = (Header*)m_mem_bounds->heap_start();
-        *m_first_free_header = Header { nullptr, nullptr, NEW_SIZE, true };
-    }
+        , m_space_manager()
+        , m_stats() {};
 
     void* allocate(size_t requested_size)
     {
-        m_stats.num_mallocs++;
-        auto* curr_header = m_first_free_header;
-        while (curr_header) {
-            if (curr_header->is_free(requested_size)) {
-                curr_header->reserve(requested_size);
-                m_stats.amount_used += requested_size;
-                return curr_header->user_ptr();
-            }
+        auto [free_block, size_allocated] = m_space_manager.try_find_memory(requested_size);
+        if (!free_block) {
+            auto extend_size = SpaceManager::new_allocation_size(requested_size);
+            auto old_heap_end = reinterpret_cast<void*>(m_mem_bounds.heap_end());
+            auto maybe_heap_incr_size = m_mem_bounds.try_extend_heap(extend_size);
+            if (!maybe_heap_incr_size)
+                return nullptr;
 
-            auto* next_header = curr_header->next_header();
-            if (!next_header) {
-                size_t extend_size = requested_size > NEW_SIZE ? requested_size : NEW_SIZE;
-                auto maybe_heap_incr_size = m_mem_bounds->try_extend_heap(extend_size);
-                if (!maybe_heap_incr_size)
-                    // No free space?!
-                    return nullptr;
+            auto heap_incr_size = maybe_heap_incr_size.value();
+            m_stats.heap_size += heap_incr_size;
+            m_space_manager.add_memory(old_heap_end, heap_incr_size);
 
-                size_t heap_incr_size = maybe_heap_incr_size.value();
-
-                m_stats.heap_size += heap_incr_size;
-
-                auto* new_header = curr_header->create_next_header(extend_size);
-                new_header->reserve(requested_size);
-                m_stats.amount_used += requested_size;
-                return new_header->user_ptr();
-            }
-            curr_header = next_header;
+            auto block_and_size = m_space_manager.try_find_memory(requested_size);
+            free_block = block_and_size.first;
+            size_allocated = block_and_size.second;
         }
 
-        // No free space?!
-        return nullptr;
+        m_stats.amount_used += size_allocated;
+        m_stats.num_mallocs += free_block ? 1 : 0;
+
+        return free_block;
     }
 
     void free(void* ptr)
     {
-        m_stats.num_frees++;
-        auto* freed_header = (Header*)((unsigned char*)ptr - sizeof(Header));
-        size_t size_freed = freed_header->user_size();
+        if (!m_mem_bounds.in_bounds(ptr))
+            return; // FIXME: assert?!
+
+        size_t size_freed = m_space_manager.free_memory(ptr);
         m_stats.amount_used -= size_freed;
-        freed_header->destroy();
+        m_stats.num_frees++;
     }
 
     MallocStats stats() const { return m_stats; };
 
 private:
-    MemoryBounds* m_mem_bounds;
+    MemoryBounds& m_mem_bounds;
+    SpaceManager m_space_manager;
     MallocStats m_stats;
-    Header* m_first_free_header {};
 };

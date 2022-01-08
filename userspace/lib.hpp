@@ -36,17 +36,17 @@ public:
     PtrData heap_start() const;
     PtrData heap_end() const;
 
+    bool in_bounds(void* ptr) const;
+
 private:
     PtrData m_heap_start;
     PtrData m_heap_size;
 };
 
-using TaskMemoryAllocator = MemoryAllocator<TaskMemoryBounds>;
+using TaskMemoryAllocator = MemoryAllocator<TaskMemoryBounds, FreeList>;
 
 void free(void*);
 
 void* malloc(size_t) __attribute__((malloc));
 
 MallocStats memstats();
-
-void mem_init();

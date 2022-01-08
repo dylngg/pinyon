@@ -47,7 +47,7 @@ public:
         return __chars[pos];
     }
 
-    using ConstIter = FwdIter<const StringView, const char>;
+    using ConstIter = SeqIter<const StringView, const char>;
     ConstIter begin() const { return ConstIter::begin(*this); }
     ConstIter end() const { return ConstIter::end(*this); }
 

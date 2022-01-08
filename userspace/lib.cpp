@@ -88,6 +88,12 @@ PtrData TaskMemoryBounds::heap_end() const
     return m_heap_start + m_heap_size;
 }
 
+bool TaskMemoryBounds::in_bounds(void* ptr) const
+{
+    auto ptr_data = reinterpret_cast<PtrData>(ptr);
+    return ptr_data >= heap_start() && ptr_data < heap_end();
+}
+
 Maybe<size_t> TaskMemoryBounds::try_extend_heap(size_t by_size)
 {
     if (heap_start() + by_size <= heap_end()) {
@@ -104,22 +110,15 @@ Maybe<size_t> TaskMemoryBounds::try_extend_heap(size_t by_size)
     return Maybe<size_t>(heap_incr_size);
 }
 
-static TaskMemoryBounds g_task_memory_bounds;
-static TaskMemoryAllocator g_task_allocator { nullptr };
-
-void mem_init()
-{
-    g_task_memory_bounds = TaskMemoryBounds {};
-    g_task_allocator = TaskMemoryAllocator { &g_task_memory_bounds };
-}
-
 TaskMemoryBounds& mem_bounds()
 {
+    static TaskMemoryBounds g_task_memory_bounds {};
     return g_task_memory_bounds;
 }
 
 TaskMemoryAllocator& mem_allocator()
 {
+    static TaskMemoryAllocator g_task_allocator { mem_bounds() };
     return g_task_allocator;
 }
 

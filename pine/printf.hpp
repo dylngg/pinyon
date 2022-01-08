@@ -9,6 +9,7 @@ enum class ArgModifiers : int {
     None,
     Pointer,
     Long,
+    LongLong,
 };
 
 template <typename TryAddStringFunc>
@@ -38,6 +39,11 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list args
         if (type_or_mod_ch == 'l') {
             mod = ArgModifiers::Long;
             iter++; // consume 'l'
+
+            if (*iter == 'l') {
+                mod = ArgModifiers::LongLong;
+                iter++; // consume 'l'
+            }
         }
 
         char type_ch = *iter;
@@ -107,14 +113,19 @@ bool print_int(char type_ch, va_list& args, TryAddStringFunc& try_add_string, Ar
         unsigned long num;
         if (mod == ArgModifiers::Long)
             num = va_arg(args, unsigned long);
+        else if (mod == ArgModifiers::LongLong)
+            num = va_arg(args, unsigned long long);
         else
             num = va_arg(args, unsigned int);
 
         ultoa10(digits, num);
-    } else {
+    }
+    else {
         long num;
         if (mod == ArgModifiers::Long)
             num = va_arg(args, long);
+        else if (mod == ArgModifiers::LongLong)
+            num = va_arg(args, long long);
         else
             num = va_arg(args, int);
 

@@ -14,7 +14,6 @@ void init()
     uart_init();
     console("Initializing... ");
     console("memory ");
-    kmem_init();
     console("timer ");
     timer_init();
     consoleln("");
