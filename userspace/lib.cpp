@@ -98,16 +98,16 @@ Maybe<size_t> TaskMemoryBounds::try_extend_heap(size_t by_size)
 {
     if (heap_start() + by_size <= heap_end()) {
         m_heap_size += by_size;
-        return Maybe<size_t>(by_size);
+        return { by_size };
     }
 
     // Need to allocate memory
     size_t heap_incr_size = heap_incr(by_size);
     m_heap_size += heap_incr_size;
     if (heap_incr_size == 0)
-        return Maybe<size_t>::No();
+        return {};
 
-    return Maybe<size_t>(heap_incr_size);
+    return { heap_incr_size };
 }
 
 TaskMemoryBounds& mem_bounds()

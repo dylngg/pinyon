@@ -39,22 +39,22 @@ Maybe<size_t> KernelMemoryBounds::try_extend_heap(size_t by_size)
 {
     if (heap_start() + by_size <= m_heap_end_bound) {
         m_heap_size += by_size;
-        return Maybe<size_t>(by_size);
+        return { by_size };
     }
 
     // Cannot allocate memory!
-    return Maybe<size_t>::No();
+    return {};
 }
 
 Maybe<PtrData> KernelMemoryBounds::try_reserve_topdown_space(size_t stack_size)
 {
     if (m_heap_end_bound - stack_size < heap_end()) {
-        return Maybe<PtrData>::No();
+        return {};
     }
 
     PtrData stack_start = m_heap_end_bound;
     m_heap_end_bound -= stack_size;
-    return Maybe<PtrData>(stack_start);
+    return { stack_start };
 }
 
 KernelMemoryBounds& kmem_bounds()
