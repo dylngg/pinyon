@@ -4,20 +4,21 @@ Pinyon is a really basic toy ARMv7 kernel targeting the Raspberry Pi 2. It prese
 
 - [x] Booting
 - [x] UART console output
-
-and aims to support the following in the future:
-
 - [x] Basic UNIX-like shell
 - [x] Preemptive round-robin scheduling
 - [x] Memory allocation
 - [x] `readline()`/`write()` syscalls for UART IO
 - [x] Process CPU time and memory reporting
 - [x] System uptime reporting
+
+and aims to support the following in the future:
+
 - [ ] Virtual memory?!
+- [ ] ?!
 
 ## Prequesites
 
-GNU Make is required for building. On MacOS, the default `make` seems to work.
+GNU Make is required for building. On MacOS, the default `make` that comes with XCode developer tools seems to work.
 
 You can obtain the ARM EABI GCC Toolchain with the following commands if using MacPorts on MacOS:
 
@@ -54,3 +55,7 @@ Note that the background emulator window is not used.
 The internal `help` command details what commands are available in Pinyon.
 
 To exit, hit Ctrl-C. The `exit` command inside Pinyon does nothing.
+
+## Developing
+
+A `compile_commands.json` file, often used by editors such as VS Code, can be generated using [compiledb](https://github.com/nickdiego/compiledb). You might want to edit the `COMPILEDB` macro in the [Makefile](Makefile), depending on how you installed it.

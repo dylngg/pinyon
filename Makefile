@@ -1,4 +1,12 @@
+# This makefile is not quite POSIX compatable and relies on GNU make features,
+# but it works with the old MacOS GNU make that comes by default with XCode
+# developer tools.
 CC=arm-none-eabi-g++
+# compiledb: Alternatively, 'python3 -m compiledb' works when installed via
+#            'pip3 install --user compiledb'; this command generates a
+#            compile_commands.json file from our Makefile, which IDEs such as
+#            VS Code use. Not required for building.
+COMPILEDB=compiledb
 OBJDIR=obj
 # -fno-threadsafe-statics: for static initialization (T& getT() { static Type t {}; return t; })
 #                          don't produce thread-safe initialization of statics (normally required);
@@ -36,15 +44,19 @@ fmt:
 .PHONY: run
 run: pinyon.elf
 	# FIXME: Get a newer QEMU that supports raspi3
-	qemu-system-arm -m 1024 -M raspi2 -serial stdio -kernel pinyon.elf
+	qemu-system-arm -m 1024 -M raspi2 -serial stdio -kernel $<
 
 .PHONY: debug
 debug: pinyon.elf
 	# FIXME: Get a newer QEMU that supports raspi3
-	qemu-system-arm -s -S -nographic -m 1G -M raspi2 -kernel pinyon.elf 1>pinyon.out &
+	qemu-system-arm -s -S -nographic -m 1G -M raspi2 -kernel $< 1>pinyon.out &
 	sleep 1  # hack
-	arm-none-eabi-gdb pinyon.elf
+	arm-none-eabi-gdb $<
 	killall qemu-system-arm
+
+.PHONY:
+compile_commands.json: clean
+	$(COMPILEDB) make
 
 .PHONY: clean
 clean:
