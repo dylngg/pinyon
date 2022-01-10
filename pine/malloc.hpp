@@ -9,10 +9,10 @@
  * reuse between userspace and the kernel. Allocation is controlled with the
  * MemoryAllocator class, which takes in a MemoryBounds singleton that
  * controls the memory bounds of defined memory range, as well as a
- * SpaceManager template that defines the particular space management system
+ * MemoryManager template that defines the particular memory management system
  * to use (e.g. free list, buddy allocation, etc).
  *
- * Right now a generic first fit free-list space management scheme is used by
+ * Right now a generic first fit free-list memory management scheme is used by
  * both userspace and the kernel. This is not the best, but it works well
  * enough to kick the can of replacing it down the road...
  */
@@ -97,22 +97,22 @@ private:
 /*
  * Defines a wrapper class which simply acts as a middle man between the given
  * MemoryBounds singleton (which defines the bounds of a memory range) and the
- * particular SpaceManager defined (which allows for different allocation
+ * particular MemoryManager defined (which allows for different allocation
  * schemes such as free lists, buddy system, etc...).
  */
-template <class MemoryBounds, class SpaceManager>
+template <class MemoryBounds, class MemoryManager>
 class MemoryAllocator {
 public:
     MemoryAllocator(MemoryBounds& mem_bounds)
         : m_mem_bounds(mem_bounds)
-        , m_space_manager()
+        , m_memory_manager()
         , m_stats() {};
 
     void* allocate(size_t requested_size)
     {
-        auto [free_block, alloc_stats] = m_space_manager.try_find_memory(requested_size);
+        auto [free_block, alloc_stats] = m_memory_manager.try_find_memory(requested_size);
         if (!free_block) {
-            auto requested_incr_size = SpaceManager::heap_increase_size(requested_size);
+            auto requested_incr_size = MemoryManager::heap_increase_size(requested_size);
             auto old_heap_end = reinterpret_cast<void*>(m_mem_bounds.heap_end());
             auto maybe_heap_incr_size = m_mem_bounds.try_extend_heap(requested_incr_size);
             if (!maybe_heap_incr_size)  // could not even increase a bit
@@ -120,13 +120,13 @@ public:
 
             auto heap_incr_size = maybe_heap_incr_size.value();
             m_stats.heap_size += heap_incr_size;
-            m_space_manager.add_memory(old_heap_end, heap_incr_size);
+            m_memory_manager.add_memory(old_heap_end, heap_incr_size);
 
-            // The actual heap increase may not exactly match the space
+            // The actual heap increase may not exactly match the memory
             // manager's requested heap increase, so it is possible that
             // additional memory is allocated on the heap without fufilling the
             // requested size
-            auto block_and_size = m_space_manager.try_find_memory(requested_size);
+            auto block_and_size = m_memory_manager.try_find_memory(requested_size);
             free_block = block_and_size.first;
             alloc_stats = block_and_size.second;
         }
@@ -143,7 +143,7 @@ public:
         if (!m_mem_bounds.in_bounds(ptr))
             return; // FIXME: assert?!
 
-        auto [requested_size, freed_size] = m_space_manager.free_memory(ptr);
+        auto [requested_size, freed_size] = m_memory_manager.free_memory(ptr);
         m_stats.amount_requested -= requested_size;
         m_stats.amount_allocated -= freed_size;
         m_stats.num_frees++;
@@ -153,6 +153,6 @@ public:
 
 private:
     MemoryBounds& m_mem_bounds;
-    SpaceManager m_space_manager;
+    MemoryManager m_memory_manager;
     MallocStats m_stats;
 };
