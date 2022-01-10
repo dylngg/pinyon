@@ -15,7 +15,7 @@ OBJDIR=obj
 ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -fno-threadsafe-statics -nostdlib
 INCLUDE=-I.
 CXXFLAGS=-Wall -Wextra -Wpedantic -std=c++17 -g
-PINE_OBJ=$(OBJDIR)/pine/badmath.o $(OBJDIR)/pine/string.o $(OBJDIR)/pine/malloc.o
+PINE_OBJ=$(OBJDIR)/pine/badmath.o $(OBJDIR)/pine/string.o $(OBJDIR)/pine/malloc.o $(OBJDIR)/pine/c_builtins.o
 KERNEL_OBJ=$(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/interrupts.o $(OBJDIR)/kernel/timer.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/panic.o
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/bootup.o $(OBJDIR)/kernel/vector.o $(OBJDIR)/kernel/switch.o
 USER_OBJ=$(OBJDIR)/userspace/shell.o $(OBJDIR)/userspace/lib.o

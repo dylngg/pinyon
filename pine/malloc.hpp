@@ -1,5 +1,6 @@
 #pragma once
 #include "linked_list.hpp"
+#include "c_builtins.hpp"
 #include "twomath.hpp"
 #include "types.hpp"
 
@@ -17,31 +18,71 @@
  */
 
 #define NEW_BLOCK_SIZE ((size_t)4096)
-#define MIN_FREE_LIST_SIZE ((size_t)8)
+#define ALIGNMENT_SIZE ((size_t)4)
 
 struct MallocStats {
     size_t heap_size = 0;
-    size_t amount_used = 0;
+    size_t amount_requested = 0;
+    size_t amount_reserved = 0;
     u64 num_mallocs = 0;
     u64 num_frees = 0;
 };
 
+struct AllocationStats {
+    size_t requested_size = 0;
+    size_t reserved_size = 0;
+};
+
 class FreeList {
-    using SizeNode = LinkedList<size_t>::Node;
+
+    // Stores the size of the memory region belonging to it (inferred from
+    // 'this' pointer)
+    struct SizeData {
+        explicit SizeData(size_t requested_size, size_t reserved_size)
+            : m_requested_size(requested_size)
+            , m_reserved_size(reserved_size) {};
+        explicit SizeData(size_t reserved_size)
+            : m_requested_size(0)
+            , m_reserved_size(reserved_size) {};
+
+        constexpr size_t static preferred_alignment() { return ALIGNMENT_SIZE; }
+        void reserve(size_t requested_size) { m_requested_size = requested_size; }
+        void shrink_by(size_t size) { m_reserved_size -= size; }
+        void grow_by(size_t size) { m_reserved_size += size; }
+        size_t requested_size() const { return m_requested_size; }
+        size_t reserved_size() const { return m_reserved_size; }
+        size_t remaining_size() const { return reserved_size() - requested_size(); }
+
+    private:
+        size_t m_requested_size;
+        size_t m_reserved_size;
+    };
+    using SizeNode = LinkedList<SizeData>::Node;
 
 public:
     FreeList() = default;
 
-    static size_t new_allocation_size(size_t requested_size)
+    static size_t heap_increase_size(size_t requested_size)
     {
-        return align_up_two(requested_size + sizeof(SizeNode), NEW_BLOCK_SIZE);
+        return align_up_two(allocation_size(requested_size), NEW_BLOCK_SIZE);
     }
 
-    Pair<void*, size_t> try_find_memory(size_t size);
+    Pair<void*, AllocationStats> try_find_memory(size_t size);
     void add_memory(void* new_location, size_t new_size);
-    size_t free_memory(void* ptr);
+    AllocationStats free_memory(void* ptr);
 
 private:
+    constexpr static size_t allocation_size(size_t requested_size)
+    {
+        size_t alloc_size = align_up_two(requested_size, ALIGNMENT_SIZE) + sizeof(SizeNode);
+        static_assert(is_aligned_two(sizeof(SizeNode), ALIGNMENT_SIZE), "Free list header size is not aligned!");
+        return alloc_size;
+    }
+    constexpr static size_t min_allocation_size()
+    {
+        return allocation_size(ALIGNMENT_SIZE);
+    }
+
     static void* user_addr_from_node_ptr(SizeNode* node_ptr, size_t offset = 0);
     static SizeNode* node_ptr_from_user_addr(void* addr);
     static bool nodes_are_contiguous_in_memory(SizeNode* left_node_ptr, SizeNode* right_node_ptr);
@@ -50,7 +91,7 @@ private:
 
     Pair<SizeNode*, SizeNode*> try_find_neighboring_memory_nodes(SizeNode* node_ptr);
 
-    LinkedList<size_t> m_free_list;
+    LinkedList<SizeData> m_free_list;
 };
 
 /*
@@ -69,24 +110,29 @@ public:
 
     void* allocate(size_t requested_size)
     {
-        auto [free_block, size_allocated] = m_space_manager.try_find_memory(requested_size);
+        auto [free_block, alloc_stats] = m_space_manager.try_find_memory(requested_size);
         if (!free_block) {
-            auto extend_size = SpaceManager::new_allocation_size(requested_size);
+            auto requested_incr_size = SpaceManager::heap_increase_size(requested_size);
             auto old_heap_end = reinterpret_cast<void*>(m_mem_bounds.heap_end());
-            auto maybe_heap_incr_size = m_mem_bounds.try_extend_heap(extend_size);
-            if (!maybe_heap_incr_size)
+            auto maybe_heap_incr_size = m_mem_bounds.try_extend_heap(requested_incr_size);
+            if (!maybe_heap_incr_size)  // could not even increase a bit
                 return nullptr;
 
             auto heap_incr_size = maybe_heap_incr_size.value();
             m_stats.heap_size += heap_incr_size;
             m_space_manager.add_memory(old_heap_end, heap_incr_size);
 
+            // The actual heap increase may not exactly match the space
+            // manager's requested heap increase, so it is possible that
+            // additional memory is allocated on the heap without fufilling the
+            // requested size
             auto block_and_size = m_space_manager.try_find_memory(requested_size);
             free_block = block_and_size.first;
-            size_allocated = block_and_size.second;
+            alloc_stats = block_and_size.second;
         }
 
-        m_stats.amount_used += size_allocated;
+        m_stats.amount_requested += alloc_stats.requested_size;
+        m_stats.amount_reserved += alloc_stats.reserved_size;
         m_stats.num_mallocs += free_block ? 1 : 0;
 
         return free_block;
@@ -97,8 +143,9 @@ public:
         if (!m_mem_bounds.in_bounds(ptr))
             return; // FIXME: assert?!
 
-        size_t size_freed = m_space_manager.free_memory(ptr);
-        m_stats.amount_used -= size_freed;
+        auto [freed_size, requested_size] = m_space_manager.free_memory(ptr);
+        m_stats.amount_requested -= requested_size;
+        m_stats.amount_reserved -= freed_size;
         m_stats.num_frees++;
     }
 

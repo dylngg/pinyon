@@ -5,8 +5,6 @@
 #include <pine/iter.hpp>
 #include <pine/types.hpp>
 
-void zero_out(void* target, size_t size);
-void memcopy(void* __restrict__ to, const void* __restrict__ from, size_t size);
 size_t strcopy(char* __restrict__ to, const char* from);
 size_t strbufcopy(char* __restrict__ buf, size_t bufsize, const char* from);
 size_t strlen(const char* string);

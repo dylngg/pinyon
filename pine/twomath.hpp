@@ -14,7 +14,7 @@ constexpr UInt align_up_two(UInt value, UInt base_two_num)
 }
 
 template <typename UInt>
-constexpr bool is_aligned_two(UInt value, u8 num_bits)
+constexpr bool is_aligned_two(UInt value, UInt base_two_num)
 {
-    return (value & ((1 << num_bits) - 1)) == 0;
+    return (value & (base_two_num - 1)) == 0;
 }

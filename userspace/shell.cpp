@@ -5,10 +5,17 @@
 static void builtin_memstat()
 {
     auto malloc_stats = memstats();
-    unsigned int pct_mem_util = (malloc_stats.amount_used * 100) / malloc_stats.heap_size;
-    printf("heap size: %d bytes\nused: %d bytes (%u%% util)\nnmallocs: %llu\nnfrees: %llu\n",
-        malloc_stats.heap_size, malloc_stats.amount_used, pct_mem_util, malloc_stats.num_mallocs,
-        malloc_stats.num_frees);
+    unsigned int pct_of_heap_requested = (malloc_stats.amount_requested * 100) / malloc_stats.heap_size;
+    int overhead_bytes = malloc_stats.amount_reserved - malloc_stats.amount_requested;
+    unsigned int pct_of_heap_overhead = (overhead_bytes * 100) / malloc_stats.heap_size;
+    printf("heap size: %d bytes\n"
+           "requested: %u bytes (%u%% of heap)\n"
+           "overhead: %d bytes (%u%% of heap)\n"
+           "nmallocs: %llu\nnfrees: %llu\n",
+           malloc_stats.heap_size,
+           malloc_stats.amount_requested, pct_of_heap_requested,
+           overhead_bytes, pct_of_heap_overhead,
+           malloc_stats.num_mallocs, malloc_stats.num_frees);
 }
 
 static void builtin_uptime()
