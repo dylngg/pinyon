@@ -23,14 +23,14 @@
 struct MallocStats {
     size_t heap_size = 0;
     size_t amount_requested = 0;
-    size_t amount_reserved = 0;
+    size_t amount_allocated = 0;
     u64 num_mallocs = 0;
     u64 num_frees = 0;
 };
 
 struct AllocationStats {
     size_t requested_size = 0;
-    size_t reserved_size = 0;
+    size_t allocated_size = 0;
 };
 
 class FreeList {
@@ -132,7 +132,7 @@ public:
         }
 
         m_stats.amount_requested += alloc_stats.requested_size;
-        m_stats.amount_reserved += alloc_stats.reserved_size;
+        m_stats.amount_allocated += alloc_stats.allocated_size;
         m_stats.num_mallocs += free_block ? 1 : 0;
 
         return free_block;
@@ -143,9 +143,9 @@ public:
         if (!m_mem_bounds.in_bounds(ptr))
             return; // FIXME: assert?!
 
-        auto [freed_size, requested_size] = m_space_manager.free_memory(ptr);
+        auto [requested_size, freed_size] = m_space_manager.free_memory(ptr);
         m_stats.amount_requested -= requested_size;
-        m_stats.amount_reserved -= freed_size;
+        m_stats.amount_allocated -= freed_size;
         m_stats.num_frees++;
     }
 

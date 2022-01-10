@@ -6,7 +6,7 @@ static void builtin_memstat()
 {
     auto malloc_stats = memstats();
     unsigned int pct_of_heap_requested = (malloc_stats.amount_requested * 100) / malloc_stats.heap_size;
-    int overhead_bytes = malloc_stats.amount_reserved - malloc_stats.amount_requested;
+    int overhead_bytes = malloc_stats.amount_allocated - malloc_stats.amount_requested;
     unsigned int pct_of_heap_overhead = (overhead_bytes * 100) / malloc_stats.heap_size;
     printf("heap size: %d bytes\n"
            "requested: %u bytes (%u%% of heap)\n"

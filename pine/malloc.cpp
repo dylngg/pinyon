@@ -109,5 +109,5 @@ AllocationStats FreeList::free_memory(void* ptr)
     if (!was_adopted)
         m_free_list.append_node(node_ptr);
 
-    return { size_freed, requested_size };
+    return { requested_size, size_freed };
 }
