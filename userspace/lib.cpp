@@ -1,5 +1,7 @@
 #include "lib.hpp"
+
 #include <pine/units.hpp>
+#include <pine/string.hpp>
 
 void readline(char* buf, u32 at_most_bytes)
 {

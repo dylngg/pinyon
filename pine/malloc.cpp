@@ -1,5 +1,7 @@
 #include "malloc.hpp"
 
+#include <new>
+
 void* FreeList::user_addr_from_node_ptr(SizeNode* node_ptr, size_t offset)
 {
     return reinterpret_cast<void*>(reinterpret_cast<PtrData>(node_ptr + 1) + offset);

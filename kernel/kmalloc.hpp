@@ -1,5 +1,7 @@
 #pragma once
+
 #include <pine/malloc.hpp>
+#include <pine/maybe.hpp>
 #include <pine/types.hpp>
 
 class KernelMemoryBounds {

@@ -1,7 +1,8 @@
 #include "kmalloc.hpp"
 #include "panic.hpp"
+
 #include <pine/barrier.hpp>
-#include <pine/types.hpp>
+
 
 /*
  * If we get virtual memory working I estimate we'll keep

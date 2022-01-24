@@ -1,4 +1,7 @@
+#pragma once
+
 #include <cassert>
+
 #include <pine/twomath.hpp>
 
 void align_down_two()

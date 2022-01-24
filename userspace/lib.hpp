@@ -1,8 +1,9 @@
 #pragma once
 
 #include <pine/malloc.hpp>
+#include <pine/maybe.hpp>
 #include <pine/printf.hpp>
-#include <pine/string.hpp>
+#include <pine/types.hpp>
 
 // See syscall.S
 extern "C" {
