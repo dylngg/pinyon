@@ -3,7 +3,6 @@
 
 #include <pine/barrier.hpp>
 
-
 /*
  * If we get virtual memory working I estimate we'll keep
  * our page tables, stack, etc under this mark...

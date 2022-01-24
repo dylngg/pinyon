@@ -1,6 +1,6 @@
 #pragma once
-#include "linked_list.hpp"
 #include "c_builtins.hpp"
+#include "linked_list.hpp"
 #include "twomath.hpp"
 #include "types.hpp"
 
@@ -115,7 +115,7 @@ public:
             auto requested_incr_size = MemoryManager::heap_increase_size(requested_size);
             auto old_heap_end = reinterpret_cast<void*>(m_mem_bounds.heap_end());
             auto maybe_heap_incr_size = m_mem_bounds.try_extend_heap(requested_incr_size);
-            if (!maybe_heap_incr_size)  // could not even increase a bit
+            if (!maybe_heap_incr_size) // could not even increase a bit
                 return nullptr;
 
             auto heap_incr_size = maybe_heap_incr_size.value();

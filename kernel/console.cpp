@@ -113,7 +113,7 @@ static inline void spin(u32 count)
 {
     asm volatile("__spin_%=: subs %[count], %[count], #1; bne __spin_%=\n"
                  : "=r"(count)
-                 : [ count ] "0"(count)
+                 : [count] "0"(count)
                  : "cc");
 }
 

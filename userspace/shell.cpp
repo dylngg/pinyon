@@ -12,10 +12,10 @@ static void builtin_memstat()
            "requested: %u bytes (%u%% of heap)\n"
            "overhead: %d bytes (%u%% of heap)\n"
            "nmallocs: %llu\nnfrees: %llu\n",
-           malloc_stats.heap_size,
-           malloc_stats.amount_requested, pct_of_heap_requested,
-           overhead_bytes, pct_of_heap_overhead,
-           malloc_stats.num_mallocs, malloc_stats.num_frees);
+        malloc_stats.heap_size,
+        malloc_stats.amount_requested, pct_of_heap_requested,
+        overhead_bytes, pct_of_heap_overhead,
+        malloc_stats.num_mallocs, malloc_stats.num_frees);
 }
 
 static void builtin_uptime()

@@ -1,5 +1,5 @@
 #pragma once
-#include <cstddef>  // for size_t
+#include <cstddef> // for size_t
 
 /*
  * GCC (and perhaps Clang) will often try and emit these C functions in certain
@@ -18,6 +18,5 @@ extern "C" {
 
 void bzero(void* target, size_t size);
 void* memcpy(void* __restrict__ to, const void* __restrict__ from, size_t size);
-void* memset(void *to, int c, size_t size);
-
+void* memset(void* to, int c, size_t size);
 }

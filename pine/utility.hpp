@@ -2,24 +2,8 @@
 
 // This is duplicated from metaprogramming.hpp since we don't want to pull that
 // monstrosity header in here and don't need this header there.
-namespace utility::impl {
+#include "metaprogramming.hpp"
 
-template <class Value>
-struct remove_ref_func {
-    using type = Value;
-};
-template <class Value>
-struct remove_ref_func<Value&> {
-    using type = Value;
-};
-template <class Value>
-struct remove_ref_func<Value&&> {
-    using type = Value;
-};
-template <class Value>
-using remove_ref = typename remove_ref_func<Value>::type;
-
-}
 /*
  * Our own std::move
  *
@@ -37,9 +21,9 @@ using remove_ref = typename remove_ref_func<Value>::type;
  * https://pagefault.blog/2018/03/01/common-misconception-with-cpp-move-semantics/
  */
 template <typename Value>
-constexpr utility::impl::remove_ref<Value>&& move(Value&& value)
+constexpr remove_ref<Value>&& move(Value&& value)
 {
-    return static_cast<utility::impl::remove_ref<Value>&&>(value);
+    return static_cast<remove_ref<Value>&&>(value);
 }
 
 template <typename Value>
@@ -49,4 +33,3 @@ constexpr void swap(Value& first, Value& second)
     first = move(second);
     second = move(temp);
 }
-

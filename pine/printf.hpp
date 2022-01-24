@@ -119,8 +119,7 @@ bool print_int(char type_ch, va_list& args, TryAddStringFunc& try_add_string, Ar
             num = va_arg(args, unsigned int);
 
         ultoa10(digits, num);
-    }
-    else {
+    } else {
         long num;
         if (mod == ArgModifiers::Long)
             num = va_arg(args, long);

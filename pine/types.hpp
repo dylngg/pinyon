@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstddef>  // size_t
-#include <cstdint>  // int types
+#include <cstddef> // size_t
+#include <cstdint> // int types
 
 /*
  * Define easier to type aliases for sized integers here.
