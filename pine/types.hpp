@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <new> // GCC provides this with -ffreestanding
 
+#include "metaprogramming.hpp"
+
 /*
  * Define easier to type aliases for sized integers here.
  */
@@ -37,24 +39,10 @@ using PtrData = uintptr_t;
  * And for move:
  * https://pagefault.blog/2018/03/01/common-misconception-with-cpp-move-semantics/
  */
-
-template <class Value>
-struct remove_ref {
-    using type = Value;
-};
-template <class Value>
-struct remove_ref<Value&> {
-    using type = Value;
-};
-template <class Value>
-struct remove_ref<Value&&> {
-    using type = Value;
-};
-
 template <typename Value>
-constexpr typename remove_ref<Value>::type&& move(Value&& value)
+constexpr remove_ref<Value>&& move(Value&& value)
 {
-    return static_cast<typename remove_ref<Value>::type&&>(value);
+    return static_cast<remove_ref<Value>&&>(value);
 }
 
 template <typename Value>
@@ -65,10 +53,13 @@ void swap(Value& first, Value& second)
     second = move(temp);
 }
 
+// FIXME: Move this outside of types.hpp, since it is not always needed with
+//        the rest of the type definitions
 /*
  * Our own std::optional, complete with the arcane placement new operator, and
  * overzelaus use of constexpr in an offer to the compiler gods that this shall
- * be a zero-cost abstraction! (Also, this is usable in constexpr contexts)
+ * be a zero-cost abstraction! (Hint: It is not. But it _is_ usable in
+ * constexpr contexts)
  *
  * See https://github.com/akrzemi1/Optional/blob/master/optional.hpp for a
  * reference implementation of std::optional.

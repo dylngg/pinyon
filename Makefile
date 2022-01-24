@@ -2,11 +2,12 @@
 # but it works with the old MacOS GNU make that comes by default with XCode
 # developer tools.
 CC=arm-none-eabi-g++
+HOST_CC=c++
 # compiledb: Alternatively, 'python3 -m compiledb' works when installed via
 #            'pip3 install --user compiledb'; this command generates a
 #            compile_commands.json file from our Makefile, which IDEs such as
 #            VS Code use. Not required for building.
-COMPILEDB=compiledb
+COMPILEDB=python3 -m compiledb
 OBJDIR=obj
 # -fno-threadsafe-statics: for static initialization (T& getT() { static Type t {}; return t; })
 #                          don't produce thread-safe initialization of statics (normally required);
@@ -20,6 +21,8 @@ KERNEL_OBJ=$(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/bootup.o $(OBJDIR)/kernel/vector.o $(OBJDIR)/kernel/switch.o
 USER_OBJ=$(OBJDIR)/userspace/shell.o $(OBJDIR)/userspace/lib.o
 USER_ASM_OBJ=$(OBJDIR)/userspace/syscall.o
+TESTS=pine/test/twomath.hpp pine/test/twomath.hpp pine/test/maybe.hpp
+TESTFILE=pine/test/test.cpp
 
 .PHONY: all
 all: pinyon.elf
@@ -53,6 +56,13 @@ debug: pinyon.elf
 	sleep 1  # hack
 	arm-none-eabi-gdb $<
 	killall qemu-system-arm
+
+.PHONY: test
+test: test_pine
+	./test_pine
+
+test_pine: $(TESTS) $(TESTFILE)
+	$(HOST_CC) $(INCLUDE) $(CXXFLAGS) $(TESTFILE) -o $@
 
 .PHONY:
 compile_commands.json: clean
