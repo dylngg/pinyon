@@ -87,21 +87,18 @@ void fast_irq_handler(void)
 
 void irq_handler(void)
 {
-    auto* irq = irq_manager();
+    auto& irq = irq_manager();
     bool should_reschedule = false;
 
     // FIXME: Read pending_basic_irq1 once, then make decision based on that,
     //        rather than reading a bunch of registers here! IRQ handlers
     //        should be quick.
-    if (irq->timer_pending()) {
-        auto* timer = system_timer();
-        timer->handle_irq();
-
+    if (irq.timer_pending()) {
+        system_timer().handle_irq();
         should_reschedule = true;
     }
-    if (irq->uart_pending()) {
-        auto* uart = uart_manager();
-        uart->handle_irq();
+    if (irq.uart_pending()) {
+        uart_manager().handle_irq();
     }
 
     if (should_reschedule)
@@ -131,11 +128,10 @@ bool IRQManager::uart_pending() const
     return pending_basic_irq & (1 << 19);
 }
 
-static auto* g_irq_manager = (IRQManager*)IRQ_BASE;
-
-IRQManager* irq_manager()
+IRQManager& irq_manager()
 {
-    return g_irq_manager;
+    static auto* g_irq_manager = reinterpret_cast<IRQManager*>(IRQ_BASE);
+    return *g_irq_manager;
 }
 
 void interrupts_init()

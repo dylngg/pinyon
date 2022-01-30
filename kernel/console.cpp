@@ -19,13 +19,13 @@ void UARTManager::poll_write(const char* message, size_t bytes)
 void console_readline(char* buf, size_t bufsize)
 {
     MemoryBarrier barrier;
-    auto* uart = uart_manager();
+    auto& uart = uart_manager();
     UARTManager::ReadWriteInterruptMask mask(uart);
 
     size_t offset = 0;
     char ch;
     for (;;) {
-        ch = uart->poll_get();
+        ch = uart.poll_get();
 
         if (offset >= bufsize - 1)
             continue;
@@ -46,12 +46,12 @@ void console_readline(char* buf, size_t bufsize)
             if (offset >= 1) {
                 offset--;
                 // move left one char (D), then delete one (P)
-                uart->poll_write("\x1b[1D\x1b[1P");
+                uart.poll_write("\x1b[1D\x1b[1P");
             }
             continue;
         default:
             // local echo
-            uart->poll_put(ch);
+            uart.poll_put(ch);
         }
         if (stop)
             break;
@@ -60,7 +60,7 @@ void console_readline(char* buf, size_t bufsize)
         offset++;
     }
 
-    uart->poll_put('\n');
+    uart.poll_put('\n');
     buf[offset] = '\0';
     return;
 }
@@ -68,29 +68,29 @@ void console_readline(char* buf, size_t bufsize)
 void console(const char* message)
 {
     MemoryBarrier barrier;
-    auto* uart = uart_manager();
+    auto& uart = uart_manager();
     UARTManager::WriteInterruptMask mask(uart);
 
-    uart->poll_write(message);
+    uart.poll_write(message);
 }
 
 void console(const char* message, size_t bytes)
 {
     MemoryBarrier barrier;
-    auto* uart = uart_manager();
+    auto& uart = uart_manager();
     UARTManager::WriteInterruptMask mask(uart);
 
-    uart->poll_write(message, bytes);
+    uart.poll_write(message, bytes);
 }
 
 void consoleln(const char* message)
 {
     MemoryBarrier barrier;
-    auto* uart = uart_manager();
+    auto& uart = uart_manager();
     UARTManager::WriteInterruptMask mask(uart);
 
-    uart->poll_write(message);
-    uart->poll_put('\n');
+    uart.poll_write(message);
+    uart.poll_put('\n');
 }
 
 void consolef(const char* fmt, ...)
@@ -99,11 +99,11 @@ void consolef(const char* fmt, ...)
     va_start(args, fmt);
 
     MemoryBarrier barrier;
-    auto* uart = uart_manager();
+    auto& uart = uart_manager();
     UARTManager::WriteInterruptMask mask(uart);
 
     const auto& try_add_wrapper = [&](const char* message) -> bool {
-        uart->poll_write(message);
+        uart.poll_write(message);
         return true;
     };
     vfnprintf(try_add_wrapper, fmt, args);
@@ -117,7 +117,7 @@ static inline void spin(u32 count)
                  : "cc");
 }
 
-void UARTManager::init()
+void UARTManager::reset()
 {
     MemoryBarrier barrier;
 
@@ -195,15 +195,14 @@ char UARTManager::poll_get()
     return dr;
 }
 
-static auto* g_uart_manager = (UARTManager*)UART_BASE;
-
-UARTManager* uart_manager()
+UARTManager& uart_manager()
 {
-    return g_uart_manager;
+    static auto* g_uart_manager = reinterpret_cast<UARTManager*>(UART_BASE);
+    return *g_uart_manager;
 }
 
 void uart_init()
 {
-    uart_manager()->init();
-    irq_manager()->enable_uart();
+    uart_manager().reset();
+    irq_manager().enable_uart();
 }

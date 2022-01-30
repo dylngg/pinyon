@@ -45,7 +45,7 @@ private:
     volatile u32 compare3;
 };
 
-SystemTimer* system_timer();
+SystemTimer& system_timer();
 
 void timer_init();
 

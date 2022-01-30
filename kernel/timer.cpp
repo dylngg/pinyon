@@ -99,17 +99,16 @@ bool SystemTimer::matched() const
     return (control & 0x3) > 0;
 }
 
-static auto* g_system_timer = (SystemTimer*)TIM_BASE;
-
-SystemTimer* system_timer()
+SystemTimer& system_timer()
 {
-    return g_system_timer;
+    static auto* g_system_timer = reinterpret_cast<SystemTimer*>(TIM_BASE);
+    return *g_system_timer;
 }
 
 void timer_init()
 {
-    system_timer()->init();
-    irq_manager()->enable_timer();
+    system_timer().init();
+    irq_manager().enable_timer();
 }
 
 u32 jiffies()

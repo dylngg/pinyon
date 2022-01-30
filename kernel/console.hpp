@@ -47,10 +47,12 @@ void consolef(const char*, ...) __attribute__((format(printf, 1, 2)));
 
 struct UARTManager {
 public:
-    void init();
+    void reset();
     void handle_irq();
 
 private:
+    friend UARTManager& uart_manager();
+
     char poll_get();
     void poll_put(char ch);
     void poll_write(const char*);
@@ -70,23 +72,23 @@ private:
         {
             return (1 << offset1) | (1 << offset2);
         }
-        InterruptMask(volatile UARTManager* uart) __attribute__((always_inline))
+        InterruptMask(volatile UARTManager& uart) __attribute__((always_inline))
         : m_uart(uart)
         // Store prev so when the mask is already set (perhaps by a ancestor
         // InterruptMask class in the call stack), we can put it in the
         // previous state we found it in.
-        , m_prev(uart->imsc)
+        , m_prev(uart.imsc)
         {
-            m_uart->imsc = m_prev & ~mask();
+            m_uart.imsc = m_prev & ~mask();
         }
 
         ~InterruptMask() __attribute__((always_inline))
         {
-            m_uart->imsc |= m_prev & mask();
+            m_uart.imsc |= m_prev & mask();
         }
 
     private:
-        volatile UARTManager* m_uart;
+        volatile UARTManager& m_uart;
         const u8 m_prev;
     };
 
@@ -126,6 +128,6 @@ private:
     volatile u32 dmacr; // DMACR
 };
 
-UARTManager* uart_manager();
+UARTManager& uart_manager();
 
 void uart_init();

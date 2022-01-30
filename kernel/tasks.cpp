@@ -109,7 +109,7 @@ void Task::resume()
 
 u32 Task::cputime()
 {
-    if (&(task_manager().running_task()) == this)
+    if (&(task_manager().running_task()) == this) // if we're scheduled
         return m_cpu_jiffies + jiffies() - m_jiffies_when_scheduled;
 
     return m_cpu_jiffies;
@@ -188,15 +188,13 @@ TaskManager::TaskManager()
     m_running_task_index = 0;
 }
 
-static TaskManager g_task_manager;
-
 TaskManager& task_manager()
 {
+    static TaskManager g_task_manager {};
     return g_task_manager;
 }
 
 void tasks_init()
 {
-    g_task_manager = TaskManager {};
     task_manager().start_scheduler();
 }

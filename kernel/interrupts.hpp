@@ -46,12 +46,11 @@ public:
     }
 };
 
-IRQManager* irq_manager();
+IRQManager& irq_manager();
 
 void interrupts_init();
 
 extern "C" {
-
 void reset_handler(void) __attribute__((interrupt("ABORT")));
 
 void undefined_instruction_handler(void) __attribute__((interrupt("UNDEF")));

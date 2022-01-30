@@ -11,13 +11,18 @@
  * be a zero-cost abstraction! (Hint: It is not. But it _is_ usable in
  * constexpr contexts)
  *
+ * Notably, this std::optional doesn't cover cases where the copy constructor
+ * is deleted, and probably a bunch of other C++ corner cases I'm not aware of
+ * for that matter.
+ *
  * See https://github.com/akrzemi1/Optional/blob/master/optional.hpp for a
  * reference implementation of std::optional.
  */
 template <typename Value>
 struct Maybe {
     // empty: e.g. Maybe<Value> maybe {};
-    constexpr Maybe() = default;
+    constexpr Maybe()
+        : m_has_value(false) {};
     constexpr static Maybe Not() { return {}; }
 
     // ctor: e.g. int i = 0; Maybe<Value> maybe { i };
