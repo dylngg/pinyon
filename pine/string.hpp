@@ -5,7 +5,7 @@
 #include <pine/iter.hpp>
 #include <pine/types.hpp>
 
-size_t strcopy(char* __restrict__ to, const char* from);
+size_t strcopy(char* to, const char* from);
 size_t strbufcopy(char* __restrict__ buf, size_t bufsize, const char* from);
 size_t strlen(const char* string);
 int strcmp(const char* first, const char* second);
@@ -24,34 +24,21 @@ void ultoa16(char* buf, unsigned long num, ToAFlag flag);
 struct StringView {
 public:
     StringView(const char* string)
-        : __chars(string)
-        , __length(strlen(string))
+        : m_chars(string)
+        , m_length(strlen(string))
     {
     }
 
-    bool operator==(const StringView& other) const
-    {
-        if (__length != other.__length)
-            return false;
-        return strcmp(__chars, other.__chars) == 0;
-    }
-    const char& operator[](size_t pos) const
-    {
-        static char dummy = '\0';
-        // FIXME: I'd rather have an assert here than this wackyness; this will just
-        //        hide bugs
-        if (pos >= __length)
-            return dummy;
-        return __chars[pos];
-    }
+    bool operator==(const StringView& other) const;
+    const char& operator[](size_t pos) const;
 
     using ConstIter = SeqIter<const StringView, const char>;
     ConstIter begin() const { return ConstIter::begin(*this); }
     ConstIter end() const { return ConstIter::end(*this); }
 
-    size_t length() const { return __length; }
+    size_t length() const { return m_length; }
 
 private:
-    const char* __chars;
-    const size_t __length;
+    const char* m_chars;
+    const size_t m_length;
 };

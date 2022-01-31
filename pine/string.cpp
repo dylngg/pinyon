@@ -138,3 +138,20 @@ size_t vsbufprintf(char* buf, size_t bufsize, const char* fmt, va_list args)
     vfnprintf(try_add_wrapper, fmt, args);
     return buf_pos;
 }
+
+bool StringView::operator==(const StringView& other) const
+{
+    if (m_length != other.m_length)
+        return false;
+    return strcmp(m_chars, other.m_chars) == 0;
+}
+
+const char& StringView::operator[](size_t pos) const
+{
+    static char dummy = '\0';
+    // FIXME: I'd rather have an assert here than this wackyness; this will just
+    //        hide bugs
+    if (pos >= m_length)
+        return dummy;
+    return m_chars[pos];
+}
