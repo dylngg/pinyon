@@ -27,6 +27,26 @@ constexpr remove_ref<Value>&& move(Value&& value)
 }
 
 template <typename Value>
+constexpr Value&& forward(remove_ref<Value>& value) // l-value
+{
+    return static_cast<Value&&>(value);
+}
+template <typename Value>
+constexpr auto forward(remove_ref<Value>&& value) // r-value
+{
+    static_assert(!is_rvalue<Value>);
+    return static_cast<Value&&>(value);
+}
+
+template <class Value, class ReplValue = Value>
+constexpr Value exchange(Value& value, ReplValue&& replacement)
+{
+    auto tmp = move(value);
+    value = forward<ReplValue>(replacement);
+    return tmp;
+}
+
+template <typename Value>
 constexpr void swap(Value& first, Value& second)
 {
     Value temp = move(first);

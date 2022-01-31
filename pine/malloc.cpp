@@ -19,20 +19,26 @@ Pair<void*, AllocationStats> FreeList::try_find_memory(size_t requested_size)
         if (requested_size > free_size_data.reserved_size())
             continue;
 
+        // If the free list is empty and we attach a new node, we don't do any
+        // work, since the head/tail pointers are all that needs to change.
+        // By detaching immediately, we can take advantage of this if we end up
+        // attaching a split node below
+        m_free_list.detach(node_ptr);
+
         free_size_data.reserve(requested_size);
         size_t aligned_remaining_size = align_down_two(free_size_data.remaining_size(), ALIGNMENT_SIZE);
         if (aligned_remaining_size > min_allocation_size()) {
+            // split and assign free memory on the right side to a new node
             free_size_data.shrink_by(aligned_remaining_size);
 
             auto* remaining_location = user_addr_from_node_ptr(node_ptr, free_size_data.reserved_size());
             auto* new_node_ptr = construct_node(aligned_remaining_size, remaining_location);
-            m_free_list.append_node(new_node_ptr);
+            m_free_list.append(new_node_ptr);
         }
 
-        m_free_list.detach_node(node_ptr);
         AllocationStats alloc_stats {
             free_size_data.requested_size(),
-            sizeof(SizeNode) + free_size_data.reserved_size()
+            sizeof(*node_ptr) + free_size_data.reserved_size()
         };
         return { user_addr_from_node_ptr(node_ptr), alloc_stats };
     }
@@ -43,7 +49,7 @@ Pair<void*, AllocationStats> FreeList::try_find_memory(size_t requested_size)
 void FreeList::add_memory(void* new_location, size_t new_size)
 {
     auto* new_node_ptr = construct_node(new_size, new_location);
-    m_free_list.append_node(new_node_ptr);
+    m_free_list.append(new_node_ptr);
 }
 
 FreeList::SizeNode* FreeList::node_ptr_from_user_addr(void* addr)
@@ -104,12 +110,12 @@ AllocationStats FreeList::free_memory(void* ptr)
         adopt_right_node_size(node_ptr, right_node_ptr);
         size_freed += sizeof(SizeNode);
 
-        m_free_list.detach_node(right_node_ptr); // no longer free memory; belongs to node
+        m_free_list.detach(right_node_ptr); // no longer free memory; belongs to node
         right_node_ptr->~SizeNode();
     }
 
     if (!was_adopted)
-        m_free_list.append_node(node_ptr);
+        m_free_list.append(node_ptr);
 
     return { requested_size, size_freed };
 }
