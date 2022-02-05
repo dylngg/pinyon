@@ -9,12 +9,9 @@
 .global syscall_cputime
 
 /*
- * I'm not sure if this is a standard thing, or a bug, but the link
- * register after a syscall points to the instruction after the syscall
- * (which _is_ correct when we're in the swi_handler but not after we
- * return from that handler), rather than this function's caller...
+ * Note: We must save the LRs here as a side-effect of tasks always living in
+ *       supervisor mode. See swi_b_wrap in vector.S for details.
  */
-// FIXME: Fix lr being clobbered after a swi (bug?!)
 
 syscall_yield:
     push {lr}

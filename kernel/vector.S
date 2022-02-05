@@ -70,9 +70,9 @@ fiq_b:          .word fast_irq_handler
 
 irq_b_wrap:
     /*
-     * At this point we're in IRQ mode. The processor has saved the old PC
-     * into LR, and the old LR is saved in the old mode's LR. The old CPSR is
-     * also saved into this mode's SPSR, so we'll have to save that upon
+     * We are interrupting a task in IRQ mode. The processor has saved the old
+     * PC into LR, and the old LR is saved in the old mode's LR. The old CPSR
+     * is also saved into this mode's SPSR, so we'll have to save that upon
      * restoration. Also, interrupts are disabled.
      *
      * It should be noted that each mode also has their own stack, but this
@@ -86,7 +86,7 @@ irq_b_wrap:
     sub lr, lr, #4          /* LR points to next instruction; undo that quirk */
     srsdb #0x13!            /* Save SPRS and LR on the supervisor stack */
     cps #0x13               /* Switch to supervisor mode */
-    push {r0-r4, r12, lr}   /* We're going to B to C code, so we need to save caller registers */
+    push {r0-r4, r12, lr}   /* Save caller registers for irq_handler call */
     and r4, sp, #4          /* Align the stack */
     sub sp, sp, r4
     bl irq_handler
@@ -98,12 +98,19 @@ irq_b_wrap:
 swi_b_wrap:
     /*
      * At this point we are in supervisor mode, so SP is our supervisor stack
-     * and LR is our supervisor link register, which points to after the SWI
+     * and LR is our supervisor link register*, which points to after the SWI
      * instruction. If we want to get the number assicated with the SWI, we
      * basically have to load the SWI instruction (LR-4) into a register and
-     * mask off the last 8 bits (the opcode, bits 31-24).
+     * mask off the last 8 bits (the opcode, bits 31-24). Also, interrupts are
+     * disabled.
      *
-     * Also, interrupts were disabled when we entered.
+     * Notably, we do not have to do as much register saving as the IRQ handler
+     * as this is a voluntary call from a task; we can assume they are
+     * following the C ABI calling conventions.
+     *
+     * *Of note is the fact that tasks currently live in supervisor mode; this
+     *  means the old LR is clobbered by the saving of LR into the calling
+     *  mode's LR register. So, LR must be preserved by tasks before a SWI.
      *
      * The following docs were useful:
      * https://heyrick.eu/assembler/swi.html
