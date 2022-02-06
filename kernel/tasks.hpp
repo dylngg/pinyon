@@ -1,6 +1,8 @@
 #pragma once
-#include "console.hpp"
+#include "uart.hpp"
 
+#include <pine/maybe.hpp>
+#include <pine/memory.hpp>
 #include <pine/types.hpp>
 
 enum class TaskState : int {
@@ -22,7 +24,7 @@ public:
     Task& operator=(Task&& other) = delete;
 
     void sleep(u32 secs);
-    void readline(char* buf, size_t at_most_bytes);
+    size_t read(char* buf, size_t at_most_bytes);
     void write(char* buf, size_t bytes);
     u32 cputime();
     PtrData heap_allocate();
@@ -36,6 +38,7 @@ private:
     void resume();
     void switch_to(Task& task);
     bool has_not_started() const { return m_state == TaskState::New; }
+    bool is_waiting() const { return m_state == TaskState::Waiting; };
     bool can_run() const { return m_state == TaskState::New || m_state == TaskState::Runnable; };
 
     u32 m_sp;
@@ -49,6 +52,7 @@ private:
     size_t m_heap_reserved;
     u32 m_jiffies_when_scheduled;
     u32 m_cpu_jiffies;
+    Maybe<UARTRequestOwner> m_maybe_uart_request;
 };
 
 extern "C" {

@@ -5,7 +5,8 @@
 
 void readline(char* buf, u32 at_most_bytes)
 {
-    syscall_readline(buf, at_most_bytes);
+    u32 bytes_read = syscall_readline(buf, at_most_bytes - 1);
+    buf[bytes_read] = '\0';
 }
 
 void yield()

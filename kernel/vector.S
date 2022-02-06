@@ -115,17 +115,18 @@ swi_b_wrap:
      * The following docs were useful:
      * https://heyrick.eu/assembler/swi.html
      * https://iitd-plos.github.io/col718/ref/arm-instructionset.pdf
+     * https://github.com/ARM-software/abi-aa/releases/download/2021Q3/aapcs32.pdf
      */
     // FIXME: Switch back to old CPSR; we can get away with it right now because we never drop privs
-    push {r0-r4, r12, lr}   /* We're going to B to C code, so we need to save caller registers */
+    push {r4, lr}           /* Save callee registers we are using; r0-r3 are syscall args */
     cpsie i                 /* Re-enable interrupts; allow for interrupt nesting to occur */
     and r4, sp, #4          /* Align the stack */
     sub sp, sp, r4
-    mov r2, r1              /* Copy user args into user defined arg */
+    mov r2, r1              /* Copy first and second args into second and third swi_handler args */
     mov r1, r0
     ldr r0, [lr, #-4]       /* Get SWI instruction */
     bic r0, r0, #0xFF000000 /* Mask off last 8 bits to get syscall id */
     bl software_interrupt_handler
     add sp, sp, r4          /* Undo stack alignment */
-    pop {r0-r4, r12, lr}
+    pop {r4, lr}            /* Restore callee registers; Return value in r0 and r1 */
     bx lr

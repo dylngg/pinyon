@@ -1,4 +1,5 @@
 #include "tasks.hpp"
+#include "console.hpp"
 #include "interrupts.hpp"
 #include "kmalloc.hpp"
 #include "panic.hpp"
@@ -58,11 +59,28 @@ void Task::sleep(u32 secs)
     m_state = TaskState::Sleeping;
     m_sleep_start_time = jiffies();
     m_sleep_period = secs * SYS_HZ;
+
+    task_manager().schedule();
+
+    m_sleep_start_time = 0;
+    m_sleep_period = 0;
 }
 
-void Task::readline(char* buf, size_t at_most_bytes)
+size_t Task::read(char* buf, size_t at_most_bytes)
 {
-    console_readline(buf, at_most_bytes);
+    auto maybe_request = uart_resource().try_request_read(buf, at_most_bytes);
+    PANIC_IF(!maybe_request, "UART request failed!");
+
+    if (maybe_request->is_finished())
+        return maybe_request->size;
+
+    m_maybe_uart_request = move(maybe_request);
+
+    m_state = TaskState::Waiting;
+    task_manager().schedule();
+
+    maybe_request = move(m_maybe_uart_request);
+    return maybe_request->size;
 }
 
 void Task::write(char* buf, size_t bytes)
@@ -96,8 +114,9 @@ void Task::update_state()
 {
     if (m_state == TaskState::Sleeping && m_sleep_start_time + m_sleep_period <= jiffies()) {
         m_state = TaskState::Runnable;
-        m_sleep_start_time = 0;
-        m_sleep_period = 0;
+    }
+    if (m_state == TaskState::Waiting && m_maybe_uart_request && m_maybe_uart_request->is_finished()) {
+        m_state = TaskState::Runnable;
     }
 }
 

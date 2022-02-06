@@ -1,6 +1,4 @@
 #pragma once
-#include "console.hpp"
-#include <pine/barrier.hpp>
 #include <pine/types.hpp>
 
 /*
@@ -50,12 +48,19 @@ IRQManager& irq_manager();
 
 void interrupts_init();
 
+// Normally we'd have one the following GCC attributes on our handlers to
+// signify that GCC should save registers used in the handler on start and
+// return, but this is not exactly what we want for the disabled ones, since we
+// do our own register saving in vector.S.
+// __attribute__((interrupt("IRQ")));
+// __attribute__((interrupt("SWI")));
+
 extern "C" {
 void reset_handler(void) __attribute__((interrupt("ABORT")));
 
 void undefined_instruction_handler(void) __attribute__((interrupt("UNDEF")));
 
-void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2) __attribute__((interrupt("SWI")));
+u32 software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2);
 
 void prefetch_abort_handler(void) __attribute__((interrupt("ABORT")));
 
@@ -63,11 +68,6 @@ void data_abort_handler(void) __attribute__((interrupt("ABORT")));
 
 void fast_irq_handler(void) __attribute__((interrupt("FIQ")));
 
-// Normally we'd have the following GCC attribute to signify that GCC should
-// save any registers used in the handler, but I'm not convinced that GCC is
-// doing the right thing since I get strange issues when I don't use my custom
-// IRQ register saving stuff in vector.S...
-// void irq_handler(void) __attribute__((interrupt("IRQ")));
 void irq_handler(void);
 
 // See vector.S for implementation

@@ -3,6 +3,9 @@
 #include "panic.hpp"
 #include "tasks.hpp"
 #include "timer.hpp"
+#include "uart.hpp"
+
+#include <pine/barrier.hpp>
 
 extern "C" {
 
@@ -16,10 +19,11 @@ void undefined_instruction_handler(void)
     panic("interrupt:\t\033[31mUndefined instruction! halting.\033[0m\n");
 }
 
-void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
+u32 software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
 {
     auto& task_mgr = task_manager();
     auto& task = task_mgr.running_task();
+    u32 return_value = 0;
 
     //consolef("Handling syscall %u with args %u\n", syscall_id, arg);
 
@@ -31,11 +35,10 @@ void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
     case 1:
         // sleep()
         task.sleep(arg1);
-        task_mgr.schedule();
         break;
     case 2:
-        // readline()
-        task.readline((char*)arg1, arg2);
+        // read()
+        return_value = task.read((char*)arg1, arg2);
         break;
     case 3:
         // write()
@@ -68,6 +71,8 @@ void software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
     default:
         consolef("kernel:\tUnknown syscall_id number %lu\n", syscall_id);
     }
+
+    return return_value;
 }
 
 void prefetch_abort_handler(void)
@@ -88,21 +93,17 @@ void fast_irq_handler(void)
 void irq_handler(void)
 {
     auto& irq = irq_manager();
-    bool should_reschedule = false;
 
     // FIXME: Read pending_basic_irq1 once, then make decision based on that,
     //        rather than reading a bunch of registers here! IRQ handlers
     //        should be quick.
     if (irq.timer_pending()) {
         system_timer().handle_irq();
-        should_reschedule = true;
+        task_manager().schedule();
     }
     if (irq.uart_pending()) {
-        uart_manager().handle_irq();
+        uart_resource().handle_irq();
     }
-
-    if (should_reschedule)
-        task_manager().schedule();
 }
 }
 

@@ -51,6 +51,10 @@ void shell()
             yield();
             continue;
         }
+        if (strcmp(buf, "spin") == 0) {
+            for (volatile int i = 0; i < 10'0000'000; i++) { };
+            continue;
+        }
         if (strcmp(buf, "sleep") == 0) {
             printf("Sleeping for 2 seconds.\n");
             sleep(2);
