@@ -91,8 +91,12 @@ struct Maybe {
 
     constexpr Value& operator*() { return value(); }
     constexpr const Value& operator*() const { return value(); }
-    constexpr Value* operator->() { return value_ptr(); }
-    constexpr const Value* operator->() const { return value_ptr(); }
+
+    // Typically you return Value* for these instead of Value&; however we want
+    // forwarding -> operators, such that if the Value we have also overloads
+    // the -> operator, that operator will be applied.
+    constexpr Value& operator->() { return value(); }
+    constexpr const Value& operator->() const { return value(); }
 
 private:
     constexpr Value&& release_value()
