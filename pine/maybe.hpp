@@ -62,7 +62,6 @@ struct Maybe {
     constexpr Maybe& operator=(const Maybe& other_maybe)
     {
         if (this != &other_maybe) {
-            destroy_value_if_present();
             if ((m_has_value = other_maybe.has_value()))
                 new (&m_value_space) Value(other_maybe.value());
         }
@@ -84,10 +83,17 @@ struct Maybe {
     // Allow for if (maybe) ..., rather than if (!maybe.has_value())
     constexpr explicit operator bool() const { return has_value(); }
 
-    constexpr Value&& release() { return release_value(); }
-    constexpr const Value&& release() const { return release_value(); }
-    constexpr Value& value() { return *value_ptr(); }
-    constexpr const Value& value() const { return *value_ptr(); }
+    constexpr Value release_value()
+    {
+        m_has_value = false;
+        auto& val = value();
+        Value moved_value = move(val);
+        val.~Value();
+        return moved_value;
+    }
+    constexpr Value& value() & { return *value_ptr(); }
+    constexpr const Value& value() const& { return *value_ptr(); }
+    constexpr Value value() && { return release_value(); }
 
     constexpr Value& operator*() { return value(); }
     constexpr const Value& operator*() const { return value(); }
@@ -99,12 +105,6 @@ struct Maybe {
     constexpr const Value& operator->() const { return value(); }
 
 private:
-    constexpr Value&& release_value()
-    {
-        m_has_value = false;
-        return move(value());
-    }
-
     constexpr Value* value_ptr()
     {
         return reinterpret_cast<Value*>(&m_value_space);
