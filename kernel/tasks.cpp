@@ -36,7 +36,7 @@ Task::~Task()
     kfree(m_name);
 }
 
-void Task::switch_to(Task& to_run_task)
+void Task::switch_to(Task& to_run_task, InterruptsDisabledTag)
 {
     m_cpu_jiffies += jiffies() - m_jiffies_when_scheduled;
     task_save(&m_sp);
@@ -151,17 +151,15 @@ Task& TaskManager::pick_next_task()
     return m_tasks[m_running_task_index];
 }
 
-void TaskManager::schedule()
+void TaskManager::schedule(InterruptsDisabledTag disabled_tag)
 {
-    InterruptDisabler disabler {};
-
     auto& curr_task = running_task();
 
     auto& to_run_task = pick_next_task();
     if (&to_run_task == &curr_task)
         return;
 
-    curr_task.switch_to(to_run_task);
+    curr_task.switch_to(to_run_task, disabled_tag);
 }
 
 void TaskManager::start_scheduler()

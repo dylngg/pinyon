@@ -1,4 +1,6 @@
 #pragma once
+#include "interrupts.hpp"
+
 #include <pine/types.hpp>
 
 /*
@@ -29,7 +31,7 @@
 struct SystemTimer {
 public:
     void init();
-    void handle_irq();
+    void handle_irq(InterruptsDisabledTag);
 
 private:
     void reinit();

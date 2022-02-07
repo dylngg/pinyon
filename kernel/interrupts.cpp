@@ -21,6 +21,8 @@ void undefined_instruction_handler(void)
 
 u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2)
 {
+    // Interrupts are disabled in the SWI handler, and enabled on exit
+    auto disabled_tag = InterruptsDisabledTag::promise();
     auto& task_mgr = task_manager();
     auto& task = task_mgr.running_task();
 
@@ -28,7 +30,7 @@ u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2)
 
     switch (call) {
     case Syscall::Yield:
-        task_mgr.schedule();
+        task_mgr.schedule(disabled_tag);
         break;
 
     case Syscall::Sleep:
@@ -84,8 +86,11 @@ void irq_handler(void)
     //        rather than reading a bunch of registers here! IRQ handlers
     //        should be quick.
     if (irq.timer_pending()) {
-        system_timer().handle_irq();
-        task_manager().schedule();
+        {
+            InterruptDisabler disabler {};
+            system_timer().handle_irq(disabler);
+            task_manager().schedule(disabler);
+        }
     }
     if (irq.uart_pending()) {
         UARTResource::handle_irq();

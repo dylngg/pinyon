@@ -31,8 +31,7 @@ private:
     volatile u32 disable_basic_irq;
 };
 
-class InterruptDisabler {
-public:
+struct InterruptDisabler {
     InterruptDisabler() __attribute__((always_inline))
     {
         asm volatile("cpsid i");
@@ -42,6 +41,14 @@ public:
     {
         asm volatile("cpsie i");
     }
+};
+
+struct InterruptsDisabledTag {
+    InterruptsDisabledTag(const InterruptDisabler&) {};
+    static InterruptsDisabledTag promise() { return InterruptsDisabledTag{}; };
+
+private:
+    InterruptsDisabledTag() = default;
 };
 
 enum class Syscall : u32 {

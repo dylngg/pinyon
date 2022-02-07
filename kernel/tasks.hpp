@@ -1,4 +1,5 @@
 #pragma once
+#include "interrupts.hpp"
 #include "uart.hpp"
 
 #include <pine/maybe.hpp>
@@ -36,7 +37,7 @@ private:
     void update_state();
     void start();
     void resume();
-    void switch_to(Task& task);
+    void switch_to(Task& task, InterruptsDisabledTag);
     bool has_not_started() const { return m_state == TaskState::New; }
     bool is_waiting() const { return m_state == TaskState::Waiting; };
     bool can_run() const { return m_state == TaskState::New || m_state == TaskState::Runnable; };
@@ -63,11 +64,17 @@ class TaskManager {
 public:
     TaskManager();
     void start_scheduler();
-    void schedule();
+    void schedule(InterruptsDisabledTag);
     Task& running_task() { return m_tasks[m_running_task_index]; }
 
 private:
     Task& pick_next_task();
+    void schedule()
+    {
+        InterruptDisabler disabler;
+        schedule(disabler);
+    };
+    friend class Task;
 
     Task* m_tasks;
     int m_num_tasks;

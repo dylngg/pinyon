@@ -29,7 +29,7 @@ void SystemTimer::init()
     jiffies_since_boot = 0;
 }
 
-void SystemTimer::handle_irq()
+void SystemTimer::handle_irq(InterruptsDisabledTag)
 {
     PANIC_IF(!matched(), "IRQ handler for timer called, but not needed!");
 
