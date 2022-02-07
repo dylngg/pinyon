@@ -46,7 +46,7 @@ public:
      * progress.
      */
     static Maybe<KOwner<UARTResource>> try_request_read(char* buf, size_t at_most_bytes);
-    static void handle_irq();
+    static void handle_irq(InterruptsDisabledTag);
 
     size_t size() const { return m_size; }
     size_t amount_left() const { return m_capacity - m_size; }
