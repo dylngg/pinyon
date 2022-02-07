@@ -3,11 +3,9 @@
 #include <pine/types.hpp>
 
 /*
- * Kernel functions that poll. This is meant for logging, not for userspace
- * usage (use read/write for that).
+ * Logging functions for the kernel; these poll the UART, instead of using IRQs
+ * since we want the message to be pushed out before we return.
  */
-void console_readline(char*, size_t);
-
 void console(const char*);
 
 void console(const char*, size_t);

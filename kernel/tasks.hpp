@@ -52,7 +52,7 @@ private:
     size_t m_heap_reserved;
     u32 m_jiffies_when_scheduled;
     u32 m_cpu_jiffies;
-    Maybe<UARTRequestOwner> m_maybe_uart_request;
+    Maybe<KOwner<UARTResource>> m_maybe_uart_resource;
 };
 
 extern "C" {

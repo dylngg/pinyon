@@ -68,19 +68,22 @@ void Task::sleep(u32 secs)
 
 size_t Task::read(char* buf, size_t at_most_bytes)
 {
-    auto maybe_request = uart_resource().try_request_read(buf, at_most_bytes);
-    PANIC_IF(!maybe_request, "UART request failed!");
+    auto maybe_resource = UARTResource::try_request_read(buf, at_most_bytes);
+    PANIC_IF(!maybe_resource, "UART request failed!");
 
-    if (maybe_request->is_finished())
-        return maybe_request->size;
+    if (maybe_resource->is_finished()) // If could be fulfilled without an IRQ
+        return maybe_resource->size();
 
-    m_maybe_uart_request = move(maybe_request);
+    // update_state(), called in pick_next_task() is what checks for whether
+    // the resource is finished; it needs the resource
+    m_maybe_uart_resource = move(maybe_resource);
 
     m_state = TaskState::Waiting;
     task_manager().schedule();
 
-    maybe_request = move(m_maybe_uart_request);
-    return maybe_request->size;
+    PANIC_IF(!maybe_resource->is_finished(), "Scheduled while UART resource is not finished!");
+    maybe_resource = move(m_maybe_uart_resource);
+    return maybe_resource->size();
 }
 
 void Task::write(char* buf, size_t bytes)
@@ -115,7 +118,7 @@ void Task::update_state()
     if (m_state == TaskState::Sleeping && m_sleep_start_time + m_sleep_period <= jiffies()) {
         m_state = TaskState::Runnable;
     }
-    if (m_state == TaskState::Waiting && m_maybe_uart_request && m_maybe_uart_request->is_finished()) {
+    if (m_state == TaskState::Waiting && m_maybe_uart_resource && m_maybe_uart_resource->is_finished()) {
         m_state = TaskState::Runnable;
     }
 }

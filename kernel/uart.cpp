@@ -128,6 +128,8 @@ void UARTManager::set_read_irq(size_t read_size)
 
 Pair<size_t, bool> UARTManager::try_read(char* buf, size_t bufsize)
 {
+    MemoryBarrier barrier;
+
     bool stopped_on_break = false;
     size_t offset = 0;
     while (offset < bufsize && !(fr & (1 << UART_FR_RXFE))) {
@@ -158,57 +160,69 @@ void uart_init()
     irq_manager().enable_uart();
 }
 
-void UARTResource::handle_irq()
+static UARTResource* g_uart_resource = nullptr;
+
+UARTResource::UARTResource(char* buf, size_t size)
+    : m_buf(buf)
+    , m_size(0)
+    , m_capacity(size)
+    , m_is_write(true)
 {
-    PANIC_IF(!m_curr_request, "Tried to handle IRQ for UART when there is no current request!");
-    uart_manager().clear_read_irq();
-
-    size_t amount_originally_left = m_curr_request->capacity - m_curr_request->size;
-
-    auto amount_read_and_did_stop = uart_manager().try_read(m_curr_request->buf + m_curr_request->size, amount_originally_left);
-    size_t amount_read = amount_read_and_did_stop.first;
-    m_curr_request->size += amount_read;
-
-    bool did_stop_on_break = amount_read_and_did_stop.second;
-    if (did_stop_on_break)
-        m_curr_request->mark_as_finished();
-
-    if (m_curr_request->is_finished()) {
-        // Disable it now, instead of in complete_request(), because we don't
-        // want any more IRQs being raised between here and when the UARTRequest
-        // is destructed and calls complete_request()
-        uart_manager().disable_read_irq();
-        return;
-    }
-
-    uart_manager().set_read_irq(amount_originally_left - amount_read);
-}
-
-Maybe<UARTRequestOwner> UARTResource::try_request_read(char* buf, size_t bufsize)
-{
-    if (m_curr_request) // Can only handle one request at a time
-        return {};
-
-    m_curr_request = (UARTRequest*)kmalloc(sizeof(UARTRequest));
-    new (m_curr_request) UARTRequest { buf, 0, bufsize, false };
-
     auto& uart = uart_manager();
-    uart.set_read_irq(bufsize);
+    uart.set_read_irq(m_size);
     // It is possible at this point for data to be ready; by setting the read
     // IRQ, we may end up handling that in an IRQ before this call ends
     uart.enable_read_irq();
-
-    return UARTRequestOwner { *m_curr_request };
 }
 
-void UARTResource::complete_request()
+UARTResource::~UARTResource()
 {
-    kfree(m_curr_request);
-    m_curr_request = nullptr;
+    PANIC_IF(this != g_uart_resource, "UART Resource completed is not the same as given!")
+    g_uart_resource = nullptr;
 }
 
-UARTResource& uart_resource()
+void UARTResource::fill_from_uart()
 {
-    static UARTResource g_uart_resource {};
-    return g_uart_resource;
+    auto& uart = uart_manager();
+    size_t amount_originally_left = m_capacity - m_size;
+
+    auto amount_read_and_did_stop = uart.try_read(m_buf + m_size, amount_originally_left);
+    size_t amount_read = amount_read_and_did_stop.first;
+    m_size += amount_read;
+
+    if (amount_read_and_did_stop.second)
+        g_uart_resource->mark_as_finished();
+}
+
+void UARTResource::handle_irq()
+{
+    PANIC_IF(!g_uart_resource, "Tried to handle IRQ for UART when there is no current request!");
+    PANIC_IF(g_uart_resource->is_finished(), "Tried to handle IRQ after UART resource finished!");
+
+    auto& uart = uart_manager();
+    uart.clear_read_irq();
+
+    g_uart_resource->fill_from_uart();
+
+    if (g_uart_resource->is_finished()) {
+        // Disable it now, instead of in destructor, because we don't want any
+        // more IRQs being raised that simply return when we handle it
+        uart.disable_read_irq();
+        return;
+    }
+
+    uart.set_read_irq(g_uart_resource->amount_left());
+}
+
+Maybe<KOwner<UARTResource>> UARTResource::try_request_read(char* buf, size_t bufsize)
+{
+    if (g_uart_resource) // Can only handle one request at a time
+        return {};
+
+    auto maybe_resource = KOwner<UARTResource>::try_create(buf, bufsize);
+    if (!maybe_resource)  // FIXME: Indicate out of memory!
+        return {};
+
+    g_uart_resource = maybe_resource.value().get();
+    return maybe_resource;
 }

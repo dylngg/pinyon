@@ -2,7 +2,17 @@
 
 #include <pine/malloc.hpp>
 #include <pine/maybe.hpp>
+#include <pine/memory.hpp>
 #include <pine/types.hpp>
+
+/*
+ * If we get virtual memory working I estimate we'll keep
+ * our page tables, stack, etc under this mark...
+ *
+ * Stacks end at 0x3EE00000 (devices start at 0x3F000000), so avoid going past that.
+ */
+#define HEAP_START 0x00440000
+#define HEAP_END 0x3EE00000
 
 class KernelMemoryBounds {
 public:
@@ -21,7 +31,20 @@ private:
     PtrData m_heap_end_bound;
 };
 
-using KernelMemoryAllocator = MemoryAllocator<KernelMemoryBounds, FreeList>;
+KernelMemoryBounds& kmem_bounds();
+
+class KernelMemoryAllocator;
+KernelMemoryAllocator& kmem_allocator();
+
+class KernelMemoryAllocator : public MemoryAllocator<KernelMemoryBounds, FreeList> {
+public:
+    using MemoryAllocator::MemoryAllocator;
+
+    static KernelMemoryAllocator& allocator()
+    {
+        return kmem_allocator();
+    }
+};
 
 void kfree(void*);
 
@@ -29,4 +52,5 @@ void* kmalloc(size_t) __attribute__((malloc));
 
 MallocStats kmemstats();
 
-KernelMemoryBounds& kmem_bounds();
+template <class Value>
+using KOwner = Owner<Value, KernelMemoryAllocator>;

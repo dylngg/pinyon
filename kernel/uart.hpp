@@ -1,8 +1,8 @@
 #pragma once
 #include "interrupts.hpp"
+#include "kmalloc.hpp"
 
 #include <pine/maybe.hpp>
-#include <pine/memory.hpp>
 #include <pine/types.hpp>
 
 /*
@@ -37,38 +37,33 @@
 #define GPPUD 0x3F200094
 #define GPPUDCLK0 0x3F200098
 
-struct UARTRequest {
-    char* buf;
-    size_t size;
-    size_t capacity;
-    bool is_write;
-
-    void mark_as_finished() { capacity = size; }
-    bool is_finished() const { return size == capacity; }
-};
-
-class UARTResource;
-UARTResource& uart_resource();
-
 class UARTResource {
 public:
-    class ReturnUARTResource {
-        ReturnUARTResource() {};
-        friend class Owner<UARTRequest, ReturnUARTResource>;
+    ~UARTResource();
 
-    public:
-        void operator()(UARTRequest*&) { uart_resource().complete_request(); };
-    };
+    /*
+     * Returns the resource for async reading if an existing request is not in
+     * progress.
+     */
+    static Maybe<KOwner<UARTResource>> try_request_read(char* buf, size_t at_most_bytes);
+    static void handle_irq();
 
-    Maybe<Owner<UARTRequest, ReturnUARTResource>> try_request_read(char* buf, size_t at_most_bytes);
-    void handle_irq();
-
-    UARTRequest* m_curr_request = nullptr;
+    size_t size() const { return m_size; }
+    size_t amount_left() const { return m_capacity - m_size; }
+    bool is_finished() const { return amount_left() == 0; }
 
 private:
-    void complete_request();
+    UARTResource(char* buf, size_t size);
+    friend KOwner<UARTResource>;
+
+    void mark_as_finished() { m_capacity = m_size; }
+    void fill_from_uart();
+
+    char* m_buf;
+    size_t m_size;
+    size_t m_capacity;
+    bool m_is_write;
 };
-using UARTRequestOwner = Owner<UARTRequest, UARTResource::ReturnUARTResource>;
 
 class UARTManager;
 UARTManager& uart_manager();
@@ -76,10 +71,15 @@ UARTManager& uart_manager();
 class UARTManager {
 public:
     void reset();
-    void clear_read_irq();
-    void set_read_irq(size_t);
+
     void enable_read_irq();
     void disable_read_irq();
+
+    void set_read_irq(size_t);
+    void clear_read_irq();
+
+    using DidStopOnBreak = bool;
+    Pair<size_t, DidStopOnBreak> try_read(char*, size_t bufsize);
 
 private:
     // Only uart_manager can construct
@@ -92,8 +92,6 @@ private:
     void poll_put(char ch);
     void poll_write(const char*);
     void poll_write(const char*, size_t);
-
-    Pair<size_t, bool> try_read(char*, size_t bufsize);
 
     friend void console_readline(char*, size_t);
     friend void console(const char*);
@@ -110,11 +108,11 @@ private:
         {
             return (1 << offset1) | (1 << offset2);
         }
-        constexpr static void enable()
+        static void enable()
         {
             uart_manager().imsc &= ~mask();
         };
-        constexpr static void disable()
+        static void disable()
         {
             uart_manager().imsc |= mask();
         };

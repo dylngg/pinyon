@@ -102,7 +102,7 @@ void irq_handler(void)
         task_manager().schedule();
     }
     if (irq.uart_pending()) {
-        uart_resource().handle_irq();
+        UARTResource::handle_irq();
     }
 }
 }

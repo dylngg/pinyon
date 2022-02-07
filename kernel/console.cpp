@@ -6,54 +6,6 @@
 #include <pine/string.hpp>
 #include <pine/types.hpp>
 
-void console_readline(char* buf, size_t bufsize)
-{
-    MemoryBarrier barrier;
-    UARTManager::ReadWriteInterruptMask mask {};
-
-    auto& uart = uart_manager();
-    size_t offset = 0;
-    char ch;
-    for (;;) {
-        ch = uart.poll_get();
-
-        if (offset >= bufsize - 1)
-            continue;
-
-        bool stop = false;
-        switch (ch) {
-        case '\r':
-            stop = true;
-            break;
-        case '\n':
-            stop = true;
-            break;
-        case '\t':
-            // ignore; messes with delete :P
-            continue;
-        case 127:
-            // delete
-            if (offset >= 1) {
-                offset--;
-                // move left one char (D), then delete one (P)
-                uart.poll_write("\x1b[1D\x1b[1P");
-            }
-            continue;
-        default:
-            // local echo
-            uart.poll_put(ch);
-        }
-        if (stop)
-            break;
-
-        buf[offset] = ch;
-        offset++;
-    }
-
-    uart.poll_put('\n');
-    buf[offset] = '\0';
-}
-
 void console(const char* message)
 {
     MemoryBarrier barrier;
