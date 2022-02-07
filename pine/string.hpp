@@ -17,6 +17,8 @@ enum class ToAFlag : int {
     Lower,
 };
 
+void itoa10(char* buf, int num);
+void uitoa10(char* buf, unsigned int num);
 void ltoa10(char* buf, long num);
 void ultoa10(char* buf, unsigned long num);
 void ultoa16(char* buf, unsigned long num, ToAFlag flag);

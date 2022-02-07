@@ -100,7 +100,7 @@ char UARTManager::poll_get()
     // 4: RXFE bit; set when recieve FIFO is empty
     while (fr & (1 << UART_FR_RXFE)) {
     }
-    return dr;
+    return static_cast<char>(dr);
 }
 
 void UARTManager::clear_read_irq()
@@ -156,7 +156,7 @@ Pair<size_t, bool> UARTManager::try_read(char* buf, size_t bufsize)
     bool stopped_on_break = false;
     size_t offset = 0;
     while (offset < bufsize && !(fr & (1 << UART_FR_RXFE))) {
-        char ch = dr;
+        char ch = static_cast<char>(dr);
         if (ch == '\n' || ch == '\r') {
             poll_put('\n'); // local echo
             stopped_on_break = true;

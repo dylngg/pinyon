@@ -24,9 +24,9 @@ unsigned int powui(unsigned int num, unsigned int power)
     return result;
 }
 
-unsigned long log10ul(unsigned long num)
+unsigned int log10ul(unsigned long num)
 {
-    unsigned long log = 0;
+    unsigned int log = 0;
     while (num >= 10) {
         // log10(x) = y if b^y = x
         num /= 10;

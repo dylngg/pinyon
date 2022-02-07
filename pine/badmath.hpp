@@ -4,7 +4,7 @@ unsigned long absl(long num);
 
 unsigned int powui(unsigned int num, unsigned int power);
 
-unsigned long log10ul(unsigned long num);
+unsigned int log10ul(unsigned long num);
 
 template <typename SizeType>
 SizeType max(SizeType first, SizeType second)

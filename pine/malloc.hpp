@@ -24,8 +24,8 @@ struct MallocStats {
     size_t heap_size = 0;
     size_t amount_requested = 0;
     size_t amount_allocated = 0;
-    u64 num_mallocs = 0;
-    u64 num_frees = 0;
+    u32 num_mallocs = 0;
+    u32 num_frees = 0;
 };
 
 struct AllocationStats {

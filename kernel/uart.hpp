@@ -144,7 +144,7 @@ private:
         }
 
     private:
-        const u8 m_prev;
+        const u32 m_prev;
     };
 
     using ReadInterruptMask = InterruptMask<UART_IMSC_RXIM, UART_IMSC_RXIM>;

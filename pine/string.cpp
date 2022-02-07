@@ -58,10 +58,18 @@ int strcmp(const char* first, const char* second)
     return first[offset] != second[offset];
 }
 
+void itoa10(char* buf, int num)
+{
+    return ltoa10(buf, num);
+}
+
+void uitoa10(char* buf, unsigned int num)
+{
+    return ultoa10(buf, num);
+}
+
 void ltoa10(char* buf, long num)
 {
-    // FIXME: This function is not particularly efficient, partly thanks
-    //        to the following log madness and the overzealous %, pow and / below
     unsigned long absnum = absl(num);
     if (num < 0) {
         buf[0] = '-';
@@ -75,7 +83,7 @@ void ultoa10(char* buf, unsigned long num)
 {
     // FIXME: This function is not particularly efficient, partly thanks
     //        to the following log madness and the overzealous %, pow and / below
-    unsigned long len = log10ul(num) + 1;
+    unsigned int len = log10ul(num) + 1;
     unsigned int pos = 0;
 
     for (; pos < len; pos++) {
@@ -84,8 +92,8 @@ void ultoa10(char* buf, unsigned long num)
         // e.g. want 3 of 345 -> 345 % 10^3 (=345) / 10^2 (=3.45)
         //           4 of 345 -> 345 % 10^2 (=45)  / 10^1 (=4.5)
         //           5 of 345 -> 345 % 10^1 (=5)   / 10^0 (=5.0)
-        unsigned int digit = (num % powui(10, len - pos)) / powui(10, len - pos - 1);
-        buf[pos] = '0' + digit;
+        unsigned int digit = static_cast<unsigned int>((num % powui(10, len - pos)) / powui(10, len - pos - 1));
+        buf[pos] = static_cast<char>('0' + digit);
     }
     buf[pos] = '\0';
 }
@@ -104,11 +112,11 @@ void ultoa16(char* buf, unsigned long num, ToAFlag flag)
 
     pos = 7;
     while (pos >= 0 && num > 0) {
-        unsigned long hex_num = num % 16;
+        int hex_num = num % 16;
         if (hex_num < 10)
-            buf[pos] = hex_num + '0';
+            buf[pos] = static_cast<char>(hex_num + '0');
         else
-            buf[pos] = hex_num + ((flag == ToAFlag::Upper ? 'A' : 'a') - 10);
+            buf[pos] = static_cast<char>((hex_num - 10) + (flag == ToAFlag::Upper ? 'A' : 'a'));
 
         num >>= 4; // divide by 16, but no need for division
         pos--;
