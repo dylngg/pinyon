@@ -66,9 +66,9 @@ void Task::sleep(u32 secs)
     m_sleep_period = 0;
 }
 
-size_t Task::read(char* buf, size_t at_most_bytes)
+size_t Task::make_uart_request(char* buf, size_t bytes, UARTResource::Options options)
 {
-    auto maybe_resource = UARTResource::try_request_read(buf, at_most_bytes);
+    auto maybe_resource = UARTResource::try_request(buf, bytes, options);
     PANIC_IF(!maybe_resource, "UART request failed!");
 
     if (maybe_resource->is_finished()) // If could be fulfilled without an IRQ
@@ -86,9 +86,22 @@ size_t Task::read(char* buf, size_t at_most_bytes)
     return maybe_resource->size();
 }
 
+size_t Task::read(char* buf, size_t at_most_bytes)
+{
+    UARTResource::Options options {
+        false,
+        true,
+    };
+    return make_uart_request(buf, at_most_bytes, options);
+}
+
 void Task::write(char* buf, size_t bytes)
 {
-    console(buf, bytes);
+    UARTResource::Options options {
+        true,
+        false,
+    };
+    make_uart_request(buf, bytes, options);
 }
 
 PtrData Task::heap_allocate()

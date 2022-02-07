@@ -39,21 +39,28 @@
 
 class UARTResource {
 public:
+    struct Options {
+        bool is_write = false;
+        bool local_echo_on_read = !is_write;
+    };
+
     ~UARTResource();
 
     /*
      * Returns the resource for async reading if an existing request is not in
      * progress.
      */
-    static Maybe<KOwner<UARTResource>> try_request_read(char* buf, size_t at_most_bytes);
+    static Maybe<KOwner<UARTResource>> try_request(char*, size_t, Options);
     static void handle_irq(InterruptsDisabledTag);
 
     size_t size() const { return m_size; }
     size_t amount_left() const { return m_capacity - m_size; }
     bool is_finished() const { return amount_left() == 0; }
+    bool is_write_request() const { return m_options.is_write; }
+    void enable_irq() const;
 
 private:
-    UARTResource(char* buf, size_t size);
+    UARTResource(char* buf, size_t size, Options options);
     friend KOwner<UARTResource>;
 
     void mark_as_finished() { m_capacity = m_size; }
@@ -62,7 +69,7 @@ private:
     char* m_buf;
     size_t m_size;
     size_t m_capacity;
-    bool m_is_write;
+    Options m_options;
 };
 
 class UARTManager;
@@ -73,13 +80,18 @@ public:
     void reset();
 
     void enable_read_irq();
+    void enable_write_irq();
     void disable_read_irq();
+    void disable_write_irq();
 
     void set_read_irq(size_t);
+    void set_write_irq(size_t);
     void clear_read_irq();
+    void clear_write_irq();
 
     using DidStopOnBreak = bool;
     Pair<size_t, DidStopOnBreak> try_read(char*, size_t bufsize);
+    size_t try_write(const char*, size_t bufsize);
 
 private:
     // Only uart_manager can construct

@@ -22,8 +22,8 @@ constexpr bool is_aligned_two(UInt value, UInt base_two_num)
 }
 
 template <typename UInt>
-constexpr UInt overwrite_bit_range(UInt dest, UInt value, int start, int end)
+constexpr UInt overwrite_bit_range(UInt dest, UInt value, int start_inclusive, int end_inclusive)
 {
-    UInt mask = ((1 << (end - start)) - 1) << start;
+    UInt mask = ((1 << (end_inclusive - start_inclusive)) - 1) << start_inclusive;
     return (dest & ~mask) | (value & mask);
 }

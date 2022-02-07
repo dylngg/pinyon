@@ -108,9 +108,19 @@ void UARTManager::clear_read_irq()
     icr &= ~(1 << UART_ICR_RXIC);
 }
 
+void UARTManager::clear_write_irq()
+{
+    icr &= ~(1 << UART_ICR_TXIC);
+}
+
 void UARTManager::enable_read_irq()
 {
     UARTManager::ReadInterruptMask::disable();
+}
+
+void UARTManager::enable_write_irq()
+{
+    UARTManager::WriteInterruptMask::disable();
 }
 
 void UARTManager::disable_read_irq()
@@ -118,12 +128,25 @@ void UARTManager::disable_read_irq()
     UARTManager::ReadInterruptMask::enable();
 }
 
+void UARTManager::disable_write_irq()
+{
+    UARTManager::WriteInterruptMask::enable();
+}
+
 void UARTManager::set_read_irq(size_t read_size)
 {
     // See Section 13.4 IFLS for details; essentially we can select a trigger
-    // at 1/8, 1/4, 1/2, and 7/8 levels mapped to binary
-    u32 fifo_select_bits = min(read_size, 8u) >> 1;
+    // at 1/8, 1/4, 1/2, and 7/8 full levels mapped to binary
+    u32 fifo_select_bits = min(read_size, 8u) >> 1;  // read when we have as most as possible
     overwrite_bit_range(ifls, fifo_select_bits, 3, 5);
+}
+
+void UARTManager::set_write_irq(size_t write_size)
+{
+    // See Section 13.4 IFLS for details; essentially we can select a trigger
+    // at 1/8, 1/4, 1/2, and 7/8 full levels mapped to binary
+    u32 fifo_select_bits = min(write_size, 8u) >> 1;  // write when we have as most as possible
+    overwrite_bit_range(ifls, fifo_select_bits, 0, 2);
 }
 
 Pair<size_t, bool> UARTManager::try_read(char* buf, size_t bufsize)
@@ -148,6 +171,20 @@ Pair<size_t, bool> UARTManager::try_read(char* buf, size_t bufsize)
     return { offset, stopped_on_break };
 }
 
+size_t UARTManager::try_write(const char* buf, size_t bufsize)
+{
+    MemoryBarrier barrier;
+
+    size_t offset = 0;
+    while (offset < bufsize && !(fr & (1 << UART_FR_TXFF))) {
+        char ch = buf[offset++];
+        dr = ch;
+        if (ch == '\n')
+            dr = '\r';
+    }
+    return offset;
+}
+
 UARTManager& uart_manager()
 {
     static auto* g_uart_manager = reinterpret_cast<UARTManager*>(UART_BASE);
@@ -162,17 +199,17 @@ void uart_init()
 
 static UARTResource* g_uart_resource = nullptr;
 
-UARTResource::UARTResource(char* buf, size_t size)
+UARTResource::UARTResource(char* buf, size_t size, Options options)
     : m_buf(buf)
     , m_size(0)
     , m_capacity(size)
-    , m_is_write(true)
+    , m_options(options)
 {
     auto& uart = uart_manager();
-    uart.set_read_irq(m_size);
-    // It is possible at this point for data to be ready; by setting the read
-    // IRQ, we may end up handling that in an IRQ before this call ends
-    uart.enable_read_irq();
+    if (is_write_request())
+        uart.set_write_irq(amount_left());
+    else
+        uart.set_read_irq(amount_left());
 }
 
 UARTResource::~UARTResource()
@@ -181,48 +218,81 @@ UARTResource::~UARTResource()
     g_uart_resource = nullptr;
 }
 
+void UARTResource::enable_irq() const
+{
+    auto& uart = uart_manager();
+    // It is possible at this point for data to be ready; by setting the IRQ,
+    // we may end up handling that in an IRQ before this call ends
+    if (is_write_request())
+        uart.enable_write_irq();
+    else
+        uart.enable_read_irq();
+}
+
 void UARTResource::fill_from_uart()
 {
     auto& uart = uart_manager();
     size_t amount_originally_left = m_capacity - m_size;
 
-    auto amount_read_and_did_stop = uart.try_read(m_buf + m_size, amount_originally_left);
-    size_t amount_read = amount_read_and_did_stop.first;
-    m_size += amount_read;
-
-    if (amount_read_and_did_stop.second)
-        g_uart_resource->mark_as_finished();
+    if (is_write_request()) {
+        m_size += uart.try_write(m_buf + m_size, amount_originally_left);
+    }
+    else {
+        auto amount_and_did_stop = uart.try_read(m_buf + m_size, amount_originally_left);
+        m_size += amount_and_did_stop.first;
+        if (amount_and_did_stop.second)
+            g_uart_resource->mark_as_finished();
+    }
 }
 
-void UARTResource::handle_irq()
+void UARTResource::handle_irq(InterruptsDisabledTag)
 {
+    // We assume interrupts are disabled here, because we don't want nesting
+    // of reads/writes to occur.
+
     PANIC_IF(!g_uart_resource, "Tried to handle IRQ for UART when there is no current request!");
     PANIC_IF(g_uart_resource->is_finished(), "Tried to handle IRQ after UART resource finished!");
 
     auto& uart = uart_manager();
-    uart.clear_read_irq();
+    if (g_uart_resource->is_write_request())
+        uart.clear_write_irq();
+    else
+        uart.clear_read_irq();
 
     g_uart_resource->fill_from_uart();
 
     if (g_uart_resource->is_finished()) {
         // Disable it now, instead of in destructor, because we don't want any
-        // more IRQs being raised that simply return when we handle it
-        uart.disable_read_irq();
+        // more IRQs (after returning from this IRQ) being raised that simply
+        // return when we handle it
+        if (g_uart_resource->is_write_request())
+            uart.disable_write_irq();
+        else
+            uart.disable_read_irq();
+
         return;
     }
 
-    uart.set_read_irq(g_uart_resource->amount_left());
+    if (g_uart_resource->is_write_request())
+        uart.set_write_irq(g_uart_resource->amount_left());
+    else
+        uart.set_read_irq(g_uart_resource->amount_left());
 }
 
-Maybe<KOwner<UARTResource>> UARTResource::try_request_read(char* buf, size_t bufsize)
+Maybe<KOwner<UARTResource>> UARTResource::try_request(char* buf, size_t bufsize, Options options)
 {
     if (g_uart_resource) // Can only handle one request at a time
         return {};
 
-    auto maybe_resource = KOwner<UARTResource>::try_create(buf, bufsize);
+    auto maybe_resource = KOwner<UARTResource>::try_create(buf, bufsize, options);
     if (!maybe_resource)  // FIXME: Indicate out of memory!
         return {};
 
     g_uart_resource = maybe_resource.value().get();
+
+    // Enable after creation, rather than in constructor, because we use the
+    // g_uart_resource handle in our static handle_irq() function; this is not
+    // set until after construction and enabling may cause an IRQ to be raised
+    maybe_resource->enable_irq();
     return maybe_resource;
 }

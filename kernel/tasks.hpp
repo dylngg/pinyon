@@ -42,6 +42,8 @@ private:
     bool is_waiting() const { return m_state == TaskState::Waiting; };
     bool can_run() const { return m_state == TaskState::New || m_state == TaskState::Runnable; };
 
+    size_t make_uart_request(char* buf, size_t bytes, UARTResource::Options);
+
     u32 m_sp;
     u32 m_pc;
     u32 m_sleep_period;
