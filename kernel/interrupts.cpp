@@ -57,7 +57,7 @@ u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2)
         return task.cputime();
 
     default:
-        consolef("kernel:\tUnknown syscall number %lu\n", (u32) call);
+        consolef("kernel:\tUnknown syscall number %lu\n", (u32)call);
     }
 
     return 0;

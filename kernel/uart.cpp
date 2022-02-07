@@ -137,7 +137,7 @@ void UARTManager::set_read_irq(size_t read_size)
 {
     // See Section 13.4 IFLS for details; essentially we can select a trigger
     // at 1/8, 1/4, 1/2, and 7/8 full levels mapped to binary
-    u32 fifo_select_bits = min(read_size, 8u) >> 1;  // read when we have as most as possible
+    u32 fifo_select_bits = min(read_size, 8u) >> 1; // read when we have as most as possible
     overwrite_bit_range(ifls, fifo_select_bits, 3, 5);
 }
 
@@ -145,7 +145,7 @@ void UARTManager::set_write_irq(size_t write_size)
 {
     // See Section 13.4 IFLS for details; essentially we can select a trigger
     // at 1/8, 1/4, 1/2, and 7/8 full levels mapped to binary
-    u32 fifo_select_bits = min(write_size, 8u) >> 1;  // write when we have as most as possible
+    u32 fifo_select_bits = min(write_size, 8u) >> 1; // write when we have as most as possible
     overwrite_bit_range(ifls, fifo_select_bits, 0, 2);
 }
 
@@ -236,8 +236,7 @@ void UARTResource::fill_from_uart()
 
     if (is_write_request()) {
         m_size += uart.try_write(m_buf + m_size, amount_originally_left);
-    }
-    else {
+    } else {
         auto amount_and_did_stop = uart.try_read(m_buf + m_size, amount_originally_left);
         m_size += amount_and_did_stop.first;
         if (amount_and_did_stop.second)
@@ -285,7 +284,7 @@ Maybe<KOwner<UARTResource>> UARTResource::try_request(char* buf, size_t bufsize,
         return {};
 
     auto maybe_resource = KOwner<UARTResource>::try_create(buf, bufsize, options);
-    if (!maybe_resource)  // FIXME: Indicate out of memory!
+    if (!maybe_resource) // FIXME: Indicate out of memory!
         return {};
 
     g_uart_resource = maybe_resource.value().get();

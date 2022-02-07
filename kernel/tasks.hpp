@@ -71,6 +71,11 @@ public:
 
 private:
     Task& pick_next_task();
+
+    // When tasks ask to schedule themselves, it means that they have received
+    // an async request from a SWI handler, which does not disable interrupts.
+    // So create a nice wrapper around schedule() for Task so we don't have to
+    // type this out for every syscall Task method we implement
     void schedule()
     {
         InterruptDisabler disabler;

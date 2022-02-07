@@ -36,10 +36,10 @@ public:
         }
     }
 
-    template<class... Args>
+    template <class... Args>
     static Maybe<ValueOwner> try_create(Args&&... args)
     {
-        void* ptr =  Allocator::allocator().allocate(sizeof(Value));
+        void* ptr = Allocator::allocator().allocate(sizeof(Value));
         if (!ptr)
             return {};
 
