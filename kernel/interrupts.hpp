@@ -44,6 +44,17 @@ public:
     }
 };
 
+enum class Syscall : u32 {
+    Yield = 0,
+    Sleep,
+    Read,
+    Write,
+    HeapAllocate,
+    HeapIncr,
+    Uptime,
+    CPUTime,
+};
+
 IRQManager& irq_manager();
 
 void interrupts_init();
@@ -60,7 +71,7 @@ void reset_handler(void) __attribute__((interrupt("ABORT")));
 
 void undefined_instruction_handler(void) __attribute__((interrupt("UNDEF")));
 
-u32 software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2);
+u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2);
 
 void prefetch_abort_handler(void) __attribute__((interrupt("ABORT")));
 

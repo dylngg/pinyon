@@ -5,7 +5,7 @@
 
 void readline(char* buf, u32 at_most_bytes)
 {
-    u32 bytes_read = syscall_readline(buf, at_most_bytes - 1);
+    u32 bytes_read = syscall_read(buf, at_most_bytes - 1);
     buf[bytes_read] = '\0';
 }
 
@@ -21,16 +21,12 @@ void sleep(u32 secs)
 
 u32 uptime()
 {
-    u32 jif;
-    syscall_uptime(&jif);
-    return jif;
+    return syscall_uptime();
 }
 
 u32 cputime()
 {
-    u32 jif;
-    syscall_cputime(&jif);
-    return jif;
+    return syscall_cputime();
 }
 
 void printf(const char* fmt, ...)
@@ -61,23 +57,19 @@ void printf(const char* fmt, ...)
     free(print_buf);
 }
 
-void* heap_reserve()
+void* heap_allocate()
 {
-    void* start_addr;
-    syscall_heap_reserve(&start_addr);
-    return start_addr;
+    return syscall_heap_allocate();
 }
 
 size_t heap_incr(size_t by_bytes)
 {
-    size_t incr = 0;
-    syscall_heap_incr(by_bytes, &incr);
-    return incr;
+    return syscall_heap_incr(by_bytes);
 }
 
 TaskMemoryBounds::TaskMemoryBounds()
 {
-    m_heap_start = (PtrData)heap_reserve();
+    m_heap_start = (PtrData)heap_allocate();
     m_heap_size = heap_incr(Page);
 }
 
@@ -104,7 +96,6 @@ Maybe<size_t> TaskMemoryBounds::try_extend_heap(size_t by_size)
         return { by_size };
     }
 
-    // Need to allocate memory
     size_t heap_incr_size = heap_incr(by_size);
     m_heap_size += heap_incr_size;
     if (heap_incr_size == 0)

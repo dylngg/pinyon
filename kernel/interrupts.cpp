@@ -19,60 +19,46 @@ void undefined_instruction_handler(void)
     panic("interrupt:\t\033[31mUndefined instruction! halting.\033[0m\n");
 }
 
-u32 software_interrupt_handler(u32 syscall_id, u32 arg1, u32 arg2)
+u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2)
 {
     auto& task_mgr = task_manager();
     auto& task = task_mgr.running_task();
-    u32 return_value = 0;
 
     //consolef("Handling syscall %u with args %u\n", syscall_id, arg);
 
-    switch (syscall_id) {
-    case 0:
-        // yield()
+    switch (call) {
+    case Syscall::Yield:
         task_mgr.schedule();
         break;
-    case 1:
-        // sleep()
+
+    case Syscall::Sleep:
         task.sleep(arg1);
         break;
-    case 2:
-        // read()
-        return_value = task.read((char*)arg1, arg2);
-        break;
-    case 3:
-        // write()
+
+    case Syscall::Read:
+        return task.read((char*)arg1, arg2);
+
+    case Syscall::Write:
         task.write((char*)arg1, arg2);
         break;
-    case 4: {
-        // heap_allocate()
-        void** start_addr_ptr = (void**)arg1;
-        *start_addr_ptr = (void*)task.heap_allocate();
-        break;
-    }
-    case 5: {
-        // heap_incr()
-        size_t incr_bytes = (size_t)arg1;
-        size_t* actual_incr_size = (size_t*)arg2;
-        *actual_incr_size = task.heap_increase(incr_bytes);
-        break;
-    }
-    case 6: {
-        // uptime()
-        u32* jiffies_ret = (u32*)arg1;
-        *jiffies_ret = jiffies();
-        break;
-    }
-    case 7: {
-        u32* jiffies_ret = (u32*)arg1;
-        *jiffies_ret = task.cputime();
-        break;
-    }
+
+    case Syscall::HeapAllocate:
+        return task.heap_allocate();
+
+    case Syscall::HeapIncr:
+        return task.heap_increase((size_t)arg1);
+
+    case Syscall::Uptime:
+        return jiffies();
+
+    case Syscall::CPUTime:
+        return task.cputime();
+
     default:
-        consolef("kernel:\tUnknown syscall_id number %lu\n", syscall_id);
+        consolef("kernel:\tUnknown syscall number %lu\n", (u32) call);
     }
 
-    return return_value;
+    return 0;
 }
 
 void prefetch_abort_handler(void)

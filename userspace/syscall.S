@@ -1,9 +1,9 @@
 .section .text
 .global syscall_yield
 .global syscall_sleep
-.global syscall_readline
+.global syscall_read
 .global syscall_write
-.global syscall_heap_reserve
+.global syscall_heap_allocate
 .global syscall_heap_incr
 .global syscall_uptime
 .global syscall_cputime
@@ -25,7 +25,7 @@ syscall_sleep:
     pop {lr}
     bx lr
 
-syscall_readline:
+syscall_read:
     push {lr}
     swi 2
     pop {lr}
@@ -37,7 +37,7 @@ syscall_write:
     pop {lr}
     bx lr
 
-syscall_heap_reserve:
+syscall_heap_allocate:
     push {lr}
     swi 4
     pop {lr}
