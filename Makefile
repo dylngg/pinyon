@@ -17,7 +17,7 @@ ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -fno-threadsafe-s
 INCLUDE=-I.
 # -Wconversion: Yes, it complains a lot about unnecessary stuff; but it is
 #               also the only tool to catch real issues here...
-CXXFLAGS=-Wall -Wextra -Wpedantic -Wconversion -std=c++17 -g
+CXXFLAGS=-Wall -Wextra -Wpedantic -Wconversion -std=c++17 -g -O2
 PINE_OBJ=$(OBJDIR)/pine/badmath.o $(OBJDIR)/pine/string.o $(OBJDIR)/pine/malloc.o $(OBJDIR)/pine/c_builtins.o
 KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/panic.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/timer.o $(OBJDIR)/kernel/uart.o
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/bootup.o $(OBJDIR)/kernel/vector.o $(OBJDIR)/kernel/switch.o

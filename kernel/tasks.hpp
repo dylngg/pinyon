@@ -6,6 +6,18 @@
 #include <pine/memory.hpp>
 #include <pine/types.hpp>
 
+extern "C" {
+// These are in switch.S. They save, then resume, or start a task in one go.
+// The fact that this is done in one operation is important: In switch_to(),
+// GCC with optimizations may push values onto the stack that it will pop
+// before calling task_resume() or task_start(). Our saving of registers onto
+// the stack in some e.g. task_save(), before task_resume()/task_start() will
+// then conflict with this pop operation by GCC. i.e. we cannot guarantee that
+// the stack will not be manipulated before some save() and resume()/start().
+void task_resume(u32* old_sp_ptr, u32 new_sp);
+void task_start(u32* old_sp_ptr, u32 new_pc, u32 new_sp);
+}
+
 enum class TaskState : int {
     New = 0,
     Runnable,
@@ -35,8 +47,8 @@ public:
 
 private:
     void update_state();
-    void start();
-    void resume();
+    void start(u32*);
+    void resume(u32*);
     void switch_to(Task& task, InterruptsDisabledTag);
     bool has_not_started() const { return m_state == TaskState::New; }
     bool is_waiting() const { return m_state == TaskState::Waiting; };
@@ -66,7 +78,7 @@ class TaskManager {
 public:
     TaskManager();
     void start_scheduler();
-    void schedule(InterruptsDisabledTag);
+    void schedule(InterruptsDisabledTag) __attribute__((returns_twice));
     Task& running_task() { return m_tasks[m_running_task_index]; }
 
 private:

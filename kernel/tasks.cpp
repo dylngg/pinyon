@@ -8,13 +8,6 @@
 #include <pine/string.hpp>
 #include <pine/units.hpp>
 
-extern "C" {
-// These are in switch.S. They either save, resume, or start a task.
-void task_save(u32* old_sp_ptr);
-void task_resume(u32 new_sp);
-void task_start(u32 new_pc, u32 new_sp);
-}
-
 Task::Task(const char* name, u32 stack_pointer, u32 pc)
     : m_sp(stack_pointer)
     , m_pc(pc)
@@ -39,19 +32,23 @@ Task::~Task()
 void Task::switch_to(Task& to_run_task, InterruptsDisabledTag)
 {
     m_cpu_jiffies += jiffies() - m_jiffies_when_scheduled;
-    task_save(&m_sp);
-
     if (to_run_task.has_not_started())
-        to_run_task.start();
+        to_run_task.start(&m_sp);
     else
-        to_run_task.resume();
+        to_run_task.resume(&m_sp);
 }
 
-void Task::start()
+void Task::start(u32* prev_task_sp_ptr)
 {
     m_state = TaskState::Runnable;
     m_jiffies_when_scheduled = jiffies();
-    task_start(m_pc, m_sp);
+    task_start(prev_task_sp_ptr, m_pc, m_sp);
+}
+
+void Task::resume(u32* prev_task_sp_ptr)
+{
+    m_jiffies_when_scheduled = jiffies();
+    task_resume(prev_task_sp_ptr, m_sp);
 }
 
 void Task::sleep(u32 secs)
@@ -136,12 +133,6 @@ void Task::update_state()
     }
 }
 
-void Task::resume()
-{
-    m_jiffies_when_scheduled = jiffies();
-    task_resume(m_sp);
-}
-
 u32 Task::cputime()
 {
     if (&(task_manager().running_task()) == this) // if we're scheduled
@@ -177,7 +168,10 @@ void TaskManager::schedule(InterruptsDisabledTag disabled_tag)
 
 void TaskManager::start_scheduler()
 {
-    m_tasks[0].start();
+    // When we start, we save the previous task's SP into the task object; we
+    // are starting afresh, so just put it in a dummy variable
+    u32 dummy_old_sp;
+    m_tasks[0].start(&dummy_old_sp);
 }
 
 extern "C" {

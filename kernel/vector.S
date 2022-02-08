@@ -118,7 +118,7 @@ swi_b_wrap:
      * https://github.com/ARM-software/abi-aa/releases/download/2021Q3/aapcs32.pdf
      */
     // FIXME: Switch back to old CPSR; we can get away with it right now because we never drop privs
-    push {r4, lr}           /* Save callee registers we are using; r0-r3 are syscall args */
+    push {r4, r12, lr}      /* Save callee registers we are using; r0-r3 are syscall args */
     cpsie i                 /* Re-enable interrupts; allow for interrupt nesting to occur */
     and r4, sp, #4          /* Align the stack */
     sub sp, sp, r4
@@ -128,5 +128,5 @@ swi_b_wrap:
     bic r0, r0, #0xFF000000 /* Mask off last 8 bits to get syscall id */
     bl software_interrupt_handler
     add sp, sp, r4          /* Undo stack alignment */
-    pop {r4, lr}            /* Restore callee registers; Return value in r0 and r1 */
+    pop {r4, r12, lr}       /* Restore callee registers; Return value in r0 and r1 */
     bx lr
