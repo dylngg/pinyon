@@ -40,7 +40,7 @@ ckzbssbnds:
 preinit:
     bl setup_vtable     /* Set up vector interrupt table */
 
-    mov sp, #0x8000     /* Set up stack */
+    mov sp, #0xb000     /* Set up stack (8KiB); after IRQ and abort stacks. See setup_vtable in vector.S. */
 
     /* -- Load up init in kernel.cpp -- */
     ldr r1, =init

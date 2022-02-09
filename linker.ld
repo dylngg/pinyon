@@ -2,7 +2,8 @@ ENTRY(start)
 
 /* Modified from https://wiki.osdev.org/ARMv7-A_Bare_Bones */
 SECTIONS {
-    . = 0x8000;
+    /* After our kernel (non-task) stack; See bootup.S */
+    . = 0xb000;
     .text : {
         *(.boot)
         *(.text)

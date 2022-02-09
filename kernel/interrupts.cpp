@@ -14,9 +14,10 @@ void reset_handler(void)
     panic("interrupt:\tResetting. Goodbye.\n");
 }
 
-void undefined_instruction_handler(void)
+void undefined_instruction_handler(u32 old_cpsr, u32 old_pc, u32 old_lr)
 {
-    panic("interrupt:\t\033[31mUndefined instruction! halting.\033[0m\n");
+    panicf("interrupt:\t\033[31mUndefined instruction! halting.\033[0m\n\n"
+           "old cpsr: %lu\told pc: %p\told lr: %p\n", old_cpsr, (void*) old_pc, (void*)old_lr);
 }
 
 u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2)

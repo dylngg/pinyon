@@ -11,7 +11,11 @@
  */
 static char panic_buffer[PANIC_BUFFER_SIZE];
 
-void panic(const char* message)
+// Always flatten (inline into caller) since panicf calls panic after some
+// setup and we want the LR to be the function that called panicf, not panicf
+// itself.
+__attribute__((flatten)) __attribute__((always_inline))
+static void panic_impl(const char* message)
 {
     u32 sp;
     u32 lr;
@@ -31,10 +35,15 @@ void panic(const char* message)
     asm volatile("b halt");
 }
 
+void panic(const char* message)
+{
+    panic_impl(message);
+}
+
 void panicf(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
     vsbufprintf(panic_buffer, PANIC_BUFFER_SIZE, fmt, args);
-    panic(panic_buffer);
+    panic_impl(panic_buffer);
 }

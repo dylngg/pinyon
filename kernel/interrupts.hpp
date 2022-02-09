@@ -72,11 +72,12 @@ void interrupts_init();
 // do our own register saving in vector.S.
 // __attribute__((interrupt("IRQ")));
 // __attribute__((interrupt("SWI")));
+//  __attribute__((interrupt("UNDEF")));
 
 extern "C" {
 void reset_handler(void) __attribute__((interrupt("ABORT")));
 
-void undefined_instruction_handler(void) __attribute__((interrupt("UNDEF")));
+void undefined_instruction_handler(u32 old_cpsr, u32 old_pc, u32 old_lr);
 
 u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2);
 

@@ -30,9 +30,16 @@ setup_vtable:
     stmia r1!, {r2-r8}
 
     /* Each mode, including IRQ mode, has their own stack. We'll use this to save
-     * registers in the IRQ handler. */
-    cps #0x12           /* Enter IRQ mode*/
-    mov sp, #0x1000     /* Small IRQ stack of 4KiB, this maybe a problem in the future... */
+     * registers in the IRQ handler.
+     *
+     * WARNING! If stacks are changed, you will need to modify bootup.S and linker.ld
+     */
+    cps #0x12           /* Enter IRQ mode */
+    mov sp, #0x3000     /* Small IRQ stack of 4KiB since we switch to supervisor mode after an IRQ anyways... */
+    cps #0x17           /* Enter Abort mode */
+    mov sp, #0x2000     /* Small IRQ stack of 4KiB */
+    cps #0x1b           /* Enter Undefined instruction mode */
+    mov sp, #0x1000     /* Small IRQ stack of ~4KiB (minus vector table size) */
     cps #0x13           /* Go back to supervisor mode */
     bx lr
 
@@ -61,12 +68,27 @@ vtable:
 
     /* Branch-to-another-abs-branch part */
 reset_b:        .word halt
-undef_instr_b:  .word undefined_instruction_handler
+undef_instr_b:  .word undef_instr_wrap
 swi_b:          .word swi_b_wrap
 prefch_abrt_b:  .word prefetch_abort_handler
 data_abrt_b:    .word data_abort_handler
 irq_b:          .word irq_b_wrap
 fiq_b:          .word fast_irq_handler
+
+undef_instr_wrap:
+    /*
+     * We hit an undefined instruction and are switched to undefined mode. The
+     * processor has saved the old PC into LR, and the old LR is saved into the
+     * old mode's LR. the old CPSR is also saved into this mode's SPSR.
+     */
+    mrs r0, spsr            /* Save the old SPSR into arg1 */
+    mov r1, lr              /* Save the old PC into arg2 */
+    bic r3, r0, #0x7fffffe0 /* Get the current mode */
+    msr cpsr, r3            /* Switch back to that mode */
+    mov r2, lr              /* Save old LR into arg3 */
+    cps #0x1b               /* Go back to undefined mode */
+    bl undefined_instruction_handler
+    b halt
 
 irq_b_wrap:
     /*
