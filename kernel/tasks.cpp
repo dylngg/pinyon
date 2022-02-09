@@ -11,8 +11,7 @@
 Task::Task(const char* name, u32 stack_pointer, u32 pc)
     : m_sp(stack_pointer)
     , m_pc(pc)
-    , m_sleep_period(0)
-    , m_sleep_start_time(0)
+    , m_sleep_end_time(0)
     , m_state(TaskState::New)
     , m_heap_start(0)
     , m_heap_size(0)
@@ -54,13 +53,11 @@ void Task::resume(u32* prev_task_sp_ptr)
 void Task::sleep(u32 secs)
 {
     m_state = TaskState::Sleeping;
-    m_sleep_start_time = jiffies();
-    m_sleep_period = secs * SYS_HZ;
+    m_sleep_end_time = jiffies() + secs * SYS_HZ;
 
     task_manager().schedule();
 
-    m_sleep_start_time = 0;
-    m_sleep_period = 0;
+    m_sleep_end_time = 0;
 }
 
 size_t Task::make_uart_request(char* buf, size_t bytes, UARTResource::Options options)
@@ -125,7 +122,7 @@ PtrData Task::heap_increase(size_t bytes)
 
 void Task::update_state()
 {
-    if (m_state == TaskState::Sleeping && m_sleep_start_time + m_sleep_period <= jiffies()) {
+    if (m_state == TaskState::Sleeping && m_sleep_end_time <= jiffies()) {
         m_state = TaskState::Runnable;
     }
     if (m_state == TaskState::Waiting && m_maybe_uart_resource && m_maybe_uart_resource->is_finished()) {

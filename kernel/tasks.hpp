@@ -58,8 +58,7 @@ private:
 
     u32 m_sp;
     u32 m_pc;
-    u32 m_sleep_period;
-    u32 m_sleep_start_time;
+    u32 m_sleep_end_time;
     char* m_name;
     TaskState m_state;
     size_t m_heap_start;
