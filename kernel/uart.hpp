@@ -120,30 +120,32 @@ private:
         {
             return (1 << offset1) | (1 << offset2);
         }
-        static void enable()
+        static void enable(UARTManager& uart)
         {
-            uart_manager().imsc &= ~mask();
+            uart.imsc &= ~mask();
         };
-        static void disable()
+        static void disable(UARTManager& uart)
         {
-            uart_manager().imsc |= mask();
+            uart.imsc |= mask();
         };
 
-        InterruptMask() __attribute__((always_inline))
+        InterruptMask(UARTManager& uart) __attribute__((always_inline))
         // Store prev so when the mask is already set (perhaps by a ancestor
         // InterruptMask class in the call stack), we can put it in the
         // previous state we found it in.
-        : m_prev(uart_manager().imsc)
+        : m_uart_manager(uart)
+        , m_prev(m_uart_manager.imsc)
         {
-            uart_manager().imsc = m_prev & ~mask();
+            m_uart_manager.imsc = m_prev & ~mask();
         }
 
         ~InterruptMask() __attribute__((always_inline))
         {
-            uart_manager().imsc = m_prev;
+            m_uart_manager.imsc = m_prev;
         }
 
     private:
+        UARTManager& m_uart_manager;
         const u32 m_prev;
     };
 

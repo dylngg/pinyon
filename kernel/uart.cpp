@@ -115,22 +115,22 @@ void UARTManager::clear_write_irq()
 
 void UARTManager::enable_read_irq()
 {
-    UARTManager::ReadInterruptMask::disable();
+    UARTManager::ReadInterruptMask::disable(*this);
 }
 
 void UARTManager::enable_write_irq()
 {
-    UARTManager::WriteInterruptMask::disable();
+    UARTManager::WriteInterruptMask::disable(*this);
 }
 
 void UARTManager::disable_read_irq()
 {
-    UARTManager::ReadInterruptMask::enable();
+    UARTManager::ReadInterruptMask::enable(*this);
 }
 
 void UARTManager::disable_write_irq()
 {
-    UARTManager::WriteInterruptMask::enable();
+    UARTManager::WriteInterruptMask::enable(*this);
 }
 
 void UARTManager::set_read_irq(size_t read_size)

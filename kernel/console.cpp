@@ -9,16 +9,18 @@
 void console(const char* message)
 {
     MemoryBarrier barrier;
-    UARTManager::WriteInterruptMask mask {};
-    uart_manager().poll_write(message);
+    auto& uart = uart_manager();
+    UARTManager::WriteInterruptMask mask { uart };
+
+    uart.poll_write(message);
 }
 
 void consoleln(const char* message)
 {
     MemoryBarrier barrier;
-    UARTManager::WriteInterruptMask mask {};
-
     auto& uart = uart_manager();
+    UARTManager::WriteInterruptMask mask { uart };
+
     uart.poll_write(message);
     uart.poll_put('\n');
 }
@@ -29,9 +31,9 @@ void consolef(const char* fmt, ...)
     va_start(args, fmt);
 
     MemoryBarrier barrier;
-    UARTManager::WriteInterruptMask mask {};
-
     auto& uart = uart_manager();
+    UARTManager::WriteInterruptMask mask { uart };
+
     const auto& try_add_wrapper = [&](const char* message) -> bool {
         uart.poll_write(message);
         return true;
