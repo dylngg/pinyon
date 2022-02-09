@@ -13,13 +13,6 @@ void console(const char* message)
     uart_manager().poll_write(message);
 }
 
-void console(const char* message, size_t bytes)
-{
-    MemoryBarrier barrier;
-    UARTManager::WriteInterruptMask mask {};
-    uart_manager().poll_write(message, bytes);
-}
-
 void consoleln(const char* message)
 {
     MemoryBarrier barrier;
