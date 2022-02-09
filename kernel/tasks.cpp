@@ -78,7 +78,7 @@ size_t Task::make_uart_request(char* buf, size_t bytes, UARTResource::Options op
     m_state = TaskState::Waiting;
     task_manager().schedule();
 
-    PANIC_IF(!maybe_resource->is_finished(), "Scheduled while UART resource is not finished!");
+    PANIC_IF(!m_maybe_uart_resource->is_finished(), "Scheduled while UART resource is not finished!");
     maybe_resource = move(m_maybe_uart_resource);
     return maybe_resource->size();
 }

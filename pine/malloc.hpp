@@ -140,7 +140,7 @@ public:
 
     void free(void* ptr)
     {
-        if (!m_mem_bounds.in_bounds(ptr))
+        if (!ptr || !m_mem_bounds.in_bounds(ptr))
             return; // FIXME: assert?!
 
         auto [requested_size, freed_size] = m_memory_manager.free_memory(ptr);
