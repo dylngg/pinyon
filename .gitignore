@@ -7,3 +7,5 @@ local/
 .clang-format
 .vscode
 compile_commands.json
+manuals/
+stashed/
