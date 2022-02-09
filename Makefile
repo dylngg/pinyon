@@ -55,7 +55,7 @@ run: pinyon.elf
 .PHONY: debug
 debug: pinyon.elf
 	# FIXME: Get a newer QEMU that supports raspi3
-	qemu-system-arm -s -S -nographic -m 1G -M raspi2 -kernel $< 1>pinyon.out &
+	sh feed.sh | qemu-system-arm -s -S -nographic -m 1G -M raspi2 -kernel $< 1>pinyon.out &
 	sleep 1  # hack
 	arm-none-eabi-gdb $<
 	killall qemu-system-arm
