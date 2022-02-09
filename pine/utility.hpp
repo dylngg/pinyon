@@ -1,7 +1,5 @@
 #pragma once
 
-// This is duplicated from metaprogramming.hpp since we don't want to pull that
-// monstrosity header in here and don't need this header there.
 #include "metaprogramming.hpp"
 
 /*
