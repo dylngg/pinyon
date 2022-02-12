@@ -37,9 +37,9 @@ setup_vtable:
     cps #0x12           /* Enter IRQ mode */
     mov sp, #0x3000     /* Small IRQ stack of 4KiB since we switch to supervisor mode after an IRQ anyways... */
     cps #0x17           /* Enter Abort mode */
-    mov sp, #0x2000     /* Small IRQ stack of 4KiB */
+    mov sp, #0x2000     /* Small Abort mode stack of 4KiB */
     cps #0x1b           /* Enter Undefined instruction mode */
-    mov sp, #0x1000     /* Small IRQ stack of ~4KiB (minus vector table size) */
+    mov sp, #0x1000     /* Small Undefined mode stack of ~4KiB (minus vector table size) */
     cps #0x13           /* Go back to supervisor mode */
     bx lr
 
