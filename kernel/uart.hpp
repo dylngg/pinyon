@@ -72,10 +72,10 @@ private:
     Options m_options;
 };
 
-class UARTManager;
-UARTManager& uart_manager();
+class UARTRegisters;
+UARTRegisters& uart_registers();
 
-class UARTManager {
+class UARTRegisters {
 public:
     void reset();
 
@@ -94,9 +94,9 @@ public:
     size_t try_write(const char*, size_t bufsize);
 
 private:
-    // Only uart_manager can construct
-    UARTManager() = default;
-    friend UARTManager& uart_manager();
+    // Only uart_registers can construct
+    UARTRegisters() = default;
+    friend UARTRegisters& uart_registers();
 
     // These requires special care to disable/enable interrupts, so we make them
     // private and let friends who we trust use these
@@ -120,32 +120,32 @@ private:
         {
             return (1 << offset1) | (1 << offset2);
         }
-        static void enable(UARTManager& uart)
+        static void enable(UARTRegisters& uart)
         {
             uart.imsc &= ~mask();
         };
-        static void disable(UARTManager& uart)
+        static void disable(UARTRegisters& uart)
         {
             uart.imsc |= mask();
         };
 
-        InterruptMask(UARTManager& uart) __attribute__((always_inline))
+        InterruptMask(UARTRegisters& uart) __attribute__((always_inline))
         // Store prev so when the mask is already set (perhaps by a ancestor
         // InterruptMask class in the call stack), we can put it in the
         // previous state we found it in.
-        : m_uart_manager(uart)
-        , m_prev(m_uart_manager.imsc)
+        : m_uart_registers(uart)
+        , m_prev(m_uart_registers.imsc)
         {
-            m_uart_manager.imsc = m_prev & ~mask();
+            m_uart_registers.imsc = m_prev & ~mask();
         }
 
         ~InterruptMask() __attribute__((always_inline))
         {
-            m_uart_manager.imsc = m_prev;
+            m_uart_registers.imsc = m_prev;
         }
 
     private:
-        UARTManager& m_uart_manager;
+        UARTRegisters& m_uart_registers;
         const u32 m_prev;
     };
 

@@ -9,13 +9,13 @@
 
 #include <new>
 
-void UARTManager::poll_write(const char* message)
+void UARTRegisters::poll_write(const char* message)
 {
     for (size_t i = 0; message[i] != '\0'; i++)
         poll_put(message[i]);
 }
 
-void UARTManager::poll_write(const char* message, size_t bytes)
+void UARTRegisters::poll_write(const char* message, size_t bytes)
 {
     for (size_t i = 0; i < bytes; i++)
         poll_put(message[i]);
@@ -29,7 +29,7 @@ static inline void spin(u32 count)
                  : "cc");
 }
 
-void UARTManager::reset()
+void UARTRegisters::reset()
 {
     MemoryBarrier barrier;
 
@@ -87,7 +87,7 @@ void UARTManager::reset()
     cr = (1 << UART_CR_EN) | (1 << UART_CR_TXE) | (1 << UART_CR_RXE);
 }
 
-void UARTManager::poll_put(char ch)
+void UARTRegisters::poll_put(char ch)
 {
     // 5: TXFF bit; set when transmit FIFO is full
     while (fr & (1 << UART_FR_TXFF)) {
@@ -95,7 +95,7 @@ void UARTManager::poll_put(char ch)
     dr = ch;
 }
 
-char UARTManager::poll_get()
+char UARTRegisters::poll_get()
 {
     // 4: RXFE bit; set when recieve FIFO is empty
     while (fr & (1 << UART_FR_RXFE)) {
@@ -103,37 +103,37 @@ char UARTManager::poll_get()
     return static_cast<char>(dr);
 }
 
-void UARTManager::clear_read_irq()
+void UARTRegisters::clear_read_irq()
 {
     icr &= ~(1 << UART_ICR_RXIC);
 }
 
-void UARTManager::clear_write_irq()
+void UARTRegisters::clear_write_irq()
 {
     icr &= ~(1 << UART_ICR_TXIC);
 }
 
-void UARTManager::enable_read_irq()
+void UARTRegisters::enable_read_irq()
 {
-    UARTManager::ReadInterruptMask::disable(*this);
+    ReadInterruptMask::disable(*this);
 }
 
-void UARTManager::enable_write_irq()
+void UARTRegisters::enable_write_irq()
 {
-    UARTManager::WriteInterruptMask::disable(*this);
+    WriteInterruptMask::disable(*this);
 }
 
-void UARTManager::disable_read_irq()
+void UARTRegisters::disable_read_irq()
 {
-    UARTManager::ReadInterruptMask::enable(*this);
+    ReadInterruptMask::enable(*this);
 }
 
-void UARTManager::disable_write_irq()
+void UARTRegisters::disable_write_irq()
 {
-    UARTManager::WriteInterruptMask::enable(*this);
+    WriteInterruptMask::enable(*this);
 }
 
-void UARTManager::set_read_irq(size_t read_size)
+void UARTRegisters::set_read_irq(size_t read_size)
 {
     // See Section 13.4 IFLS for details; essentially we can select a trigger
     // at 1/8, 1/4, 1/2, and 7/8 full levels mapped to binary
@@ -141,7 +141,7 @@ void UARTManager::set_read_irq(size_t read_size)
     overwrite_bit_range(ifls, fifo_select_bits, 3, 5);
 }
 
-void UARTManager::set_write_irq(size_t write_size)
+void UARTRegisters::set_write_irq(size_t write_size)
 {
     // See Section 13.4 IFLS for details; essentially we can select a trigger
     // at 1/8, 1/4, 1/2, and 7/8 full levels mapped to binary
@@ -149,7 +149,7 @@ void UARTManager::set_write_irq(size_t write_size)
     overwrite_bit_range(ifls, fifo_select_bits, 0, 2);
 }
 
-Pair<size_t, bool> UARTManager::try_read(char* buf, size_t bufsize)
+Pair<size_t, bool> UARTRegisters::try_read(char* buf, size_t bufsize)
 {
     MemoryBarrier barrier;
 
@@ -171,7 +171,7 @@ Pair<size_t, bool> UARTManager::try_read(char* buf, size_t bufsize)
     return { offset, stopped_on_break };
 }
 
-size_t UARTManager::try_write(const char* buf, size_t bufsize)
+size_t UARTRegisters::try_write(const char* buf, size_t bufsize)
 {
     MemoryBarrier barrier;
 
@@ -185,16 +185,16 @@ size_t UARTManager::try_write(const char* buf, size_t bufsize)
     return offset;
 }
 
-UARTManager& uart_manager()
+UARTRegisters& uart_registers()
 {
-    static auto* g_uart_manager = reinterpret_cast<UARTManager*>(UART_BASE);
-    return *g_uart_manager;
+    static auto* g_uart_registers = reinterpret_cast<UARTRegisters*>(UART_BASE);
+    return *g_uart_registers;
 }
 
 void uart_init()
 {
-    uart_manager().reset();
-    irq_manager().enable_uart();
+    uart_registers().reset();
+    interrupt_registers().enable_uart();
 }
 
 static UARTResource* g_uart_resource = nullptr;
@@ -205,7 +205,7 @@ UARTResource::UARTResource(char* buf, size_t size, Options options)
     , m_capacity(size)
     , m_options(options)
 {
-    auto& uart = uart_manager();
+    auto& uart = uart_registers();
     if (is_write_request())
         uart.set_write_irq(amount_left());
     else
@@ -220,7 +220,7 @@ UARTResource::~UARTResource()
 
 void UARTResource::enable_irq() const
 {
-    auto& uart = uart_manager();
+    auto& uart = uart_registers();
     // It is possible at this point for data to be ready; by setting the IRQ,
     // we may end up handling that in an IRQ before this call ends
     if (is_write_request())
@@ -231,7 +231,7 @@ void UARTResource::enable_irq() const
 
 void UARTResource::fill_from_uart()
 {
-    auto& uart = uart_manager();
+    auto& uart = uart_registers();
     size_t amount_originally_left = m_capacity - m_size;
 
     if (is_write_request()) {
@@ -252,7 +252,7 @@ void UARTResource::handle_irq(InterruptsDisabledTag)
     PANIC_IF(!g_uart_resource, "Tried to handle IRQ for UART when there is no current request!");
     PANIC_IF(g_uart_resource->is_finished(), "Tried to handle IRQ after UART resource finished!");
 
-    auto& uart = uart_manager();
+    auto& uart = uart_registers();
     if (g_uart_resource->is_write_request())
         uart.clear_write_irq();
     else

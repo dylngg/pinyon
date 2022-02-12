@@ -83,7 +83,7 @@ void irq_handler(void)
 {
     // Interrupts are disabled in the IRQ handler, and enabled on exit; see vector.S
     auto disabled_tag = InterruptsDisabledTag::promise();
-    auto& irq = irq_manager();
+    auto& irq = interrupt_registers();
 
     // FIXME: Read pending_basic_irq1 once, then make decision based on that,
     //        rather than reading a bunch of registers here! IRQ handlers
@@ -98,32 +98,32 @@ void irq_handler(void)
 }
 }
 
-void IRQManager::enable_timer() volatile
+void InterruptRegisters::enable_timer() volatile
 {
     MemoryBarrier barrier {};
     enable_irq1 = (1 << 1);
 }
 
-void IRQManager::enable_uart() volatile
+void InterruptRegisters::enable_uart() volatile
 {
     MemoryBarrier barrier {};
     enable_irq2 = (1 << 25);
 }
 
-bool IRQManager::timer_pending() const
+bool InterruptRegisters::timer_pending() const
 {
     return pending_irq1 & (1 << 1);
 }
 
-bool IRQManager::uart_pending() const
+bool InterruptRegisters::uart_pending() const
 {
     return pending_basic_irq & (1 << 19);
 }
 
-IRQManager& irq_manager()
+InterruptRegisters& interrupt_registers()
 {
-    static auto* g_irq_manager = reinterpret_cast<IRQManager*>(IRQ_BASE);
-    return *g_irq_manager;
+    static auto* g_interrupt_registers = reinterpret_cast<InterruptRegisters*>(IRQ_BASE);
+    return *g_interrupt_registers;
 }
 
 void interrupts_init()

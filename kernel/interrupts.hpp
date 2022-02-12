@@ -8,7 +8,7 @@
  */
 #define IRQ_BASE 0x3F00B200
 
-struct IRQManager {
+struct InterruptRegisters {
     void enable_timer() volatile;
     void enable_uart() volatile;
     bool timer_pending() const;
@@ -62,7 +62,7 @@ enum class Syscall : u32 {
     CPUTime,
 };
 
-IRQManager& irq_manager();
+InterruptRegisters& interrupt_registers();
 
 void interrupts_init();
 
