@@ -109,7 +109,7 @@ irq_b_wrap:
     srsdb #0x13!            /* Save SPRS and LR on the supervisor stack */
     cps #0x13               /* Switch to supervisor mode */
     push {r0-r4, r12, lr}   /* Save caller registers for irq_handler call */
-    and r4, sp, #4          /* Align the stack */
+    and r4, sp, #4          /* Align the stack to 8 bytes; this works because the SP is _always_ aligned to 4 bytes */
     sub sp, sp, r4
     bl irq_handler
     add sp, sp, r4          /* Undo stack alignment */
@@ -142,7 +142,7 @@ swi_b_wrap:
     // FIXME: Switch back to old CPSR; we can get away with it right now because we never drop privs
     push {r4, r12, lr}      /* Save callee registers we are using; r0-r3 are syscall args */
     cpsie i                 /* Re-enable interrupts; allow for interrupt nesting to occur */
-    and r4, sp, #4          /* Align the stack */
+    and r4, sp, #4          /* Align the stack to 8 bytes; this works because the SP is _always_ aligned to 4 bytes */
     sub sp, sp, r4
     mov r2, r1              /* Copy first and second args into second and third swi_handler args */
     mov r1, r0
