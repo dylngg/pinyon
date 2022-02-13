@@ -8,6 +8,8 @@ HOST_CC=c++
 #            compile_commands.json file from our Makefile, which IDEs such as
 #            VS Code use. Not required for building.
 COMPILEDB=python3 -m compiledb
+QEMU=qemu-system-arm
+QEMU_FLAGS=-m 1G -M raspi2
 OBJDIR=obj
 # -fno-threadsafe-statics: for static initialization (T& getT() { static Type t {}; return t; })
 #                          don't produce thread-safe initialization of statics (normally required);
@@ -49,13 +51,19 @@ fmt:
 
 .PHONY: run
 run: pinyon.elf
-	# FIXME: Get a newer QEMU that supports raspi3
-	qemu-system-arm -m 1024 -M raspi2 -serial stdio -kernel $<
+	qemu-system-arm $(QEMU_FLAGS) -serial stdio -kernel $<
 
 .PHONY: debug
 debug: pinyon.elf
+	sh feed.sh | qemu-system-arm -s -S -nographic $(QEMU_FLAGS) -kernel $< 1>pinyon.out 2>&1 &
+	sleep 1  # hack
+	arm-none-eabi-gdb $<
+	killall qemu-system-arm
+
+.PHONY: trace
+trace: pinyon.elf
 	# FIXME: Get a newer QEMU that supports raspi3
-	sh feed.sh | qemu-system-arm -s -S -nographic -m 1G -M raspi2 -kernel $< 1>pinyon.out &
+	sh feed.sh | qemu-system-arm -s -S -nographic $(QEMU_FLAGS) -d mmu,exec,guest_errors,cpu,in_asm,plugin,page -kernel $< 1>pinyon.out 2>&1 &
 	sleep 1  # hack
 	arm-none-eabi-gdb $<
 	killall qemu-system-arm
