@@ -57,25 +57,24 @@ enable_irq:
      * table.
      */
 vtable:
-    ldr pc, reset_b
-    ldr pc, undef_instr_b
-    ldr pc, swi_b
-    ldr pc, prefch_abrt_b
-    ldr pc, data_abrt_b
+    ldr pc, reset_offset
+    ldr pc, undefined_instruction_offset
+    ldr pc, swi_offset
+    ldr pc, prefetch_abort_offset
+    ldr pc, data_abort_offset
     nop                     /* hypervisor trap; not used */
-    ldr pc, irq_b
-    ldr pc, fiq_b
+    ldr pc, irq_offset
+    ldr pc, fiq_offset
 
-    /* Branch-to-another-abs-branch part */
-reset_b:        .word halt
-undef_instr_b:  .word undef_instr_wrap
-swi_b:          .word swi_b_wrap
-prefch_abrt_b:  .word prefetch_abort_handler
-data_abrt_b:    .word data_abort_handler
-irq_b:          .word irq_b_wrap
-fiq_b:          .word fast_irq_handler
+reset_offset:                   .word halt
+undefined_instruction_offset:   .word undefined_instruction_wrap
+swi_offset:                     .word swi_wrap
+prefetch_abort_offset:          .word prefetch_abort_handler
+data_abort_offset:              .word data_abort_handler
+irq_offset:                     .word irq_wrap
+fiq_offset:                     .word fast_irq_handler
 
-undef_instr_wrap:
+undefined_instruction_wrap:
     /*
      * We hit an undefined instruction and are switched to undefined mode. The
      * processor has saved the old PC into LR, and the old LR is saved into the
@@ -90,7 +89,7 @@ undef_instr_wrap:
     bl undefined_instruction_handler
     b halt
 
-irq_b_wrap:
+irq_wrap:
     /*
      * We are interrupting a task in IRQ mode. The processor has saved the old
      * PC into LR, and the old LR is saved in the old mode's LR. The old CPSR
@@ -117,7 +116,7 @@ irq_b_wrap:
     cpsie i                 /* Reenable interrupts so we don't get stuck in that task */
     rfeia sp!               /* Return to LR, restore SPRS into CPRS (e.g. returns back to old mode) */
 
-swi_b_wrap:
+swi_wrap:
     /*
      * At this point we are in supervisor mode, so SP is our supervisor stack
      * and LR is our supervisor link register*, which points to after the SWI

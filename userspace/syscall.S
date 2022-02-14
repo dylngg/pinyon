@@ -10,7 +10,7 @@
 
 /*
  * Note: We must save the LRs here as a side-effect of tasks always living in
- *       supervisor mode. See swi_b_wrap in vector.S for details.
+ *       supervisor mode. See swi_wrap in vector.S for details.
  */
 
 syscall_yield:
