@@ -18,17 +18,18 @@ void task_resume(u32* old_sp_ptr, u32 new_sp);
 void task_start(u32* old_sp_ptr, u32 new_pc, u32 new_sp);
 }
 
-enum class TaskState : int {
-    New = 0,
-    Runnable,
-    Sleeping,
-    Waiting,
-};
 
 class TaskManager;
 
 class Task {
 public:
+    enum class State : int {
+        New = 0,
+        Runnable,
+        Sleeping,
+        Waiting,
+    };
+
     Task(const char* name, u32 stack_pointer, u32 pc);
     ~Task();
     Task(const Task& other) = delete;
@@ -50,9 +51,9 @@ private:
     void start(u32*, InterruptsDisabledTag);
     void resume(u32*, InterruptsDisabledTag);
     void switch_to(Task& task, InterruptsDisabledTag);
-    bool has_not_started() const { return m_state == TaskState::New; }
-    bool is_waiting() const { return m_state == TaskState::Waiting; };
-    bool can_run() const { return m_state == TaskState::New || m_state == TaskState::Runnable; };
+    bool has_not_started() const { return m_state == State::New; }
+    bool is_waiting() const { return m_state == State::Waiting; };
+    bool can_run() const { return m_state == State::New || m_state == State::Runnable; };
 
     size_t make_uart_request(char* buf, size_t bytes, UARTResource::Options);
 
@@ -66,7 +67,7 @@ private:
     u32 m_pc;
     u32 m_sleep_end_time;
     char* m_name;
-    TaskState m_state;
+    State m_state;
     size_t m_heap_start;
     size_t m_heap_size;
     size_t m_heap_reserved;
