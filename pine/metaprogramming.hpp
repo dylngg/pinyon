@@ -93,6 +93,62 @@ using remove_volatile = typename remove_volatile_func<Value>::type;
 template <class Value>
 using remove_cv = remove_const<remove_volatile<Value>>;
 
+template <class Value>  // e.g. floating point types
+struct make_unsigned_func {
+    using type = void;
+};
+template <>
+struct make_unsigned_func<char> {
+    using type = unsigned char;
+};
+template <>
+struct make_unsigned_func<unsigned char> {
+    using type = unsigned char;
+};
+template <>
+struct make_unsigned_func<signed char> {
+    using type = unsigned char;
+};
+template <>
+struct make_unsigned_func<short> {
+    using type = unsigned short;
+};
+template <>
+struct make_unsigned_func<unsigned short> {
+    using type = unsigned short;
+};
+template <>
+struct make_unsigned_func<int> {
+    using type = unsigned int;
+};
+template <>
+struct make_unsigned_func<unsigned int> {
+    using type = unsigned int;
+};
+template <>
+struct make_unsigned_func<long> {
+    using type = unsigned long;
+};
+template <>
+struct make_unsigned_func<unsigned long> {
+    using type = unsigned long;
+};
+template <>
+struct make_unsigned_func<long long> {
+    using type = unsigned long long;
+};
+template <>
+struct make_unsigned_func<unsigned long long> {
+    using type = unsigned long long;
+};
+template <>
+struct make_unsigned_func<bool> {
+    using type = bool;
+};
+
+template <class Value>
+using make_unsigned = typename make_unsigned_func<Value>::type;
+
 template <bool cond, class Value = void>
 struct enable_if_func {
 };
@@ -159,6 +215,11 @@ constexpr bool is_rvalue = is_same<Value, Value&&>;
 // and cleaner way to implement is_function than some (boost) implementations:
 template <class Value>
 constexpr bool is_function = !is_const<const Value> && !is_reference<Value>;
+
+// FIXME? https://en.cppreference.com/w/cpp/types/is_unsigned checks for
+//        T(0) < T(-1) instead of unsigned integer...
+template <class Value>
+constexpr bool is_unsigned = is_same<Value, make_unsigned<Value>>;
 
 // Here, we use the void_t trick but since Args... prevents a default template,
 // parameter we'll kick that responsibility our constexpr bool alias
