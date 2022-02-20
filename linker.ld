@@ -14,9 +14,12 @@ SECTIONS {
     .data : {
         *(.data)
     }
+    /* 16 byte alignment needed for efficient bss zeroing */
+    . = ALIGN(16);
     __bss_start = .;
     .bss : {
         *(.bss COMMON)
     }
+    . = ALIGN(16);
     __bss_end = .;
 }
