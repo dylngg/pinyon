@@ -56,6 +56,12 @@ private:
 
     size_t make_uart_request(char* buf, size_t bytes, UARTResource::Options);
 
+    // When tasks ask to schedule themselves, it means that they have received
+    // an async request from a SWI handler, which does not disable interrupts.
+    // So create a nice wrapper around schedule() for Task so we don't have to
+    // enable interrupts in every syscall.
+    static void reschedule();
+
     u32 m_sp;
     u32 m_pc;
     u32 m_sleep_end_time;
@@ -82,17 +88,6 @@ public:
 
 private:
     Task& pick_next_task();
-
-    // When tasks ask to schedule themselves, it means that they have received
-    // an async request from a SWI handler, which does not disable interrupts.
-    // So create a nice wrapper around schedule() for Task so we don't have to
-    // type this out for every syscall Task method we implement
-    void schedule()
-    {
-        InterruptDisabler disabler;
-        schedule(disabler);
-    };
-    friend class Task;
 
     Task* m_tasks;
     int m_num_tasks;

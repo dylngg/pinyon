@@ -55,7 +55,7 @@ void Task::sleep(u32 secs)
     m_state = TaskState::Sleeping;
     m_sleep_end_time = jiffies() + secs * SYS_HZ;
 
-    task_manager().schedule();
+    reschedule();
 
     m_sleep_end_time = 0;
 }
@@ -73,7 +73,7 @@ size_t Task::make_uart_request(char* buf, size_t bytes, UARTResource::Options op
     m_maybe_uart_resource = move(maybe_resource);
 
     m_state = TaskState::Waiting;
-    task_manager().schedule();
+    reschedule();
 
     PANIC_IF(!m_maybe_uart_resource->is_finished());
     maybe_resource = move(m_maybe_uart_resource);
@@ -136,6 +136,12 @@ u32 Task::cputime()
         return m_cpu_jiffies + jiffies() - m_jiffies_when_scheduled;
 
     return m_cpu_jiffies;
+}
+
+void Task::reschedule()
+{
+    InterruptDisabler disabler {};
+    task_manager().schedule(disabler);
 }
 
 Task& TaskManager::pick_next_task()
