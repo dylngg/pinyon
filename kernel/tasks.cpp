@@ -12,18 +12,33 @@ Task::Task(const char* name, Heap heap, u32 stack_pointer, u32 pc)
     : m_sp(stack_pointer)
     , m_pc(pc)
     , m_sleep_end_time(0)
+    , m_name(name)
     , m_state(State::New)
     , m_heap(heap)
     , m_jiffies_when_scheduled(0)
     , m_cpu_jiffies(0)
+    , m_maybe_uart_resource()
 {
-    m_name = (char*)kmalloc(sizeof *name * (strlen(name) + 1));
-    strcopy(m_name, name);
 }
 
-Task::~Task()
+Maybe<Task> Task::try_construct(const char* name, u32 pc)
 {
-    kfree(m_name);
+    size_t stack_size = 4 * MiB;
+    auto* stack_ptr = kmalloc(stack_size);
+    if (!stack_ptr)
+        return {};
+
+    auto sp = reinterpret_cast<u32>(stack_ptr) + stack_size;
+
+    size_t heap_size = 4 * MiB;
+    auto* heap_ptr = kmalloc(heap_size);
+    if (!heap_ptr)
+        return {};
+
+    auto heap_ptr_data = reinterpret_cast<PtrData>(heap_ptr);
+    HighWatermarkAllocator heap { heap_ptr_data, heap_ptr_data + heap_size };
+
+    return Task { name, heap, sp, pc };
 }
 
 void Task::switch_to(Task& to_run_task, InterruptsDisabledTag tag)
@@ -184,26 +199,16 @@ TaskManager::TaskManager()
     asm volatile("ldr %0, =shell"
                  : "=r"(shell_task_addr));
 
-    size_t heap_size = 2 * MiB;
-
-    auto shell_stack_start = kmalloc(1 * MiB);
-    PANIC_MESSAGE_IF(!shell_stack_start, "Cannot allocate memory for shell stack!");
-
-    auto shell_heap_start = kmalloc(heap_size);
-    PANIC_MESSAGE_IF(!shell_heap_start, "Cannot allocate memory for shell heap!");
-    auto shell_heap_start_data = reinterpret_cast<PtrData>(shell_heap_start);
-
-    auto shell_heap = Task::Heap { shell_heap_start_data, shell_heap_start_data + heap_size };
-    new (&m_tasks[0]) Task("shell", shell_heap, reinterpret_cast<u32>(shell_stack_start), shell_task_addr);
+    auto maybe_task = Task::try_construct("shell", shell_task_addr);
+    PANIC_MESSAGE_IF(!maybe_task, "Could not construct shell task! Out of memory?!");
+    new (&m_tasks[0]) Task(move(*maybe_task));
 
     // The idea behind this task is that it will always be runnable so we
     // never have to deal with no runnable tasks. It will spin of course,
     // which is not ideal :P
-    auto spin_stack_start = kmalloc(Page);
-    PANIC_MESSAGE_IF(!shell_stack_start, "Cannot allocate memory for spin stack!");
-
-    auto spin_heap = Task::Heap { 0, 0 };
-    new (&m_tasks[1]) Task("spin", spin_heap, reinterpret_cast<u32>(spin_stack_start), spin_task_addr);
+    maybe_task = Task::try_construct("spin", spin_task_addr);
+    PANIC_MESSAGE_IF(!maybe_task, "Could not construct spin task! Out of memory?!");
+    new (&m_tasks[1]) Task(move(*maybe_task));
 
     m_num_tasks = 2;
     m_running_task_index = 0;

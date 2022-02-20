@@ -18,9 +18,6 @@ void task_resume(u32* old_sp_ptr, u32 new_sp);
 void task_start(u32* old_sp_ptr, u32 new_pc, u32 new_sp);
 }
 
-
-class TaskManager;
-
 class Task {
     using Heap = HighWatermarkAllocator;
 
@@ -32,12 +29,10 @@ public:
         Waiting,
     };
 
-    Task(const char* name, Heap heap, u32 stack_pointer, u32 pc);
-    ~Task();
+    static Maybe<Task> try_construct(const char* name, u32 pc);
     Task(const Task& other) = delete;
-    Task(Task&& other) = delete;
-    Task& operator=(const Task& other) = delete;
     Task& operator=(Task&& other) = delete;
+    Task(Task&& other) = default;
 
     void sleep(u32 secs);
     size_t read(char* buf, size_t at_most_bytes);
@@ -45,13 +40,14 @@ public:
     u32 cputime();
     void* heap_increase(size_t bytes);
 
-    friend TaskManager;
-
 private:
+    Task(const char* name, Heap heap, u32 stack_pointer, u32 pc);
     void update_state();
     void start(u32*, InterruptsDisabledTag);
     void resume(u32*, InterruptsDisabledTag);
     void switch_to(Task& task, InterruptsDisabledTag);
+    friend class TaskManager;
+
     bool has_not_started() const { return m_state == State::New; }
     bool is_waiting() const { return m_state == State::Waiting; };
     bool can_run() const { return m_state == State::New || m_state == State::Runnable; };
@@ -67,7 +63,7 @@ private:
     u32 m_sp;
     u32 m_pc;
     u32 m_sleep_end_time;
-    char* m_name;
+    const char* m_name; // must be static pointer!
     State m_state;
     Heap m_heap;
     u32 m_jiffies_when_scheduled;
@@ -87,6 +83,8 @@ public:
     Task& running_task() { return m_tasks[m_running_task_index]; }
 
 private:
+    TaskManager(TaskManager&) = delete;
+    TaskManager(TaskManager&&) = delete;
     Task& pick_next_task();
 
     Task* m_tasks;
