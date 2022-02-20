@@ -47,6 +47,10 @@ pinyon.elf: $(OBJDIR) pine userspace kernel
 
 .PHONY: fmt
 fmt:
+	git diff --name-only | grep '\.\(cpp\|hpp\)$$' | xargs clang-format -i -style=WebKit
+
+.PHONY: fullfmt
+fullfmt:
 	clang-format -i -style=WebKit kernel/*.cpp kernel/*.hpp pine/*.hpp pine/*.cpp userspace/*.hpp userspace/*.cpp
 
 .PHONY: run
