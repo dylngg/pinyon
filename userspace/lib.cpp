@@ -120,7 +120,7 @@ void* malloc(size_t requested_size)
 {
     void* ptr = mem_allocator().allocate(requested_size);
     if (!ptr)
-        printf("kmalloc:\tNo free space available?!\n");
+        printf("malloc:\tNo free space available?!\n");
 
     return ptr;
 }
