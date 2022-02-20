@@ -50,11 +50,7 @@ Maybe<PtrData> KernelMemoryBounds::try_reserve_topdown_space(size_t stack_size)
 
 void* kmalloc(size_t requested_size)
 {
-    void* ptr = KernelMemoryAllocator::allocator().allocate(requested_size);
-    if (!ptr)
-        panic("kmalloc:\tNo free memory space available?!\n");
-
-    return ptr;
+    return KernelMemoryAllocator::allocator().allocate(requested_size);
 }
 
 void kfree(void* ptr)
