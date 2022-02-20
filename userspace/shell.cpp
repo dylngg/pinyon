@@ -33,6 +33,10 @@ extern "C" {
 void shell()
 {
     char* buf = (char*)malloc(1024);
+    if (!buf) {
+        printf("Could not allocate memory for buf!!\n");
+        asm volatile("b halt");
+    }
 
     for (;;) {
         printf("# ");

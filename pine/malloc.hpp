@@ -113,6 +113,7 @@ public:
                 return { nullptr, 0 };
 
             m_manager.add(allocated_ptr, allocated_size);
+            m_stats.heap_size += allocated_size;
 
             auto ptr_and_alloc_stats = m_manager.try_reserve(requested_size);
             ptr = ptr_and_alloc_stats.first;

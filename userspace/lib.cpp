@@ -35,6 +35,9 @@ void printf(const char* fmt, ...)
     va_start(args, fmt);
     size_t bufsize = strlen(fmt) * 2;
     char* print_buf = (char*)malloc(bufsize);
+    if (!print_buf)
+        return;
+
     size_t print_buf_pos = 0;
 
     const auto& try_add_wrapper = [&](const char* message) -> bool {
@@ -57,11 +60,6 @@ void printf(const char* fmt, ...)
     free(print_buf);
 }
 
-void* heap_allocate()
-{
-    return syscall_heap_allocate();
-}
-
 size_t heap_incr(size_t by_bytes)
 {
     return syscall_heap_incr(by_bytes);
@@ -69,15 +67,12 @@ size_t heap_incr(size_t by_bytes)
 
 Maybe<TaskHeapAllocator> TaskHeapAllocator::try_construct()
 {
-    auto* heap_start_ptr = heap_allocate();
+    size_t heap_size = Page;
+    auto heap_start_ptr = heap_incr(heap_size);
     if (!heap_start_ptr)
         return {};
 
     auto heap_start = reinterpret_cast<PtrData>(heap_start_ptr);
-    auto heap_size = heap_incr(Page);
-    if (heap_size <= Page)
-        return {};
-
     return { TaskHeapAllocator { heap_start, heap_start + heap_size } };
 }
 

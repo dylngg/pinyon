@@ -22,6 +22,8 @@ void task_start(u32* old_sp_ptr, u32 new_pc, u32 new_sp);
 class TaskManager;
 
 class Task {
+    using Heap = HighWatermarkAllocator;
+
 public:
     enum class State : int {
         New = 0,
@@ -30,7 +32,7 @@ public:
         Waiting,
     };
 
-    Task(const char* name, u32 stack_pointer, u32 pc);
+    Task(const char* name, Heap heap, u32 stack_pointer, u32 pc);
     ~Task();
     Task(const Task& other) = delete;
     Task(Task&& other) = delete;
@@ -41,8 +43,7 @@ public:
     size_t read(char* buf, size_t at_most_bytes);
     void write(char* buf, size_t bytes);
     u32 cputime();
-    PtrData heap_allocate();
-    PtrData heap_increase(size_t bytes);
+    void* heap_increase(size_t bytes);
 
     friend TaskManager;
 
@@ -68,9 +69,7 @@ private:
     u32 m_sleep_end_time;
     char* m_name;
     State m_state;
-    size_t m_heap_start;
-    size_t m_heap_size;
-    size_t m_heap_reserved;
+    Heap m_heap;
     u32 m_jiffies_when_scheduled;
     u32 m_cpu_jiffies;
     Maybe<KOwner<UARTResource>> m_maybe_uart_resource;

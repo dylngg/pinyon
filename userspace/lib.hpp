@@ -11,7 +11,6 @@ void syscall_yield();
 void syscall_sleep(u32 secs);
 u32 syscall_read(char* buf, u32 bytes);
 void syscall_write(const char* buf, u32 bytes);
-void* syscall_heap_allocate();
 size_t syscall_heap_incr(size_t by_bytes);
 u32 syscall_uptime();
 u32 syscall_cputime();

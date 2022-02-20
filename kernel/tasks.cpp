@@ -8,14 +8,12 @@
 #include <pine/string.hpp>
 #include <pine/units.hpp>
 
-Task::Task(const char* name, u32 stack_pointer, u32 pc)
+Task::Task(const char* name, Heap heap, u32 stack_pointer, u32 pc)
     : m_sp(stack_pointer)
     , m_pc(pc)
     , m_sleep_end_time(0)
     , m_state(State::New)
-    , m_heap_start(0)
-    , m_heap_size(0)
-    , m_heap_reserved(0)
+    , m_heap(heap)
     , m_jiffies_when_scheduled(0)
     , m_cpu_jiffies(0)
 {
@@ -98,26 +96,10 @@ void Task::write(char* buf, size_t bytes)
     make_uart_request(buf, bytes, options);
 }
 
-PtrData Task::heap_allocate()
+void* Task::heap_increase(size_t bytes)
 {
-    m_heap_size = 4 * MiB; // Fixed; cannot change so be liberal
-    auto top_addr = kmalloc(m_heap_size);
-    PANIC_MESSAGE_IF(!top_addr, "Cannot reserve memory for task heap!");
-
-    m_heap_start = reinterpret_cast<PtrData>(top_addr) - m_heap_size;
-    m_heap_reserved = 0;
-    return m_heap_start;
-}
-
-PtrData Task::heap_increase(size_t bytes)
-{
-    size_t incr = bytes;
-    if (m_heap_reserved + incr > m_heap_size) {
-        incr = m_heap_size - m_heap_reserved;
-    }
-
-    m_heap_reserved += incr;
-    return incr;
+    auto [ptr, _] = m_heap.allocate(bytes);
+    return ptr;
 }
 
 void Task::update_state()
@@ -202,10 +184,17 @@ TaskManager::TaskManager()
     asm volatile("ldr %0, =shell"
                  : "=r"(shell_task_addr));
 
+    size_t heap_size = 2 * MiB;
+
     auto shell_stack_start = kmalloc(1 * MiB);
     PANIC_MESSAGE_IF(!shell_stack_start, "Cannot allocate memory for shell stack!");
 
-    new (&m_tasks[0]) Task("shell", reinterpret_cast<u32>(shell_stack_start), shell_task_addr);
+    auto shell_heap_start = kmalloc(heap_size);
+    PANIC_MESSAGE_IF(!shell_heap_start, "Cannot allocate memory for shell heap!");
+    auto shell_heap_start_data = reinterpret_cast<PtrData>(shell_heap_start);
+
+    auto shell_heap = Task::Heap { shell_heap_start_data, shell_heap_start_data + heap_size };
+    new (&m_tasks[0]) Task("shell", shell_heap, reinterpret_cast<u32>(shell_stack_start), shell_task_addr);
 
     // The idea behind this task is that it will always be runnable so we
     // never have to deal with no runnable tasks. It will spin of course,
@@ -213,7 +202,8 @@ TaskManager::TaskManager()
     auto spin_stack_start = kmalloc(Page);
     PANIC_MESSAGE_IF(!shell_stack_start, "Cannot allocate memory for spin stack!");
 
-    new (&m_tasks[1]) Task("spin", reinterpret_cast<u32>(spin_stack_start), spin_task_addr);
+    auto spin_heap = Task::Heap { 0, 0 };
+    new (&m_tasks[1]) Task("spin", spin_heap, reinterpret_cast<u32>(spin_stack_start), spin_task_addr);
 
     m_num_tasks = 2;
     m_running_task_index = 0;
