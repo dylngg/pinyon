@@ -39,7 +39,7 @@ public:
     template <class... Args>
     static Maybe<ValueOwner> try_create(Args&&... args)
     {
-        void* ptr = Allocator::allocator().allocate(sizeof(Value));
+        auto [ptr, _] = Allocator::allocator().allocate(sizeof(Value));
         if (!ptr)
             return {};
 

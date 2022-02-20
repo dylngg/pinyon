@@ -101,10 +101,10 @@ void Task::write(char* buf, size_t bytes)
 PtrData Task::heap_allocate()
 {
     m_heap_size = 4 * MiB; // Fixed; cannot change so be liberal
-    auto maybe_top_addr = kmem_bounds().try_reserve_topdown_space(m_heap_size);
-    PANIC_MESSAGE_IF(!maybe_top_addr, "Cannot reserve memory for task heap!");
+    auto top_addr = kmalloc(m_heap_size);
+    PANIC_MESSAGE_IF(!top_addr, "Cannot reserve memory for task heap!");
 
-    m_heap_start = maybe_top_addr.value() - m_heap_size;
+    m_heap_start = reinterpret_cast<PtrData>(top_addr) - m_heap_size;
     m_heap_reserved = 0;
     return m_heap_start;
 }
@@ -202,18 +202,18 @@ TaskManager::TaskManager()
     asm volatile("ldr %0, =shell"
                  : "=r"(shell_task_addr));
 
-    auto maybe_shell_stack_start = kmem_bounds().try_reserve_topdown_space(1 * MiB);
-    PANIC_MESSAGE_IF(!maybe_shell_stack_start, "Cannot allocate memory for shell stack!");
+    auto shell_stack_start = kmalloc(1 * MiB);
+    PANIC_MESSAGE_IF(!shell_stack_start, "Cannot allocate memory for shell stack!");
 
-    new (&m_tasks[0]) Task("shell", maybe_shell_stack_start.value(), shell_task_addr);
+    new (&m_tasks[0]) Task("shell", reinterpret_cast<u32>(shell_stack_start), shell_task_addr);
 
     // The idea behind this task is that it will always be runnable so we
     // never have to deal with no runnable tasks. It will spin of course,
     // which is not ideal :P
-    auto maybe_spin_stack_start = kmem_bounds().try_reserve_topdown_space(Page);
-    PANIC_MESSAGE_IF(!maybe_shell_stack_start, "Cannot allocate memory for spin stack!");
+    auto spin_stack_start = kmalloc(Page);
+    PANIC_MESSAGE_IF(!shell_stack_start, "Cannot allocate memory for spin stack!");
 
-    new (&m_tasks[1]) Task("spin", maybe_spin_stack_start.value(), spin_task_addr);
+    new (&m_tasks[1]) Task("spin", reinterpret_cast<u32>(spin_stack_start), spin_task_addr);
 
     m_num_tasks = 2;
     m_running_task_index = 0;

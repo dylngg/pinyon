@@ -67,58 +67,49 @@ size_t heap_incr(size_t by_bytes)
     return syscall_heap_incr(by_bytes);
 }
 
-TaskMemoryBounds::TaskMemoryBounds()
+Maybe<TaskHeapAllocator> TaskHeapAllocator::try_construct()
 {
-    m_heap_start = (PtrData)heap_allocate();
-    m_heap_size = heap_incr(Page);
-}
-
-PtrData TaskMemoryBounds::heap_start() const
-{
-    return m_heap_start;
-}
-
-PtrData TaskMemoryBounds::heap_end() const
-{
-    return m_heap_start + m_heap_size;
-}
-
-bool TaskMemoryBounds::in_bounds(void* ptr) const
-{
-    auto ptr_data = reinterpret_cast<PtrData>(ptr);
-    return ptr_data >= heap_start() && ptr_data < heap_end();
-}
-
-Maybe<size_t> TaskMemoryBounds::try_extend_heap(size_t by_size)
-{
-    if (heap_start() + by_size <= heap_end()) {
-        m_heap_size += by_size;
-        return { by_size };
-    }
-
-    size_t heap_incr_size = heap_incr(by_size);
-    m_heap_size += heap_incr_size;
-    if (heap_incr_size == 0)
+    auto* heap_start_ptr = heap_allocate();
+    if (!heap_start_ptr)
         return {};
 
-    return { heap_incr_size };
+    auto heap_start = reinterpret_cast<PtrData>(heap_start_ptr);
+    auto heap_size = heap_incr(Page);
+    if (heap_size <= Page)
+        return {};
+
+    return { TaskHeapAllocator { heap_start, heap_start + heap_size } };
 }
 
-TaskMemoryBounds& mem_bounds()
+Pair<void*, size_t> TaskHeapAllocator::allocate(size_t requested_size)
 {
-    static TaskMemoryBounds g_task_memory_bounds {};
-    return g_task_memory_bounds;
+    auto [ptr, size] = HighWatermarkAllocator::allocate(requested_size);
+    if (!ptr) {
+        size_t increase = heap_incr(align_up_two(requested_size, Page));
+        HighWatermarkAllocator::extend_by(increase);
+        if (increase < requested_size)
+            return { nullptr, 0 };
+    }
+
+    return { ptr, size };
+}
+
+TaskHeapAllocator& heap_allocator()
+{
+    static TaskHeapAllocator g_maybe_task_heap_allocator = *TaskHeapAllocator::try_construct();
+    return g_maybe_task_heap_allocator;
 }
 
 TaskMemoryAllocator& mem_allocator()
 {
-    static TaskMemoryAllocator g_task_allocator { mem_bounds() };
+    // FIXME: We should assert that the heap allocator could be created! UB if not!
+    static TaskMemoryAllocator g_task_allocator { &heap_allocator() };
     return g_task_allocator;
 }
 
 void* malloc(size_t requested_size)
 {
-    void* ptr = mem_allocator().allocate(requested_size);
+    auto [ptr, _] = mem_allocator().allocate(requested_size);
     if (!ptr)
         printf("malloc:\tNo free space available?!\n");
 

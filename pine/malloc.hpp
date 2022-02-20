@@ -8,14 +8,14 @@
 /*
  * Memory allocation here is done in a generic templated manner, allowing for
  * reuse between userspace and the kernel. Allocation is controlled with the
- * MemoryAllocator class, which takes in a MemoryBounds singleton that
- * controls the memory bounds of defined memory range, as well as a
- * MemoryManager template that defines the particular memory management system
- * to use (e.g. free list, buddy allocation, etc).
+ * MemoryAllocator class, which is another memory allocator that returns memory
+ * that this allocator can subdivide. The particular memory management system
+ * to use (e.g. free list, buddy allocation, etc) is controlled with the
+ * MemoryManager class.
  *
- * Right now a generic first fit free-list memory management scheme is used by
- * both userspace and the kernel. This is not the best, but it works well
- * enough to kick the can of replacing it down the road...
+ * This clever subdivision allocation scheme is based off of a talk by Andrei
+ * Alexandrescu at CppCon:
+ * https://www.youtube.com/watch?v=LIb3L4vKZ7U
  */
 
 struct MallocStats {
@@ -59,14 +59,14 @@ class FreeList {
 public:
     FreeList() = default;
 
-    static size_t heap_increase_size(size_t requested_size)
+    static size_t preferred_size(size_t requested_size)
     {
         return align_up_two(allocation_size(requested_size), Page);
     }
 
-    Pair<void*, AllocationStats> try_find_memory(size_t size);
-    void add_memory(void* new_location, size_t new_size);
-    AllocationStats free_memory(void* ptr);
+    Pair<void*, AllocationStats> try_reserve(size_t);
+    void add(void*, size_t);
+    AllocationStats release(void*);
 
 private:
     constexpr static size_t allocation_size(size_t requested_size)
@@ -92,64 +92,80 @@ private:
 };
 
 /*
- * Defines a wrapper class which simply acts as a middle man between the given
- * MemoryBounds singleton (which defines the bounds of a memory range) and the
- * particular MemoryManager defined (which allows for different allocation
- * schemes such as free lists, buddy system, etc...).
+ * Allocates memory from the SubMemoryAllocator and manages it with the
+ * MemoryManager.
  */
-template <class MemoryBounds, class MemoryManager>
+template <class SubMemoryAllocator, class MemoryManager>
 class MemoryAllocator {
 public:
-    MemoryAllocator(MemoryBounds& mem_bounds)
-        : m_mem_bounds(mem_bounds)
-        , m_memory_manager()
+    MemoryAllocator(SubMemoryAllocator* mem_allocator)
+        : m_allocator(mem_allocator)
+        , m_manager()
         , m_stats() {};
 
-    void* allocate(size_t requested_size)
+    Pair<void*, size_t> allocate(size_t requested_size)
     {
-        auto [free_block, alloc_stats] = m_memory_manager.try_find_memory(requested_size);
-        if (!free_block) {
-            auto requested_incr_size = MemoryManager::heap_increase_size(requested_size);
-            auto old_heap_end = reinterpret_cast<void*>(m_mem_bounds.heap_end());
-            auto maybe_heap_incr_size = m_mem_bounds.try_extend_heap(requested_incr_size);
-            if (!maybe_heap_incr_size) // could not even increase a bit
-                return nullptr;
+        auto [ptr, alloc_stats] = m_manager.try_reserve(requested_size);
+        if (!ptr) {
+            auto preferred_size = MemoryManager::preferred_size(requested_size);
+            auto [allocated_ptr, allocated_size] = m_allocator->allocate(preferred_size);
+            if (!allocated_ptr)
+                return { nullptr, 0 };
 
-            auto heap_incr_size = maybe_heap_incr_size.value();
-            m_stats.heap_size += heap_incr_size;
-            m_memory_manager.add_memory(old_heap_end, heap_incr_size);
+            m_manager.add(allocated_ptr, allocated_size);
 
-            // The actual heap increase may not exactly match the memory
-            // manager's requested heap increase, so it is possible that
-            // additional memory is allocated on the heap without fufilling the
-            // requested size
-            auto block_and_size = m_memory_manager.try_find_memory(requested_size);
-            free_block = block_and_size.first;
-            alloc_stats = block_and_size.second;
+            auto ptr_and_alloc_stats = m_manager.try_reserve(requested_size);
+            ptr = ptr_and_alloc_stats.first;
+            alloc_stats = ptr_and_alloc_stats.second;
         }
 
         m_stats.amount_requested += alloc_stats.requested_size;
         m_stats.amount_allocated += alloc_stats.allocated_size;
-        m_stats.num_mallocs += free_block ? 1 : 0;
+        m_stats.num_mallocs += ptr ? 1 : 0;
 
-        return free_block;
+        return { ptr, requested_size };
     }
 
     void free(void* ptr)
     {
-        if (!ptr || !m_mem_bounds.in_bounds(ptr))
+        if (!ptr || !m_allocator->in_bounds(ptr))
             return; // FIXME: assert?!
 
-        auto [requested_size, freed_size] = m_memory_manager.free_memory(ptr);
+        auto [requested_size, freed_size] = m_manager.release(ptr);
         m_stats.amount_requested -= requested_size;
         m_stats.amount_allocated -= freed_size;
         m_stats.num_frees++;
     }
 
+    bool in_bounds(void* ptr) const
+    {
+        return m_allocator->in_bounds(ptr);
+    }
+
     MallocStats stats() const { return m_stats; };
 
 private:
-    MemoryBounds& m_mem_bounds;
-    MemoryManager m_memory_manager;
+    SubMemoryAllocator* m_allocator;
+    MemoryManager m_manager;
     MallocStats m_stats;
+};
+
+class HighWatermarkAllocator {
+public:
+    HighWatermarkAllocator(PtrData start, PtrData end)
+        : m_start(start)
+        , m_watermark(start)
+        , m_end(end) {};
+
+    Pair<void*, size_t> allocate(size_t requested_size);
+    void free(void*) {};
+    bool in_bounds(void* ptr) const;
+
+protected:
+    void extend_by(size_t size);
+
+private:
+    PtrData m_start;
+    PtrData m_watermark;
+    PtrData m_end;
 };

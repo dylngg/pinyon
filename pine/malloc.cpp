@@ -14,7 +14,7 @@ FreeList::SizeNode* FreeList::construct_node(size_t region_size, void* node_loca
     return new (node_location) SizeNode(SizeData(region_size - sizeof(SizeNode)));
 }
 
-Pair<void*, AllocationStats> FreeList::try_find_memory(size_t requested_size)
+Pair<void*, AllocationStats> FreeList::try_reserve(size_t requested_size)
 {
     for (auto* node_ptr : m_free_list) {
         auto& free_size_data = node_ptr->contents();
@@ -48,7 +48,7 @@ Pair<void*, AllocationStats> FreeList::try_find_memory(size_t requested_size)
     return { nullptr, {} };
 }
 
-void FreeList::add_memory(void* new_location, size_t new_size)
+void FreeList::add(void* new_location, size_t new_size)
 {
     auto* new_node_ptr = construct_node(new_size, new_location);
     m_free_list.append(new_node_ptr);
@@ -90,7 +90,7 @@ void FreeList::adopt_right_node_size(SizeNode* left_node_ptr, SizeNode* right_no
     left_size_data.grow_by(left_size);
 }
 
-AllocationStats FreeList::free_memory(void* ptr)
+AllocationStats FreeList::release(void* ptr)
 {
     // FIXME: We should assert that the pointer belongs to us and is aligned:
     auto* node_ptr = node_ptr_from_user_addr(ptr);
@@ -120,4 +120,25 @@ AllocationStats FreeList::free_memory(void* ptr)
         m_free_list.append(node_ptr);
 
     return { requested_size, size_freed };
+}
+
+Pair<void*, size_t> HighWatermarkAllocator::allocate(size_t requested_size)
+{
+    if (m_watermark + requested_size > m_end)
+        return { nullptr, 0 };
+
+    auto* ptr = reinterpret_cast<void*>(m_watermark);
+    m_watermark += requested_size;
+    return { ptr, requested_size };
+}
+
+bool HighWatermarkAllocator::in_bounds(void* ptr) const
+{
+    auto ptr_data = reinterpret_cast<PtrData>(ptr);
+    return ptr_data >= m_start && ptr_data < m_end;
+}
+
+void HighWatermarkAllocator::extend_by(size_t size)
+{
+    m_end += size;
 }

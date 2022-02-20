@@ -29,22 +29,20 @@ u32 cputime();
 
 void printf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 
-class TaskMemoryBounds {
+class TaskHeapAllocator : public HighWatermarkAllocator {
 public:
-    TaskMemoryBounds();
+    static Maybe<TaskHeapAllocator> try_construct();
 
-    Maybe<size_t> try_extend_heap(size_t by_size);
-    PtrData heap_start() const;
-    PtrData heap_end() const;
-
-    bool in_bounds(void* ptr) const;
+    Pair<void*, size_t> allocate(size_t requested_size); // override
 
 private:
-    PtrData m_heap_start;
-    PtrData m_heap_size;
+    using HighWatermarkAllocator::HighWatermarkAllocator;
 };
 
-using TaskMemoryAllocator = MemoryAllocator<TaskMemoryBounds, FreeList>;
+using TaskMemoryAllocator = MemoryAllocator<TaskHeapAllocator, FreeList>;
+
+TaskHeapAllocator& heap_allocator();
+TaskMemoryAllocator& mem_allocator();
 
 void free(void*);
 

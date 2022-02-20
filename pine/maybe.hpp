@@ -122,5 +122,5 @@ private:
     }
 
     alignas(Value) u8 m_value_space[sizeof(Value)];
-    bool m_has_value;
+    bool m_has_value = false;
 };
