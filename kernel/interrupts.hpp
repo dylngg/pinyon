@@ -4,7 +4,7 @@
 /*
  * The Rasbperry Pi has 72 IRQs. It is particularly weird because the GPU
  * shares interrupts with the CPU. Also, documentation in the BCM2835 manual
- * is piss poor but see page 109 for [a lack of] details.
+ * is not the greatest but see page 109 for details.
  */
 #define IRQ_BASE 0x3F00B200
 
