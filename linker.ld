@@ -4,6 +4,7 @@ ENTRY(start)
 SECTIONS {
     /* After our kernel (non-task) stack; See bootup.S */
     . = 0xb000;
+    __code_start = .;
     .text : {
         *(.boot)
         *(.text)
@@ -22,4 +23,5 @@ SECTIONS {
     }
     . = ALIGN(16);
     __bss_end = .;
+    __code_end = .;
 }

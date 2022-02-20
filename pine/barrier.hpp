@@ -19,3 +19,23 @@ public:
         asm volatile("dmb");
     }
 };
+
+// Forces a data memory barrier on creation and destroy. This is only needed
+// when the underlying virtual memory map is not strongly ordered.
+class DataBarrier {
+public:
+    DataBarrier() __attribute__((always_inline))
+    {
+        asm volatile("dsb");
+    }
+
+    ~DataBarrier() __attribute__((always_inline))
+    {
+        asm volatile("dsb");
+    }
+
+    static void sync() __attribute__((always_inline))
+    {
+        asm volatile("dsb");
+    }
+};

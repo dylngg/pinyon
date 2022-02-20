@@ -42,6 +42,21 @@ preinit:
 
     mov sp, #0xb000     /* Set up stack (8KiB); after IRQ and abort stacks. See setup_vtable in vector.S. */
 
+setup_mmu:
+    ldr r0, =__code_end
+    ldr r1, =init_page_tables
+    blx r1
+
+    mcr p15, 0, r0, c8, c7, 0   /* See B3.18.7; Invalidate entire unified TLB; r0 is dummy */
+    dsb                         /* Data and instruction barrier */
+
+    mov r2, #3
+    mcr p15, 0, r2, c3, c0, 0   /* See B4.1.43; Set manager access (0b11) for domain 0 (we don't use domains currently) */
+
+    mrc p15, 0, r3, c1, c0, 0   /* See B4.1.130; Enable MMU (first bit) in SCTLR */
+    orr r3, #1
+    mcr p15, 0, r3, c1, c0, 0
+
     /* -- Load up init in kernel.cpp -- */
     ldr r1, =init
     blx r1

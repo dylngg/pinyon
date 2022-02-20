@@ -3,6 +3,7 @@
 
 #include <pine/barrier.hpp>
 
+#include "mmu.hpp"
 
 KernelMemoryAllocator& KernelMemoryAllocator::allocator()
 {
