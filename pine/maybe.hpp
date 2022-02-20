@@ -72,7 +72,7 @@ struct Maybe {
     constexpr Maybe& operator=(Maybe&& other_maybe)
     {
         if (this != &other_maybe) {
-            destroy_value_if_present();
+            destroy_value_if_present(); // rebind
             if ((m_has_value = other_maybe.has_value()))
                 new (&m_value_space) Value(other_maybe.release_value());
         }
@@ -87,7 +87,7 @@ struct Maybe {
     {
         m_has_value = false;
         auto& val = value();
-        Value moved_value = move(val);
+        Value moved_value { move(val) };
         val.~Value();
         return moved_value;
     }
@@ -95,14 +95,15 @@ struct Maybe {
     constexpr const Value& value() const& { return *value_ptr(); }
     constexpr Value value() && { return release_value(); }
 
-    constexpr Value& operator*() { return value(); }
-    constexpr const Value& operator*() const { return value(); }
+    constexpr Value& operator*() & { return value(); }
+    constexpr const Value& operator*() const& { return value(); }
+    constexpr Value operator*() && { return release_value(); }
 
     // Typically you return Value* for these instead of Value&; however we want
     // forwarding -> operators, such that if the Value we have also overloads
     // the -> operator, that operator will be applied.
-    constexpr Value& operator->() { return value(); }
-    constexpr const Value& operator->() const { return value(); }
+    constexpr Value& operator->() & { return value(); }
+    constexpr const Value& operator->() const& { return value(); }
 
 private:
     constexpr Value* value_ptr()
@@ -121,5 +122,5 @@ private:
     }
 
     alignas(Value) u8 m_value_space[sizeof(Value)];
-    bool m_has_value = false;
+    bool m_has_value;
 };
