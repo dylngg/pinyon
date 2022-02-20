@@ -63,7 +63,7 @@ void Task::sleep(u32 secs)
 size_t Task::make_uart_request(char* buf, size_t bytes, UARTResource::Options options)
 {
     auto maybe_resource = UARTResource::try_request(buf, bytes, options);
-    PANIC_IF(!maybe_resource, "UART request failed!");
+    PANIC_MESSAGE_IF(!maybe_resource, "UART request failed!");
 
     if (maybe_resource->is_finished()) // If could be fulfilled without an IRQ
         return maybe_resource->size();
@@ -75,7 +75,7 @@ size_t Task::make_uart_request(char* buf, size_t bytes, UARTResource::Options op
     m_state = TaskState::Waiting;
     task_manager().schedule();
 
-    PANIC_IF(!m_maybe_uart_resource->is_finished(), "Scheduled while UART resource is not finished!");
+    PANIC_IF(!m_maybe_uart_resource->is_finished());
     maybe_resource = move(m_maybe_uart_resource);
     return maybe_resource->size();
 }
@@ -102,7 +102,7 @@ PtrData Task::heap_allocate()
 {
     m_heap_size = 4 * MiB; // Fixed; cannot change so be liberal
     auto maybe_top_addr = kmem_bounds().try_reserve_topdown_space(m_heap_size);
-    PANIC_IF(!maybe_top_addr, "Cannot reserve memory for task heap!");
+    PANIC_MESSAGE_IF(!maybe_top_addr, "Cannot reserve memory for task heap!");
 
     m_heap_start = maybe_top_addr.value() - m_heap_size;
     m_heap_reserved = 0;
@@ -183,6 +183,7 @@ top:
 TaskManager::TaskManager()
 {
     m_tasks = (Task*)kmalloc(2 * sizeof *m_tasks);
+    PANIC_MESSAGE_IF(!m_tasks, "Could not find memory for initial tasks?!");
 
     // The compiler will literally give us null if we try and get the address
     // of a function via (void*) or (u32) casts... undefined behavior?
@@ -196,7 +197,7 @@ TaskManager::TaskManager()
                  : "=r"(shell_task_addr));
 
     auto maybe_shell_stack_start = kmem_bounds().try_reserve_topdown_space(1 * MiB);
-    PANIC_IF(!maybe_shell_stack_start, "Cannot allocate memory for shell stack!");
+    PANIC_MESSAGE_IF(!maybe_shell_stack_start, "Cannot allocate memory for shell stack!");
 
     new (&m_tasks[0]) Task("shell", maybe_shell_stack_start.value(), shell_task_addr);
 
@@ -204,7 +205,7 @@ TaskManager::TaskManager()
     // never have to deal with no runnable tasks. It will spin of course,
     // which is not ideal :P
     auto maybe_spin_stack_start = kmem_bounds().try_reserve_topdown_space(Page);
-    PANIC_IF(!maybe_shell_stack_start, "Cannot allocate memory for spin stack!");
+    PANIC_MESSAGE_IF(!maybe_shell_stack_start, "Cannot allocate memory for spin stack!");
 
     new (&m_tasks[1]) Task("spin", maybe_spin_stack_start.value(), spin_task_addr);
 

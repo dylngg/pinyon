@@ -214,7 +214,7 @@ UARTResource::UARTResource(char* buf, size_t size, Options options)
 
 UARTResource::~UARTResource()
 {
-    PANIC_IF(this != g_uart_resource, "UART Resource completed is not the same as given!")
+    PANIC_MESSAGE_IF(this != g_uart_resource, "UART Resource completed is not the same as given!")
     g_uart_resource = nullptr;
 }
 
@@ -249,8 +249,8 @@ void UARTResource::handle_irq(InterruptsDisabledTag)
     // We assume interrupts are disabled here, because we don't want nesting
     // of reads/writes to occur.
 
-    PANIC_IF(!g_uart_resource, "Tried to handle IRQ for UART when there is no current request!");
-    PANIC_IF(g_uart_resource->is_finished(), "Tried to handle IRQ after UART resource finished!");
+    PANIC_MESSAGE_IF(!g_uart_resource, "Tried to handle IRQ for UART when there is no current request!");
+    PANIC_MESSAGE_IF(g_uart_resource->is_finished(), "Tried to handle IRQ after UART resource finished!");
 
     auto& uart = uart_registers();
     if (g_uart_resource->is_write_request())

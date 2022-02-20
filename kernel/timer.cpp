@@ -31,7 +31,7 @@ void SystemTimer::init()
 
 void SystemTimer::handle_irq(InterruptsDisabledTag)
 {
-    PANIC_IF(!matched(), "IRQ handler for timer called, but not needed!");
+    PANIC_MESSAGE_IF(!matched(), "IRQ handler for timer called, but not needed!");
 
     u32 jif_diff = jiffies_since_last_match();
     reinit();
