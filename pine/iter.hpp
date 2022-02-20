@@ -32,8 +32,9 @@ public:
     }
     SeqIter operator++(int) // postfix increment
     {
+        auto prev = *this;
         m_pos++;
-        return *this;
+        return prev;
     }
     constexpr Value& operator*() { return m_wraps[m_pos]; };
     constexpr const Value& operator*() const { return m_wraps[m_pos]; };

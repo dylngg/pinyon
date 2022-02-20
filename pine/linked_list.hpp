@@ -30,7 +30,7 @@ public:
 
     struct NodeIter {
         // prefix increment
-        NodeIter operator++()
+        NodeIter& operator++()
         {
             m_node_ptr = m_node_ptr->next();
             return *this;
@@ -38,7 +38,9 @@ public:
         // postfix increment
         NodeIter operator++(int)
         {
-            return ++(*this);
+            auto iter = *this;
+            m_node_ptr = m_node_ptr->next();
+            return iter;
         }
 
         constexpr bool at_end() const { return m_node_ptr == nullptr; }
