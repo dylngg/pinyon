@@ -3,6 +3,7 @@
 #include "linked_list.hpp"
 #include "twomath.hpp"
 #include "types.hpp"
+#include "units.hpp"
 
 /*
  * Memory allocation here is done in a generic templated manner, allowing for
@@ -16,9 +17,6 @@
  * both userspace and the kernel. This is not the best, but it works well
  * enough to kick the can of replacing it down the road...
  */
-
-#define NEW_BLOCK_SIZE ((size_t)4096)
-#define ALIGNMENT_SIZE ((size_t)4)
 
 struct MallocStats {
     size_t heap_size = 0;
@@ -45,7 +43,6 @@ class FreeList {
             : m_requested_size(0)
             , m_reserved_size(reserved_size) {};
 
-        constexpr size_t static preferred_alignment() { return ALIGNMENT_SIZE; }
         void reserve(size_t requested_size) { m_requested_size = requested_size; }
         void shrink_by(size_t size) { m_reserved_size -= size; }
         void grow_by(size_t size) { m_reserved_size += size; }
@@ -64,7 +61,7 @@ public:
 
     static size_t heap_increase_size(size_t requested_size)
     {
-        return align_up_two(allocation_size(requested_size), NEW_BLOCK_SIZE);
+        return align_up_two(allocation_size(requested_size), Page);
     }
 
     Pair<void*, AllocationStats> try_find_memory(size_t size);
@@ -74,13 +71,13 @@ public:
 private:
     constexpr static size_t allocation_size(size_t requested_size)
     {
-        size_t alloc_size = align_up_two(requested_size, ALIGNMENT_SIZE) + sizeof(SizeNode);
-        static_assert(is_aligned_two(sizeof(SizeNode), ALIGNMENT_SIZE), "Free list header size is not aligned!");
+        size_t alloc_size = align_up_two(requested_size, Alignment) + sizeof(SizeNode);
+        static_assert(is_aligned_two(sizeof(SizeNode), Alignment), "Free list header size is not aligned!");
         return alloc_size;
     }
     constexpr static size_t min_allocation_size()
     {
-        return allocation_size(ALIGNMENT_SIZE);
+        return allocation_size(Alignment);
     }
 
     static void* user_addr_from_node_ptr(SizeNode* node_ptr, size_t offset = 0);

@@ -1,4 +1,6 @@
 #include "malloc.hpp"
+#include "twomath.hpp"
+#include "units.hpp"
 
 #include <new>
 
@@ -26,7 +28,7 @@ Pair<void*, AllocationStats> FreeList::try_find_memory(size_t requested_size)
         m_free_list.detach(node_ptr);
 
         free_size_data.reserve(requested_size);
-        size_t aligned_remaining_size = align_down_two(free_size_data.remaining_size(), ALIGNMENT_SIZE);
+        size_t aligned_remaining_size = align_down_two(free_size_data.remaining_size(), Alignment);
         if (aligned_remaining_size > min_allocation_size()) {
             // split and assign free memory on the right side to a new node
             free_size_data.shrink_by(aligned_remaining_size);
