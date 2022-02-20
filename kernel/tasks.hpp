@@ -47,8 +47,8 @@ public:
 
 private:
     void update_state();
-    void start(u32*);
-    void resume(u32*);
+    void start(u32*, InterruptsDisabledTag);
+    void resume(u32*, InterruptsDisabledTag);
     void switch_to(Task& task, InterruptsDisabledTag);
     bool has_not_started() const { return m_state == TaskState::New; }
     bool is_waiting() const { return m_state == TaskState::Waiting; };
@@ -76,7 +76,7 @@ extern "C" {
 class TaskManager {
 public:
     TaskManager();
-    void start_scheduler();
+    void start_scheduler(InterruptsDisabledTag);
     void schedule(InterruptsDisabledTag) __attribute__((returns_twice));
     Task& running_task() { return m_tasks[m_running_task_index]; }
 

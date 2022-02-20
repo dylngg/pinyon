@@ -108,7 +108,6 @@ SystemTimer& system_timer()
 void timer_init()
 {
     system_timer().init();
-    interrupt_registers().enable_timer();
 }
 
 u32 jiffies()

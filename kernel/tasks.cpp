@@ -28,23 +28,23 @@ Task::~Task()
     kfree(m_name);
 }
 
-void Task::switch_to(Task& to_run_task, InterruptsDisabledTag)
+void Task::switch_to(Task& to_run_task, InterruptsDisabledTag tag)
 {
     m_cpu_jiffies += jiffies() - m_jiffies_when_scheduled;
     if (to_run_task.has_not_started())
-        to_run_task.start(&m_sp);
+        to_run_task.start(&m_sp, tag);
     else
-        to_run_task.resume(&m_sp);
+        to_run_task.resume(&m_sp, tag);
 }
 
-void Task::start(u32* prev_task_sp_ptr)
+void Task::start(u32* prev_task_sp_ptr, InterruptsDisabledTag)
 {
     m_state = TaskState::Runnable;
     m_jiffies_when_scheduled = jiffies();
     task_start(prev_task_sp_ptr, m_pc, m_sp);
 }
 
-void Task::resume(u32* prev_task_sp_ptr)
+void Task::resume(u32* prev_task_sp_ptr, InterruptsDisabledTag)
 {
     m_jiffies_when_scheduled = jiffies();
     task_resume(prev_task_sp_ptr, m_sp);
@@ -163,12 +163,12 @@ void TaskManager::schedule(InterruptsDisabledTag disabled_tag)
     curr_task.switch_to(to_run_task, disabled_tag);
 }
 
-void TaskManager::start_scheduler()
+void TaskManager::start_scheduler(InterruptsDisabledTag disabled_tag)
 {
     // When we start, we save the previous task's SP into the task object; we
     // are starting afresh, so just put it in a dummy variable
     u32 dummy_old_sp;
-    m_tasks[0].start(&dummy_old_sp);
+    m_tasks[0].start(&dummy_old_sp, disabled_tag);
 }
 
 extern "C" {
@@ -221,5 +221,7 @@ TaskManager& task_manager()
 
 void tasks_init()
 {
-    task_manager().start_scheduler();
+    InterruptDisabler disabler {};
+    interrupt_registers().enable_timer();
+    task_manager().start_scheduler(disabler);
 }
