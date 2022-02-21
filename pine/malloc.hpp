@@ -75,18 +75,14 @@ private:
         static_assert(is_aligned_two(sizeof(SizeNode), Alignment), "Free list header size is not aligned!");
         return alloc_size;
     }
-    constexpr static size_t min_allocation_size()
-    {
-        return allocation_size(Alignment);
-    }
+    SizeNode* try_pick_free_node(size_t);
+    Pair<SizeNode*, SizeNode*> try_find_neighboring_memory_nodes(SizeNode* node_ptr);
 
     static void* user_addr_from_node_ptr(SizeNode* node_ptr, size_t offset = 0);
     static SizeNode* node_ptr_from_user_addr(void* addr);
     static bool nodes_are_contiguous_in_memory(SizeNode* left_node_ptr, SizeNode* right_node_ptr);
     static void adopt_right_node_size(SizeNode* left_node_ptr, SizeNode* right_node_ptr);
     static SizeNode* construct_node(size_t region_size, void* node_location);
-
-    Pair<SizeNode*, SizeNode*> try_find_neighboring_memory_nodes(SizeNode* node_ptr);
 
     LinkedList<SizeData> m_free_list;
 };
