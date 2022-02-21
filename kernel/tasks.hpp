@@ -19,7 +19,7 @@ void task_start(u32* old_sp_ptr, u32 new_pc, u32 new_sp);
 }
 
 class Task {
-    using Heap = HighWatermarkAllocator;
+    using Heap = MemoryAllocator<FixedAllocation, HighWatermarkManager>;
 
 public:
     enum class State : int {

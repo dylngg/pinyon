@@ -11,7 +11,7 @@ void syscall_yield();
 void syscall_sleep(u32 secs);
 u32 syscall_read(char* buf, u32 bytes);
 void syscall_write(const char* buf, u32 bytes);
-size_t syscall_heap_incr(size_t by_bytes);
+void* syscall_heap_incr(size_t by_bytes);
 u32 syscall_uptime();
 u32 syscall_cputime();
 }
@@ -28,19 +28,16 @@ u32 cputime();
 
 void printf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 
-class TaskHeapAllocator : public HighWatermarkAllocator {
-public:
-    static Maybe<TaskHeapAllocator> try_construct();
+struct HeapExtender {
+    static HeapExtender construct() { return {}; }
 
-    Pair<void*, size_t> allocate(size_t requested_size); // override
-
-private:
-    using HighWatermarkAllocator::HighWatermarkAllocator;
+    Pair<void*, size_t> allocate(size_t);
+    void free(void*);
+    bool in_bounds(void*) { return true; };
 };
 
-using TaskMemoryAllocator = MemoryAllocator<TaskHeapAllocator, FreeList>;
+using TaskMemoryAllocator = MemoryAllocator<MemoryAllocator<HeapExtender, HighWatermarkManager>, FreeList>;
 
-TaskHeapAllocator& heap_allocator();
 TaskMemoryAllocator& mem_allocator();
 
 void free(void*);

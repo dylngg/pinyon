@@ -99,6 +99,13 @@ public:
         , m_manager()
         , m_stats() {};
 
+    template <class... Args>
+    static MemoryAllocator construct(Args&&... args)
+    {
+        static auto sub_allocator = SubMemoryAllocator::construct(forward<Args>(args)...);
+        return MemoryAllocator<SubMemoryAllocator, MemoryManager> { &sub_allocator };
+    }
+
     Pair<void*, size_t> allocate(size_t requested_size)
     {
         auto [ptr, alloc_stats] = m_manager.try_reserve(requested_size);
@@ -139,7 +146,7 @@ public:
         return m_allocator->in_bounds(ptr);
     }
 
-    MallocStats stats() const { return m_stats; };
+    MallocStats stats() const { return m_stats; }
 
 private:
     SubMemoryAllocator* m_allocator;
@@ -147,22 +154,37 @@ private:
     MallocStats m_stats;
 };
 
-class HighWatermarkAllocator {
+class HighWatermarkManager {
 public:
-    HighWatermarkAllocator(PtrData start, PtrData end)
+    static size_t preferred_size(size_t requested_size) { return requested_size; }
+
+    Pair<void*, AllocationStats> try_reserve(size_t requested_size);
+    void add(void* ptr, size_t size);
+    AllocationStats release(void*) { return { 0, 0}; }
+
+private:
+    PtrData m_start = 0;
+    PtrData m_watermark = 0;
+    PtrData m_end = 0;
+};
+
+class FixedAllocation {
+public:
+    FixedAllocation(PtrData start, size_t size)
         : m_start(start)
-        , m_watermark(start)
-        , m_end(end) {};
+        , m_size(size)
+        , m_has_memory(true) {};
+
+    static FixedAllocation construct(PtrData start, size_t size) { return { start, size }; }
 
     Pair<void*, size_t> allocate(size_t requested_size);
-    void free(void*) {};
+    void free(void*);
     bool in_bounds(void* ptr) const;
-
-protected:
-    void extend_by(size_t size);
 
 private:
     PtrData m_start;
-    PtrData m_watermark;
-    PtrData m_end;
+    size_t m_size;
+    bool m_has_memory;
 };
+
+using FixedHeapAllocator = MemoryAllocator<FixedAllocation, HighWatermarkManager>;

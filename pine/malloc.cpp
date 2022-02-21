@@ -125,23 +125,39 @@ AllocationStats FreeList::release(void* ptr)
     return { requested_size, size_freed };
 }
 
-Pair<void*, size_t> HighWatermarkAllocator::allocate(size_t requested_size)
+Pair<void*, size_t> FixedAllocation::allocate(size_t)
 {
-    if (m_watermark + requested_size > m_end)
+    if (!m_has_memory)
         return { nullptr, 0 };
 
-    auto* ptr = reinterpret_cast<void*>(m_watermark);
+    m_has_memory = false;
+    return { reinterpret_cast<void*>(m_start), m_size };
+}
+
+void FixedAllocation::free(void*)
+{
+    m_has_memory = true;
+}
+
+bool FixedAllocation::in_bounds(void* ptr) const
+{
+    auto ptr_data = reinterpret_cast<PtrData>(ptr);
+    return ptr_data >= m_start && ptr_data <= m_start + m_size;
+}
+
+Pair<void*, AllocationStats> HighWatermarkManager::try_reserve(size_t requested_size)
+{
+    if (m_watermark + requested_size > m_end)
+        return { nullptr, { 0, 0 } };
+
+    void* ptr = reinterpret_cast<void*>(m_watermark);
     m_watermark += requested_size;
     return { ptr, requested_size };
 }
 
-bool HighWatermarkAllocator::in_bounds(void* ptr) const
+void HighWatermarkManager::add(void* ptr, size_t size)
 {
-    auto ptr_data = reinterpret_cast<PtrData>(ptr);
-    return ptr_data >= m_start && ptr_data < m_end;
-}
-
-void HighWatermarkAllocator::extend_by(size_t size)
-{
-    m_end += size;
+    m_start = reinterpret_cast<PtrData>(ptr);
+    m_watermark = m_start;
+    m_end = m_start + size;
 }

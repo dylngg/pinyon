@@ -36,7 +36,7 @@ Maybe<Task> Task::try_construct(const char* name, u32 pc)
         return {};
 
     auto heap_ptr_data = reinterpret_cast<PtrData>(heap_ptr);
-    HighWatermarkAllocator heap { heap_ptr_data, heap_ptr_data + heap_size };
+    Heap heap = Heap::construct(heap_ptr_data, heap_ptr_data + heap_size);
 
     return Task { name, heap, sp, pc };
 }

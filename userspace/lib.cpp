@@ -60,45 +60,24 @@ void printf(const char* fmt, ...)
     free(print_buf);
 }
 
-size_t heap_incr(size_t by_bytes)
+void* heap_incr(size_t by_bytes)
 {
     return syscall_heap_incr(by_bytes);
 }
 
-Maybe<TaskHeapAllocator> TaskHeapAllocator::try_construct()
+Pair<void*, size_t> HeapExtender::allocate(size_t requested_size)
 {
-    size_t heap_size = Page;
-    auto heap_start_ptr = heap_incr(heap_size);
+    size_t increase = align_up_two(requested_size, Page);
+    auto heap_start_ptr = heap_incr(increase);
     if (!heap_start_ptr)
         return {};
 
-    auto heap_start = reinterpret_cast<PtrData>(heap_start_ptr);
-    return { TaskHeapAllocator { heap_start, heap_start + heap_size } };
-}
-
-Pair<void*, size_t> TaskHeapAllocator::allocate(size_t requested_size)
-{
-    auto [ptr, size] = HighWatermarkAllocator::allocate(requested_size);
-    if (!ptr) {
-        size_t increase = heap_incr(align_up_two(requested_size, Page));
-        HighWatermarkAllocator::extend_by(increase);
-        if (increase < requested_size)
-            return { nullptr, 0 };
-    }
-
-    return { ptr, size };
-}
-
-TaskHeapAllocator& heap_allocator()
-{
-    static TaskHeapAllocator g_maybe_task_heap_allocator = *TaskHeapAllocator::try_construct();
-    return g_maybe_task_heap_allocator;
+    return { heap_start_ptr, increase };
 }
 
 TaskMemoryAllocator& mem_allocator()
 {
-    // FIXME: We should assert that the heap allocator could be created! UB if not!
-    static TaskMemoryAllocator g_task_allocator { &heap_allocator() };
+    static TaskMemoryAllocator g_task_allocator = TaskMemoryAllocator::construct();
     return g_task_allocator;
 }
 
