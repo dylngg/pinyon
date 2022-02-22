@@ -31,6 +31,8 @@ static inline void spin(u32 count)
 
 void UARTRegisters::reset()
 {
+    // Memory barriers required when switching from one peripheral to another
+    // See 1.3 in BCM2835 manual
     MemoryBarrier barrier;
 
     /* Reset UART */
@@ -151,6 +153,7 @@ void UARTRegisters::set_write_irq(size_t write_size)
 
 Pair<size_t, bool> UARTRegisters::try_read(char* buf, size_t bufsize)
 {
+    // Barrier required between entry/exit points of peripheral; See 1.3 in BCM2835 manual
     MemoryBarrier barrier;
 
     bool stopped_on_break = false;
@@ -173,6 +176,7 @@ Pair<size_t, bool> UARTRegisters::try_read(char* buf, size_t bufsize)
 
 size_t UARTRegisters::try_write(const char* buf, size_t bufsize)
 {
+    // Barrier required between entry/exit points of peripheral; See 1.3 in BCM2835 manual
     MemoryBarrier barrier;
 
     size_t offset = 0;

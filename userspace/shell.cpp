@@ -71,6 +71,7 @@ void shell()
             printf("  - uptime\tProvides statistics on the time since boot in seconds, as well as the CPU time used by this task.\n");
             printf("  - yield\tYields to the spin task. The spin task simply spins until it is preempted. You should see control return to this task shortly.\n");
             printf("  - sleep\tPuts this task to sleep for 2 seconds.\n");
+            printf("  - spin\tSpins in a loop for a couple seconds.\n");
             printf("  - exit\tSays goodbye. Please hit Ctrl-C to actually exit.\n");
             printf("\n");
             printf("Known Bugs (because we're honest around here!):\n");
