@@ -40,7 +40,7 @@ void shell()
 
     for (;;) {
         printf("# ");
-        readline(buf, 1024);
+        read(buf, 1024);
 
         if (strcmp(buf, "exit") == 0)
             break;

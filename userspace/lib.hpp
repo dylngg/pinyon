@@ -4,19 +4,18 @@
 #include <pine/maybe.hpp>
 #include <pine/printf.hpp>
 #include <pine/types.hpp>
+#include <pine/syscall.hpp>
 
 // See syscall.S
 extern "C" {
-void syscall_yield();
-void syscall_sleep(u32 secs);
-u32 syscall_read(char* buf, u32 bytes);
-void syscall_write(const char* buf, u32 bytes);
-void* syscall_sbrk(size_t increase);
-u32 syscall_uptime();
-u32 syscall_cputime();
+u32 syscall0(Syscall call);
+u32 syscall1(Syscall call, u32 arg1);
+u32 syscall2(Syscall call, u32 arg1, u32 arg2);
 }
 
-void readline(char* buf, u32 bytes);
+size_t read(char* buf, u32 bytes);
+
+void write(char* buf, u32 bytes);
 
 void yield();
 

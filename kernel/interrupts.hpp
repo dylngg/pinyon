@@ -1,5 +1,6 @@
 #pragma once
 #include <pine/types.hpp>
+#include <pine/syscall.hpp>
 
 /*
  * The Rasbperry Pi has 72 IRQs. It is particularly weird because the GPU
@@ -49,16 +50,6 @@ struct InterruptsDisabledTag {
 
 private:
     InterruptsDisabledTag() = default;
-};
-
-enum class Syscall : u32 {
-    Yield = 0,
-    Sleep,
-    Read,
-    Write,
-    Sbrk,
-    Uptime,
-    CPUTime,
 };
 
 InterruptRegisters& interrupt_registers();

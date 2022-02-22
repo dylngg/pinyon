@@ -143,10 +143,6 @@ swi_wrap:
     cpsie i                 /* Re-enable interrupts; allow for interrupt nesting to occur */
     and r4, sp, #4          /* Align the stack to 8 bytes; this works because the SP is _always_ aligned to 4 bytes */
     sub sp, sp, r4
-    mov r2, r1              /* Copy first and second args into second and third swi_handler args */
-    mov r1, r0
-    ldr r0, [lr, #-4]       /* Get SWI instruction */
-    bic r0, r0, #0xFF000000 /* Mask off last 8 bits to get syscall id */
     bl software_interrupt_handler
     add sp, sp, r4          /* Undo stack alignment */
     pop {r4, r12, lr}       /* Restore callee registers; Return value in r0 and r1 */

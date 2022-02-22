@@ -3,30 +3,36 @@
 #include <pine/string.hpp>
 #include <pine/units.hpp>
 
-void readline(char* buf, u32 at_most_bytes)
+size_t read(char* buf, u32 at_most_bytes)
 {
-    u32 bytes_read = syscall_read(buf, at_most_bytes - 1);
+    u32 bytes_read = syscall2(Syscall::Read, reinterpret_cast<u32>(buf), at_most_bytes - 1);
     buf[bytes_read] = '\0';
+    return bytes_read;
+}
+
+void write(char* buf, u32 bytes)
+{
+    syscall2(Syscall::Write, reinterpret_cast<u32>(buf), bytes);
 }
 
 void yield()
 {
-    syscall_yield();
+    syscall0(Syscall::Yield);
 }
 
 void sleep(u32 secs)
 {
-    syscall_sleep(secs);
+    syscall1(Syscall::Sleep, secs);
 }
 
 u32 uptime()
 {
-    return syscall_uptime();
+    return syscall0(Syscall::Uptime);
 }
 
 u32 cputime()
 {
-    return syscall_cputime();
+    return syscall0(Syscall::CPUTime);
 }
 
 void printf(const char* fmt, ...)
@@ -56,13 +62,13 @@ void printf(const char* fmt, ...)
     };
 
     vfnprintf(try_add_wrapper, fmt, args);
-    syscall_write(print_buf, print_buf_pos);
+    write(print_buf, print_buf_pos);
     free(print_buf);
 }
 
-void* sbrk(size_t by_bytes)
+void* sbrk(size_t increase)
 {
-    return syscall_sbrk(by_bytes);
+    return reinterpret_cast<void*>(syscall1(Syscall::Sbrk, increase));
 }
 
 Pair<void*, size_t> HeapExtender::allocate(size_t requested_size)
