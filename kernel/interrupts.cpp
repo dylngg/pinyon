@@ -45,8 +45,8 @@ u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2)
         task.write((char*)arg1, arg2);
         break;
 
-    case Syscall::HeapIncr:
-        return reinterpret_cast<u32>(task.heap_increase((size_t)arg1));
+    case Syscall::Sbrk:
+        return reinterpret_cast<u32>(task.sbrk((size_t)arg1));
 
     case Syscall::Uptime:
         return jiffies();

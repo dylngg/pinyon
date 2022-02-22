@@ -3,7 +3,7 @@
 .global syscall_sleep
 .global syscall_read
 .global syscall_write
-.global syscall_heap_incr
+.global syscall_sbrk
 .global syscall_uptime
 .global syscall_cputime
 
@@ -36,7 +36,7 @@ syscall_write:
     pop {lr}
     bx lr
 
-syscall_heap_incr:
+syscall_sbrk:
     push {lr}
     swi 4
     pop {lr}

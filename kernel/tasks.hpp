@@ -38,7 +38,7 @@ public:
     size_t read(char* buf, size_t at_most_bytes);
     void write(char* buf, size_t bytes);
     u32 cputime();
-    void* heap_increase(size_t bytes);
+    void* sbrk(size_t increase);
 
 private:
     Task(const char* name, Heap heap, u32 stack_pointer, u32 pc);

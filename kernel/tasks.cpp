@@ -111,9 +111,9 @@ void Task::write(char* buf, size_t bytes)
     make_uart_request(buf, bytes, options);
 }
 
-void* Task::heap_increase(size_t bytes)
+void* Task::sbrk(size_t increase)
 {
-    auto [ptr, _] = m_heap.allocate(bytes);
+    auto [ptr, _] = m_heap.allocate(increase);
     return ptr;
 }
 

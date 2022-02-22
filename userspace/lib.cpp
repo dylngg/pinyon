@@ -60,15 +60,15 @@ void printf(const char* fmt, ...)
     free(print_buf);
 }
 
-void* heap_incr(size_t by_bytes)
+void* sbrk(size_t by_bytes)
 {
-    return syscall_heap_incr(by_bytes);
+    return syscall_sbrk(by_bytes);
 }
 
 Pair<void*, size_t> HeapExtender::allocate(size_t requested_size)
 {
     size_t increase = align_up_two(requested_size, Page);
-    auto heap_start_ptr = heap_incr(increase);
+    void* heap_start_ptr = sbrk(increase);
     if (!heap_start_ptr)
         return {};
 

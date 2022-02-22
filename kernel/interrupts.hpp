@@ -56,7 +56,7 @@ enum class Syscall : u32 {
     Sleep,
     Read,
     Write,
-    HeapIncr,
+    Sbrk,
     Uptime,
     CPUTime,
 };
