@@ -36,7 +36,7 @@ struct HeapExtender {
     bool in_bounds(void*) { return true; };
 };
 
-using TaskMemoryAllocator = MemoryAllocator<MemoryAllocator<HeapExtender, HighWatermarkManager>, FreeList>;
+using TaskMemoryAllocator = MemoryAllocator<HeapExtender, FreeList>;
 
 TaskMemoryAllocator& mem_allocator();
 
