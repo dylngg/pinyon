@@ -10,11 +10,7 @@ Pinyon is a really basic toy ARMv7 kernel targeting the Raspberry Pi 2. It prese
 - [x] `readline()`/`write()` syscalls for UART IO
 - [x] Process CPU time and memory reporting
 - [x] System uptime reporting
-
-and aims to support the following in the future:
-
-- [ ] Virtual memory?!
-- [ ] ?!
+- [x] Virtual memory (though tasks still run with supervisor privileges currently)
 
 ## Prequesites
 
