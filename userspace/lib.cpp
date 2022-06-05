@@ -40,7 +40,7 @@ void printf(const char* fmt, ...)
     va_list args;
     va_start(args, fmt);
     size_t bufsize = strlen(fmt) * 2;
-    char* print_buf = (char*)malloc(bufsize);
+    char* print_buf = static_cast<char*>(malloc(bufsize));
     if (!print_buf)
         return;
 
@@ -53,7 +53,7 @@ void printf(const char* fmt, ...)
             // FIXME: Implement realloc
             free(print_buf);
             bufsize = bufsize + message_size + 64;
-            print_buf = (char*)malloc(bufsize);
+            print_buf = static_cast<char*>(malloc(bufsize));
         }
 
         strcopy(print_buf + print_buf_pos, message);

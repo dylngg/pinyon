@@ -67,7 +67,7 @@ void interrupts_init();
 extern "C" {
 void reset_handler(void) __attribute__((interrupt("ABORT")));
 
-void undefined_instruction_handler(u32 old_cpsr, u32 old_pc, u32 old_lr);
+void undefined_instruction_handler(u32 old_cpsr, PtrData old_pc, PtrData old_lr);
 
 u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2);
 

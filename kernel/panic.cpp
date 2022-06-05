@@ -17,8 +17,8 @@ static char panic_buffer[PANIC_BUFFER_SIZE];
 __attribute__((flatten)) __attribute__((always_inline))
 static void panic_impl(const char* message)
 {
-    u32 sp;
-    u32 lr;
+    PtrData sp;
+    PtrData lr;
     u32 cpsr;
     asm volatile("mov %0, sp"
                  : "=r"(sp));
@@ -30,7 +30,8 @@ static void panic_impl(const char* message)
     if (message[0] != '\0')
         consoleln(message);
 
-    sbufprintf(panic_buffer, PANIC_BUFFER_SIZE, "cpsr: %lu, sp: %p, lr: %p", cpsr, (void*)sp, (void*)lr);
+    sbufprintf(panic_buffer, PANIC_BUFFER_SIZE, "cpsr: %lu, sp: %p, lr: %p", cpsr,
+               reinterpret_cast<char*>(sp), reinterpret_cast<char*>(lr));
     consoleln(panic_buffer);
     asm volatile("b halt");
 }

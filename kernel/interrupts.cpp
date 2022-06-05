@@ -14,10 +14,11 @@ void reset_handler(void)
     panic("interrupt:\tResetting. Goodbye.\n");
 }
 
-void undefined_instruction_handler(u32 old_cpsr, u32 old_pc, u32 old_lr)
+void undefined_instruction_handler(u32 old_cpsr, PtrData old_pc, PtrData old_lr)
 {
     panicf("interrupt:\t\033[31mUndefined instruction! halting.\033[0m\n\n"
-           "old cpsr: %lu\told pc: %p\told lr: %p\n", old_cpsr, (void*) old_pc, (void*)old_lr);
+           "old cpsr: %lu\told pc: %p\told lr: %p\n", old_cpsr, reinterpret_cast<char*>(old_pc),
+           reinterpret_cast<char*>(old_lr));
 }
 
 u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2)
@@ -39,14 +40,14 @@ u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2)
         break;
 
     case Syscall::Read:
-        return task.read((char*)arg1, arg2);
+        return task.read(reinterpret_cast<char*>(arg1), static_cast<size_t>(arg2));
 
     case Syscall::Write:
-        task.write((char*)arg1, arg2);
+        task.write(reinterpret_cast<char*>(arg1), static_cast<size_t>(arg2));
         break;
 
     case Syscall::Sbrk:
-        return reinterpret_cast<u32>(task.sbrk((size_t)arg1));
+        return reinterpret_cast<u32>(task.sbrk(static_cast<size_t>(arg1)));
 
     case Syscall::Uptime:
         return jiffies();

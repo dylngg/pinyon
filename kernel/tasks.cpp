@@ -185,7 +185,7 @@ top:
 
 TaskManager::TaskManager()
 {
-    m_tasks = (Task*)kmalloc(2 * sizeof *m_tasks);
+    m_tasks = static_cast<Task*>(kmalloc(2 * sizeof *m_tasks));
     PANIC_MESSAGE_IF(!m_tasks, "Could not find memory for initial tasks?!");
 
     // The compiler will literally give us null if we try and get the address

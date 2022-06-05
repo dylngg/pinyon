@@ -14,7 +14,7 @@ void* memcpy(void* __restrict__ to, const void* __restrict__ from, size_t size)
     while (size-- > 0)
         *_to = *_from;
 
-    return (void*)from;
+    return const_cast<void*>(from);
 }
 
 void* memset(void* to, int c, size_t size)
