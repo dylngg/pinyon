@@ -4,6 +4,8 @@
 #include <pine/badmath.hpp>
 #include <pine/units.hpp>
 
+using namespace pine;
+
 static void builtin_memstat()
 {
     auto malloc_stats = memstats();

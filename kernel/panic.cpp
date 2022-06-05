@@ -30,8 +30,8 @@ static void panic_impl(const char* message)
     if (message[0] != '\0')
         consoleln(message);
 
-    sbufprintf(panic_buffer, PANIC_BUFFER_SIZE, "cpsr: %lu, sp: %p, lr: %p", cpsr,
-               reinterpret_cast<char*>(sp), reinterpret_cast<char*>(lr));
+    pine::sbufprintf(panic_buffer, PANIC_BUFFER_SIZE, "cpsr: %lu, sp: %p, lr: %p", cpsr,
+                     reinterpret_cast<char*>(sp), reinterpret_cast<char*>(lr));
     consoleln(panic_buffer);
     asm volatile("b halt");
 }
@@ -45,6 +45,6 @@ void panicf(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    vsbufprintf(panic_buffer, PANIC_BUFFER_SIZE, fmt, args);
+    pine::vsbufprintf(panic_buffer, PANIC_BUFFER_SIZE, fmt, args);
     panic_impl(panic_buffer);
 }

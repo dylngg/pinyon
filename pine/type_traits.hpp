@@ -2,6 +2,8 @@
 
 #include "metaprogramming.hpp"
 
+namespace pine {
+
 struct Copyable {};
 struct NonCopyable
 {
@@ -23,3 +25,5 @@ struct NonMovable
 
 template <class Value>
 using ConditionallyMovable = if_else<is_move_constructible<Value>, Movable, NonMovable>;
+
+}

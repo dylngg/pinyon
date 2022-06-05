@@ -18,7 +18,7 @@ void SystemTimer::init()
      */
     timer_counter_match = TIMER_HZ >> SYS_HZ_BITS;
     {
-        MemoryBarrier barrier {};
+        pine::MemoryBarrier barrier {};
         compare1 = lower_bits + timer_counter_match;
         compare3 = lower_bits + (timer_counter_match << FALLBACK_SYS_HZ_SCALER_BITS);
 
@@ -40,7 +40,7 @@ void SystemTimer::handle_irq(InterruptsDisabledTag)
 
 void SystemTimer::reinit()
 {
-    MemoryBarrier barrier {};
+    pine::MemoryBarrier barrier {};
     /*
      * The timer must be reinitialized upon every interrupt, so we reinit it
      * here. Each initialization should be the current timer value + the time
@@ -84,7 +84,7 @@ void SystemTimer::reinit()
 
 u32 SystemTimer::jiffies_since_last_match() const
 {
-    MemoryBarrier::sync();
+    pine::MemoryBarrier::sync();
     if (compare3 < lower_bits) {
         //consoleln("\033[0;31mkernel:\tFallback timer match encountered!\033[0m");
         return FALLBACK_SYS_HZ_SCALER;
@@ -95,7 +95,7 @@ u32 SystemTimer::jiffies_since_last_match() const
 
 bool SystemTimer::matched() const
 {
-    MemoryBarrier::sync();
+    pine::MemoryBarrier::sync();
     return (control & 0x3) > 0;
 }
 

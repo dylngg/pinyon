@@ -12,7 +12,7 @@ void init_page_tables(PtrData code_end)
 {
     // FIXME: We are wasting a lot of space with 1MiB alignment for code and
     //        especially for 16KiB L1Table
-    auto code_end_l1_aligned = align_up_two(code_end, L1Entry::vm_size);
+    auto code_end_l1_aligned = pine::align_up_two(code_end, L1Entry::vm_size);
     auto* l1 = reinterpret_cast<L1Table*>(code_end_l1_aligned);
 
     // Reserve code as L1 blocks; start at 0x0 because that is where the vector
@@ -28,7 +28,7 @@ void init_page_tables(PtrData code_end)
         l1->reserve_section(region, Section { PhysicalAddress { region } });
 
     // FIXME: This is a waste... we should manage this memory somehow...
-    auto heap_phys_addr = PhysicalAddress { align_up_two((PtrData)l1 + 1, L1Entry::vm_size) };
+    auto heap_phys_addr = PhysicalAddress { pine::align_up_two((PtrData)l1 + 1, L1Entry::vm_size) };
     for (PtrData region = HEAP_START; region <= HEAP_END; region += L1Entry::vm_size) {
         l1->reserve_section(region, Section { heap_phys_addr });
         heap_phys_addr += L1Entry::vm_size;
@@ -41,7 +41,7 @@ void init_page_tables(PtrData code_end)
 void L1Table::reserve_section(VirtualAddress virt_addr, Section section)
 {
     auto ptr_data = section.physical_address().ptr_data();
-    PANIC_IF(!is_aligned_two(ptr_data, L1Entry::vm_size));
+    PANIC_IF(!pine::is_aligned_two(ptr_data, L1Entry::vm_size));
     m_entries[virt_addr.l1_index()] = section;
 }
 
@@ -51,7 +51,7 @@ void set_l1_table(PhysicalAddress l1_addr)
     // FIXME: See l1_table() for 14 constant problem; should we issue a dsb here?
     u32 ttbr0 = l1_addr.ptr_data() & ~(1 << 14);
     asm volatile("MCR p15, 0, %0, c2, c0, 0" ::"r"(ttbr0));
-    DataBarrier::sync();
+    pine::DataBarrier::sync();
 }
 
 PhysicalAddress l1_table()

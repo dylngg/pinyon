@@ -6,6 +6,8 @@
 #include <pine/badmath.hpp>
 #include <pine/types.hpp>
 
+namespace pine {
+
 size_t strcopy(char* __restrict__ to, const char* from)
 {
     size_t copied = 0;
@@ -162,4 +164,6 @@ const char& StringView::operator[](size_t pos) const
     if (pos >= m_length)
         return dummy;
     return m_chars[pos];
+}
+
 }

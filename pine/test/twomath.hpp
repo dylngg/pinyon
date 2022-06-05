@@ -5,6 +5,8 @@
 
 #include <pine/twomath.hpp>
 
+using namespace pine;
+
 void align_down_two()
 {
     assert(align_down_two(17u, 8u) == 16);

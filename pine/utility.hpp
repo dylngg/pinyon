@@ -2,6 +2,8 @@
 
 #include "metaprogramming.hpp"
 
+namespace pine {
+
 /*
  * Our own std::move
  *
@@ -50,4 +52,6 @@ constexpr void swap(Value& first, Value& second)
     Value temp = move(first);
     first = move(second);
     second = move(temp);
+}
+
 }

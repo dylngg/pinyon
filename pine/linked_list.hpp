@@ -3,6 +3,8 @@
 #include "types.hpp"
 #include "utility.hpp"
 
+namespace pine {
+
 template <class Content>
 class LinkedList {
 public:
@@ -102,3 +104,5 @@ private:
     Node* m_tail = nullptr;
     size_t m_length = 0;
 };
+
+}

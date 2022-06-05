@@ -50,7 +50,7 @@ public:
      * Returns the resource for async reading if an existing request is not in
      * progress.
      */
-    static Maybe<KOwner<UARTResource>> try_request(char*, size_t, Options);
+    static pine::Maybe<KOwner<UARTResource>> try_request(char*, size_t, Options);
     static void handle_irq(InterruptsDisabledTag);
 
     size_t size() const { return m_size; }

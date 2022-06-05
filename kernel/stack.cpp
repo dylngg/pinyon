@@ -1,8 +1,8 @@
 #include "stack.hpp"
 
-Maybe<Stack> Stack::try_create(size_t size)
+pine::Maybe<Stack> Stack::try_create(size_t size)
 {
-    size_t allocated_size = align_up_two(size, Page);
+    size_t allocated_size = pine::align_up_two(size, Page);
     u32* stack_ptr = static_cast<u32*>(kmalloc(allocated_size));
     if (!stack_ptr)
         return {};

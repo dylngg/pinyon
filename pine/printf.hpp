@@ -5,10 +5,70 @@
 #include <pine/badmath.hpp>
 #include <pine/string.hpp>
 
+namespace pine {
+
 enum class ArgModifiers {
     None,
     Long,
 };
+
+template <typename TryAddStringFunc>
+bool print_string(va_list& args, TryAddStringFunc& try_add_string)
+{
+    // No such modifiers for const char*
+    const char* str = va_arg(args, const char*);
+    return try_add_string(str);
+}
+
+template <typename TryAddStringFunc>
+bool print_char(va_list& args, TryAddStringFunc& try_add_string)
+{
+    // We'll ignore the long modifier here... wide chars is not
+    // something we care about
+    int arg_ch = va_arg(args, int);
+    char str[2] = " ";
+    str[0] = static_cast<char>(arg_ch);
+    return try_add_string(str);
+}
+
+template <typename TryAddStringFunc>
+bool print_int(char type_ch, va_list& args, TryAddStringFunc& try_add_string, ArgModifiers mod)
+{
+    char digits[12] = "";
+
+    if (type_ch == 'u') {
+        switch (mod) {
+        case ArgModifiers::Long:
+            ultoa10(digits, va_arg(args, unsigned long));
+            break;
+        case ArgModifiers::None:
+            uitoa10(digits, va_arg(args, unsigned int));
+            break;
+        }
+    } else {
+        switch (mod) {
+        case ArgModifiers::Long:
+            ltoa10(digits, va_arg(args, long));
+            break;
+        case ArgModifiers::None:
+            itoa10(digits, va_arg(args, int));
+            break;
+        }
+    }
+
+    return try_add_string(digits);
+}
+
+template <typename TryAddStringFunc>
+bool print_pointer(va_list& args, TryAddStringFunc& try_add_string)
+{
+    void* ptr = va_arg(args, void*);
+    auto ptr_data = (unsigned long)ptr;
+
+    char hex[11];
+    ultoa16(hex, ptr_data, ToAFlag::Lower);
+    return try_add_string(hex);
+}
 
 template <typename TryAddStringFunc>
 size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list args)
@@ -78,60 +138,4 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list args
     return true;
 }
 
-template <typename TryAddStringFunc>
-bool print_string(va_list& args, TryAddStringFunc& try_add_string)
-{
-    // No such modifiers for const char*
-    const char* str = va_arg(args, const char*);
-    return try_add_string(str);
-}
-
-template <typename TryAddStringFunc>
-bool print_char(va_list& args, TryAddStringFunc& try_add_string)
-{
-    // We'll ignore the long modifier here... wide chars is not
-    // something we care about
-    int arg_ch = va_arg(args, int);
-    char str[2] = " ";
-    str[0] = static_cast<char>(arg_ch);
-    return try_add_string(str);
-}
-
-template <typename TryAddStringFunc>
-bool print_int(char type_ch, va_list& args, TryAddStringFunc& try_add_string, ArgModifiers mod)
-{
-    char digits[12] = "";
-
-    if (type_ch == 'u') {
-        switch (mod) {
-        case ArgModifiers::Long:
-            ultoa10(digits, va_arg(args, unsigned long));
-            break;
-        case ArgModifiers::None:
-            uitoa10(digits, va_arg(args, unsigned int));
-            break;
-        }
-    } else {
-        switch (mod) {
-        case ArgModifiers::Long:
-            ltoa10(digits, va_arg(args, long));
-            break;
-        case ArgModifiers::None:
-            itoa10(digits, va_arg(args, int));
-            break;
-        }
-    }
-
-    return try_add_string(digits);
-}
-
-template <typename TryAddStringFunc>
-bool print_pointer(va_list& args, TryAddStringFunc& try_add_string)
-{
-    void* ptr = va_arg(args, void*);
-    auto ptr_data = (unsigned long)ptr;
-
-    char hex[11];
-    ultoa16(hex, ptr_data, ToAFlag::Lower);
-    return try_add_string(hex);
 }

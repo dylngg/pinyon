@@ -102,13 +102,13 @@ void irq_handler(void)
 
 void InterruptRegisters::enable_timer() volatile
 {
-    MemoryBarrier barrier {};
+    pine::MemoryBarrier barrier {};
     enable_irq1 = (1 << 1);
 }
 
 void InterruptRegisters::enable_uart() volatile
 {
-    MemoryBarrier barrier {};
+    pine::MemoryBarrier barrier {};
     enable_irq2 = (1 << 25);
 }
 

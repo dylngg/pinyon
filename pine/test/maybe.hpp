@@ -8,6 +8,8 @@
 #include <pine/maybe.hpp>
 #include <pine/types.hpp>
 
+using namespace pine;
+
 void maybe_basic()
 {
     Maybe<int> m { 0 };

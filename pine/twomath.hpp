@@ -2,6 +2,8 @@
 #include "types.hpp"
 #include "metaprogramming.hpp"
 
+
+ namespace pine {
 // FIXME: Use template metaprogramming to ensure the UInt types are unsigned
 
 template <typename UInt, typename UInt2>
@@ -42,4 +44,6 @@ constexpr UInt bit_width(UInt value)
         value <<= 1;
     }
     return count;
+}
+
 }

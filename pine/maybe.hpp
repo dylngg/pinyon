@@ -6,6 +6,8 @@
 #include "types.hpp"
 #include "utility.hpp"
 
+namespace pine {
+
 /*
  * Our own std::optional, complete with the arcane placement new operator, and
  * overzelaus use of constexpr in an offer to the compiler gods that this shall
@@ -122,3 +124,5 @@ private:
     alignas(Value) u8 m_value_space[sizeof(Value)];
     bool m_has_value = false;
 };
+
+}

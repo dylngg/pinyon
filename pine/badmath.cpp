@@ -6,6 +6,8 @@
  */
 #include "badmath.hpp"
 
+namespace pine {
+
 unsigned long absl(long num)
 {
     return num >= 0 ? num : -num;
@@ -33,4 +35,6 @@ unsigned int log10ul(unsigned long num)
         log++;
     }
     return log;
+}
+
 }

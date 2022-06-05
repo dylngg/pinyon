@@ -71,7 +71,7 @@ void task_switch(Registers* to_save_registers, const Registers* new_registers);
 }
 
 class Task {
-    using Heap = MemoryAllocator<FixedAllocation, HighWatermarkManager>;
+    using Heap = pine::MemoryAllocator<pine::FixedAllocation, pine::HighWatermarkManager>;
 
 public:
     enum class State : int {
@@ -81,7 +81,7 @@ public:
         Waiting,
     };
 
-    static Maybe<Task> try_create(const char* name, u32 pc);
+    static pine::Maybe<Task> try_create(const char* name, u32 pc);
     Task(const Task& other) = delete;
     Task(Task&& other) = default;
 
@@ -117,7 +117,7 @@ private:
     u32 m_sleep_end_time;
     u32 m_jiffies_when_scheduled;
     u32 m_cpu_jiffies;
-    Maybe<KOwner<UARTResource>> m_maybe_uart_resource;
+    pine::Maybe<KOwner<UARTResource>> m_maybe_uart_resource;
 };
 
 extern "C" {

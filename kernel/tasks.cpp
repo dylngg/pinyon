@@ -11,8 +11,8 @@
 Task::Task(const char* name, Heap heap, Stack kernel_stack, Stack stack, u32 user_pc, ProcessorMode user_mode)
     : m_name(name)
     , m_state(State::New)
-    , m_kernel_stack(move(kernel_stack))
-    , m_stack(move(stack))
+    , m_kernel_stack(pine::move(kernel_stack))
+    , m_stack(pine::move(stack))
     , m_registers(m_stack.sp(), m_kernel_stack.sp(), user_pc, user_mode)
     , m_heap(heap)
     , m_sleep_end_time(0)
@@ -22,7 +22,7 @@ Task::Task(const char* name, Heap heap, Stack kernel_stack, Stack stack, u32 use
 {
 }
 
-Maybe<Task> Task::try_create(const char* name, u32 pc)
+pine::Maybe<Task> Task::try_create(const char* name, u32 pc)
 {
     auto maybe_kernel_stack = Stack::try_create(8 * Page);
     if (!maybe_kernel_stack)
@@ -43,8 +43,8 @@ Maybe<Task> Task::try_create(const char* name, u32 pc)
     return Task {
         name,
         heap,
-        move(*maybe_kernel_stack),
-        move(*maybe_stack),
+        pine::move(*maybe_kernel_stack),
+        pine::move(*maybe_stack),
         pc,
         ProcessorMode::User
     };
@@ -84,13 +84,13 @@ size_t Task::make_uart_request(char* buf, size_t bytes, UARTResource::Options op
 
     // update_state(), called in pick_next_task() is what checks for whether
     // the resource is finished; it needs the resource
-    m_maybe_uart_resource = move(maybe_resource);
+    m_maybe_uart_resource = pine::move(maybe_resource);
 
     m_state = State::Waiting;
     reschedule();
 
     PANIC_IF(!m_maybe_uart_resource->is_finished());
-    maybe_resource = move(m_maybe_uart_resource);
+    maybe_resource = pine::move(m_maybe_uart_resource);
     return maybe_resource->size();
 }
 
@@ -199,14 +199,14 @@ TaskManager::TaskManager()
 
     auto maybe_task = Task::try_create("shell", shell_task_addr);
     PANIC_MESSAGE_IF(!maybe_task, "Could not create shell task! Out of memory?!");
-    new (&m_tasks[0]) Task(move(*maybe_task));
+    new (&m_tasks[0]) Task(pine::move(*maybe_task));
 
     // The idea behind this task is that it will always be runnable so we
     // never have to deal with no runnable tasks. It will spin of course,
     // which is not ideal :P
     maybe_task = Task::try_create("spin", spin_task_addr);
     PANIC_MESSAGE_IF(!maybe_task, "Could not create spin task! Out of memory?!");
-    new (&m_tasks[1]) Task(move(*maybe_task));
+    new (&m_tasks[1]) Task(pine::move(*maybe_task));
 
     m_num_tasks = 2;
     m_running_task_index = 0;

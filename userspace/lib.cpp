@@ -3,6 +3,8 @@
 #include <pine/string.hpp>
 #include <pine/units.hpp>
 
+using namespace pine;
+
 size_t read(char* buf, size_t at_most_bytes)
 {
     u32 bytes_read = syscall2(Syscall::Read, reinterpret_cast<u32>(buf), at_most_bytes - 1);

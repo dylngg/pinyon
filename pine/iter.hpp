@@ -1,6 +1,8 @@
 #pragma once
 #include "types.hpp"
 
+namespace pine {
+
 /*
  * The different iterators defined here fit different container patterns.
  *
@@ -57,3 +59,5 @@ private:
     Wraps& m_wraps;
     size_t m_pos;
 };
+
+}

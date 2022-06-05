@@ -3,6 +3,8 @@
 #include "metaprogramming.hpp"
 #include "utility.hpp"
 
+namespace pine {
+
 template <class Value, class Allocator>
 struct DefaultDestructor {
     constexpr DefaultDestructor(Allocator& allocator = Allocator::allocator())
@@ -69,9 +71,11 @@ public:
 
     friend void swap(Owner& first, Owner& second)
     {
-        ::swap(first.m_ptr, second.m_ptr);
+        pine::swap(first.m_ptr, second.m_ptr);
     }
 
 private:
     Value* m_ptr;
 };
+
+}

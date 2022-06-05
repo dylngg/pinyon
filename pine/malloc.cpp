@@ -4,6 +4,8 @@
 
 #include <new>
 
+namespace pine {
+
 void* FreeList::user_addr_from_node_ptr(SizeNode* node_ptr, size_t offset)
 {
     return reinterpret_cast<u8*>(node_ptr + 1) + offset;
@@ -160,4 +162,6 @@ void HighWatermarkManager::add(void* ptr, size_t size)
     m_start = reinterpret_cast<u8*>(ptr);
     m_watermark = m_start;
     m_end = m_start + size;
+}
+
 }

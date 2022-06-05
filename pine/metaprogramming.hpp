@@ -2,6 +2,8 @@
 
 #include <cstddef> // for size_t
 
+namespace pine {
+
 /*
  * Defines a bunch of C++17 metaprogramming functions and boolean checks.
  * Follows the STL names somewhat. Makes heavy use of 'constexpr bool'
@@ -304,3 +306,5 @@ constexpr bool is_copy_constructible = all<is_move_constructible<Value>,
     is_constructible_from<Value, Value&>, is_convertible_to<Value&, Value>,
     is_constructible_from<Value, const Value&>, is_convertible_to<const Value&, Value>,
     is_constructible_from<Value, const Value>, is_convertible_to<const Value, Value>>;
+
+}

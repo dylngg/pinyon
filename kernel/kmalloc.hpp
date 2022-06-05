@@ -5,7 +5,7 @@
 #include <pine/memory.hpp>
 #include <pine/types.hpp>
 
-class KernelMemoryAllocator : public MemoryAllocator<FixedAllocation, FreeList> {
+class KernelMemoryAllocator : public pine::MemoryAllocator<pine::FixedAllocation, pine::FreeList> {
 public:
     using MemoryAllocator::MemoryAllocator;
 
@@ -13,7 +13,7 @@ public:
     template <class... Args>
     static KernelMemoryAllocator construct(Args&&... args)
     {
-        static auto sub_allocator = FixedAllocation::construct(forward<Args>(args)...);
+        static auto sub_allocator = pine::FixedAllocation::construct(pine::forward<Args>(args)...);
         return KernelMemoryAllocator { &sub_allocator };
     }
 
@@ -25,4 +25,4 @@ void kfree(void*);
 void* kmalloc(size_t) __attribute__((malloc));
 
 template <class Value>
-using KOwner = Owner<Value, KernelMemoryAllocator>;
+using KOwner = pine::Owner<Value, KernelMemoryAllocator>;

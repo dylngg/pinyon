@@ -5,6 +5,8 @@
 #include "types.hpp"
 #include "units.hpp"
 
+namespace pine {
+
 /*
  * Memory allocation here is done in a generic templated manner, allowing for
  * reuse between userspace and the kernel. Allocation is controlled with the
@@ -188,3 +190,5 @@ private:
 };
 
 using FixedHeapAllocator = MemoryAllocator<FixedAllocation, HighWatermarkManager>;
+
+}

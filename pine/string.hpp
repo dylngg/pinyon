@@ -5,6 +5,8 @@
 #include <pine/iter.hpp>
 #include <pine/types.hpp>
 
+namespace pine {
+
 size_t strcopy(char* to, const char* from);
 size_t strbufcopy(char* __restrict__ buf, size_t bufsize, const char* from);
 size_t strlen(const char* string);
@@ -44,3 +46,5 @@ private:
     const char* m_chars;
     const size_t m_length;
 };
+
+}

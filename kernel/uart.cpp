@@ -33,7 +33,7 @@ void UARTRegisters::reset()
 {
     // Memory barriers required when switching from one peripheral to another
     // See 1.3 in BCM2835 manual
-    MemoryBarrier barrier;
+    pine::MemoryBarrier barrier;
 
     /* Reset UART */
     cr = 0; // Reset
@@ -139,22 +139,22 @@ void UARTRegisters::set_read_irq(size_t read_size)
 {
     // See Section 13.4 IFLS for details; essentially we can select a trigger
     // at 1/8, 1/4, 1/2, and 7/8 full levels mapped to binary
-    u32 fifo_select_bits = min(read_size, 8u) >> 1; // read when we have as most as possible
-    overwrite_bit_range(ifls, fifo_select_bits, 3, 5);
+    u32 fifo_select_bits = pine::min(read_size, 8u) >> 1; // read when we have as most as possible
+    pine::overwrite_bit_range(ifls, fifo_select_bits, 3, 5);
 }
 
 void UARTRegisters::set_write_irq(size_t write_size)
 {
     // See Section 13.4 IFLS for details; essentially we can select a trigger
     // at 1/8, 1/4, 1/2, and 7/8 full levels mapped to binary
-    u32 fifo_select_bits = min(write_size, 8u) >> 1; // write when we have as most as possible
-    overwrite_bit_range(ifls, fifo_select_bits, 0, 2);
+    u32 fifo_select_bits = pine::min(write_size, 8u) >> 1; // write when we have as most as possible
+    pine::overwrite_bit_range(ifls, fifo_select_bits, 0, 2);
 }
 
 Pair<size_t, bool> UARTRegisters::try_read(char* buf, size_t bufsize)
 {
     // Barrier required between entry/exit points of peripheral; See 1.3 in BCM2835 manual
-    MemoryBarrier barrier;
+    pine::MemoryBarrier barrier;
 
     bool stopped_on_break = false;
     size_t offset = 0;
@@ -177,7 +177,7 @@ Pair<size_t, bool> UARTRegisters::try_read(char* buf, size_t bufsize)
 size_t UARTRegisters::try_write(const char* buf, size_t bufsize)
 {
     // Barrier required between entry/exit points of peripheral; See 1.3 in BCM2835 manual
-    MemoryBarrier barrier;
+    pine::MemoryBarrier barrier;
 
     size_t offset = 0;
     while (offset < bufsize && !(fr & (1 << UART_FR_TXFF))) {
@@ -282,7 +282,7 @@ void UARTResource::handle_irq(InterruptsDisabledTag)
         uart.set_read_irq(g_uart_resource->amount_left());
 }
 
-Maybe<KOwner<UARTResource>> UARTResource::try_request(char* buf, size_t bufsize, Options options)
+pine::Maybe<KOwner<UARTResource>> UARTResource::try_request(char* buf, size_t bufsize, Options options)
 {
     if (g_uart_resource) // Can only handle one request at a time
         panic("UART resource has already been acquired!");

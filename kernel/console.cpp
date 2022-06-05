@@ -8,7 +8,7 @@
 
 void console(const char* message)
 {
-    MemoryBarrier barrier;
+    pine::MemoryBarrier barrier;
     auto& uart = uart_registers();
     UARTRegisters::WriteInterruptMask mask { uart };
 
@@ -17,7 +17,7 @@ void console(const char* message)
 
 void consoleln(const char* message)
 {
-    MemoryBarrier barrier;
+    pine::MemoryBarrier barrier;
     auto& uart = uart_registers();
     UARTRegisters::WriteInterruptMask mask { uart };
 
@@ -30,7 +30,7 @@ void consolef(const char* fmt, ...)
     va_list args;
     va_start(args, fmt);
 
-    MemoryBarrier barrier;
+    pine::MemoryBarrier barrier;
     auto& uart = uart_registers();
     UARTRegisters::WriteInterruptMask mask { uart };
 
@@ -38,5 +38,5 @@ void consolef(const char* fmt, ...)
         uart.poll_write(message);
         return true;
     };
-    vfnprintf(try_add_wrapper, fmt, args);
+    pine::vfnprintf(try_add_wrapper, fmt, args);
 }

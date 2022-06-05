@@ -1,5 +1,7 @@
 #pragma once
 
+namespace pine {
+
 // Forces a data memory barrier on creation and destroy. This is only needed
 // when the underlying virtual memory map is not strongly ordered.
 class MemoryBarrier {
@@ -39,3 +41,5 @@ public:
         asm volatile("dsb");
     }
 };
+
+}

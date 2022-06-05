@@ -1,5 +1,7 @@
 #pragma once
 
+namespace pine {
+
 unsigned long absl(long num);
 
 unsigned int powui(unsigned int num, unsigned int power);
@@ -16,4 +18,6 @@ template <typename SizeType>
 constexpr const SizeType& min(const SizeType& first, const SizeType& second)
 {
     return (first < second) ? first : second;
+}
+
 }
