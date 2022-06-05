@@ -6,7 +6,7 @@
 
 void* FreeList::user_addr_from_node_ptr(SizeNode* node_ptr, size_t offset)
 {
-    return reinterpret_cast<void*>(reinterpret_cast<PtrData>(node_ptr + 1) + offset);
+    return reinterpret_cast<u8*>(node_ptr + 1) + offset;
 }
 
 FreeList::SizeNode* FreeList::construct_node(size_t region_size, void* node_location)
@@ -59,13 +59,13 @@ void FreeList::add(void* new_location, size_t new_size)
 
 FreeList::SizeNode* FreeList::node_ptr_from_user_addr(void* addr)
 {
-    return reinterpret_cast<SizeNode*>(addr) - 1;
+    return static_cast<SizeNode*>(addr) - 1;
 }
 
 bool FreeList::nodes_are_contiguous_in_memory(SizeNode* left_node_ptr, SizeNode* right_node_ptr)
 {
-    auto end_of_left_region = reinterpret_cast<PtrData>(user_addr_from_node_ptr(left_node_ptr)) + left_node_ptr->contents().reserved_size();
-    return end_of_left_region == reinterpret_cast<PtrData>(right_node_ptr);
+    auto end_of_left_region = reinterpret_cast<u8*>(user_addr_from_node_ptr(left_node_ptr)) + left_node_ptr->contents().reserved_size();
+    return end_of_left_region == reinterpret_cast<u8*>(right_node_ptr);
 }
 
 Pair<FreeList::SizeNode*, FreeList::SizeNode*> FreeList::try_find_neighboring_memory_nodes(SizeNode* node_ptr)
@@ -150,14 +150,14 @@ Pair<void*, AllocationStats> HighWatermarkManager::try_reserve(size_t requested_
     if (m_watermark + requested_size > m_end)
         return { nullptr, { 0, 0 } };
 
-    void* ptr = reinterpret_cast<void*>(m_watermark);
+    void* ptr = m_watermark;
     m_watermark += requested_size;
     return { ptr, requested_size };
 }
 
 void HighWatermarkManager::add(void* ptr, size_t size)
 {
-    m_start = reinterpret_cast<PtrData>(ptr);
+    m_start = reinterpret_cast<u8*>(ptr);
     m_watermark = m_start;
     m_end = m_start + size;
 }

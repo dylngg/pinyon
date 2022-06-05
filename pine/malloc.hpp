@@ -163,9 +163,9 @@ public:
     AllocationStats release(void*) { return { 0, 0}; }
 
 private:
-    PtrData m_start = 0;
-    PtrData m_watermark = 0;
-    PtrData m_end = 0;
+    u8* m_start = 0;
+    u8* m_watermark = 0;
+    u8* m_end = 0;
 };
 
 class FixedAllocation {

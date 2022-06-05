@@ -13,9 +13,9 @@ u32 syscall1(Syscall call, u32 arg1);
 u32 syscall2(Syscall call, u32 arg1, u32 arg2);
 }
 
-size_t read(char* buf, u32 bytes);
+size_t read(char* buf, size_t bytes);
 
-void write(char* buf, u32 bytes);
+void write(char* buf, size_t bytes);
 
 void yield();
 

@@ -17,15 +17,15 @@ namespace mmu {
 
 struct VirtualAddress {
     VirtualAddress(PtrData ptr)
-        : m_ptr(ptr) {};
+        : m_ptr(reinterpret_cast<u8*>(ptr)) {};
     VirtualAddress(void* ptr)
-        : m_ptr(reinterpret_cast<PtrData>(ptr)) {};
+        : m_ptr(reinterpret_cast<u8*>(ptr)) {};
 
     /* Note: Table entries are 4 bytes */
     int l1_index() const { return m_as.l1_table_index; }
     int l2_index() const { return m_as.l2_table_index; }
 
-    void* ptr() const { return reinterpret_cast<void*>(m_ptr); }
+    void* ptr() const { return m_ptr; }
 
     operator void*() const { return ptr(); }
 
@@ -37,7 +37,7 @@ private:
     };
     union {
         As m_as;
-        PtrData m_ptr;
+        u8* m_ptr;
     };
 };
 

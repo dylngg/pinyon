@@ -3,14 +3,14 @@
 #include <pine/string.hpp>
 #include <pine/units.hpp>
 
-size_t read(char* buf, u32 at_most_bytes)
+size_t read(char* buf, size_t at_most_bytes)
 {
     u32 bytes_read = syscall2(Syscall::Read, reinterpret_cast<u32>(buf), at_most_bytes - 1);
     buf[bytes_read] = '\0';
     return bytes_read;
 }
 
-void write(char* buf, u32 bytes)
+void write(char* buf, size_t bytes)
 {
     syscall2(Syscall::Write, reinterpret_cast<u32>(buf), bytes);
 }
