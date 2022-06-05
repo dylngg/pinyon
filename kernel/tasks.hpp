@@ -9,6 +9,11 @@
 #include <pine/memory.hpp>
 #include <pine/types.hpp>
 
+extern "C" {
+// In bootup.S
+u32 halt_addr();
+}
+
 struct Registers {
     explicit Registers(u32 user_sp, u32 kernel_sp, u32 user_pc, ProcessorMode user_mode)
         : cpsr(user_mode)
@@ -31,15 +36,9 @@ struct Registers {
         , r12(0)
         , pc(user_pc)
     {
-        // FIXME: Add userspace cleanup function
-        asm volatile("ldr %0, 1f"
-                     : "=r"(user_lr));
-        asm volatile("ldr %0, 2f"
-                     : "=r"(kernel_lr));
-
-        /* Place relative ldr pool behind this code */
-        asm volatile("1: .word  halt");
-        asm volatile("2: .word  task_kernel_return");
+        auto stop_addr = halt_addr();
+        user_lr = stop_addr;
+        kernel_lr = stop_addr;
     };
 
     CPSR cpsr;  // The CPSR to return to (either user or kernel, depending on if starting a task)
@@ -66,7 +65,7 @@ struct Registers {
 using IsSecondReturn = bool;
 
 extern "C" {
-// These are in switch.S
+// In switch.S
 void task_switch(Registers* to_save_registers, const Registers* new_registers);
 }
 

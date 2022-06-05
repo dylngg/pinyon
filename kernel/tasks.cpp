@@ -172,12 +172,9 @@ void TaskManager::start_scheduler(InterruptsDisabledTag disabled_tag)
 }
 
 extern "C" {
-[[noreturn]] void spin_task()
-{
-top:
-    asm volatile("wfi");
-    goto top;
-}
+u32 spin_addr();
+[[noreturn]] void spin();
+u32 shell_addr(); // forward declare; in userspace/shell.hpp
 }
 
 TaskManager::TaskManager()
@@ -189,12 +186,8 @@ TaskManager::TaskManager()
     // of a function via (void*) or (u32) casts... undefined behavior?
     //
     // Well anyways this is our hack
-    u32 spin_task_addr;
-    u32 shell_task_addr;
-    asm volatile("ldr %0, 1f"
-                 : "=r"(spin_task_addr));  // 1f -> 1: at end of func
-    asm volatile("ldr %0, 2f"
-                 : "=r"(shell_task_addr));  // 2f -> 2: at end of func
+    auto spin_task_addr = spin_addr();
+    auto shell_task_addr = shell_addr();
 
     auto maybe_task = Task::try_create("shell", shell_task_addr);
     PANIC_MESSAGE_IF(!maybe_task, "Could not create shell task! Out of memory?!");
@@ -209,10 +202,6 @@ TaskManager::TaskManager()
 
     m_num_tasks = 2;
     m_running_task_index = 0;
-
-    /* Place relative ldr pool behind this code */
-    asm volatile("1: .word  spin_task");
-    asm volatile("2: .word  shell");
 }
 
 TaskManager& task_manager()

@@ -91,4 +91,12 @@ void shell()
     printf("goodbye.\n");
     asm volatile("b halt");
 }
+
+u32 shell_addr() {
+    u32 addr;
+    asm volatile("ldr %0, =shell"
+                 : "=r"(addr));
+    return addr;
+}
+
 }

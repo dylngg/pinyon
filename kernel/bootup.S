@@ -2,6 +2,8 @@
 
 .global start
 .global halt
+.global halt_addr
+.global spin_addr
 
 start:
     /* -- Disable all but one core --*/
@@ -54,6 +56,7 @@ setup_mmu:
     mcr p15, 0, r2, c3, c0, 0   /* See B4.1.43; Set manager access (0b11) for domain 0 (we don't use domains currently) */
 
     mrc p15, 0, r3, c1, c0, 0   /* See B4.1.130; Enable MMU (first bit) in SCTLR */
+    dmb
     orr r3, #1
     mcr p15, 0, r3, c1, c0, 0
 
@@ -61,6 +64,24 @@ setup_mmu:
     ldr r1, =init
     blx r1
 
+spin:
 halt:
     wfi                 /* wait for interrupt; puts processor in low power mode */
     b halt
+
+/*
+ * C function that returns the code address of 'halt'.
+ *
+ * Used in place of 'ldr %0, =halt' elsewhere to get around literal pool
+ * locality issues.
+ */
+halt_addr:
+    ldr r0, =halt
+    bx lr
+
+/*
+ * C function that returns the code address of 'spin', similar to halt_addr.
+ */
+spin_addr:
+    ldr r0, =spin
+    bx lr
