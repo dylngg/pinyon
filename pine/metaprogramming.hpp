@@ -200,6 +200,9 @@ struct is_same_func<FirstValue, FirstValue> : truthy {
 template <class FirstValue, class SecondValue>
 constexpr bool is_same = is_same_func<FirstValue, SecondValue>();
 
+template <class Value, class... PossibleValues>
+constexpr bool is_one_of = (is_same<Value, PossibleValues> || ...); // c++17 expansion
+
 template <class Value>
 constexpr bool is_const = !is_same<remove_const<Value>, Value>;
 
@@ -229,10 +232,28 @@ constexpr bool is_rvalue = is_same<Value, Value&&>;
 template <class Value>
 constexpr bool is_function = !is_const<const Value> && !is_reference<Value>;
 
-// FIXME? https://en.cppreference.com/w/cpp/types/is_unsigned checks for
-//        T(0) < T(-1) instead of unsigned integer...
 template <class Value>
-constexpr bool is_unsigned = is_same<Value, make_unsigned<Value>>;
+constexpr bool is_integer = is_one_of<remove_cv<Value>, unsigned long long, long long, unsigned long, long, unsigned int, int, unsigned short, short, signed char, unsigned char, char, bool>;
+
+template <class Value>
+constexpr bool is_floating_point = is_one_of<remove_cv<Value>, float, double, long double>;
+
+template <class Value>
+constexpr bool is_arithmetic = is_integer<Value> || is_floating_point<Value>;
+
+// Checking if is_same<Value, make_unsigned<Value>> will not work here, if we
+// want an e.g. enum class that has an unsigned representation to work.
+template <class Value, bool = is_arithmetic<Value>>
+struct is_unsigned_impl : true_or_false_func< Value(0) < Value(-1)> {};
+
+template <class Value>
+struct is_unsigned_impl<Value, false> : falsey {};
+
+template <class Value>
+constexpr bool is_unsigned = is_unsigned_impl<Value>::value;
+
+template <class Value>
+constexpr bool is_signed = !is_unsigned<Value>;
 
 template <class>
 struct is_pointer_impl : falsey {
