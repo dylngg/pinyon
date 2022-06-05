@@ -43,4 +43,11 @@ void free(void*);
 
 void* malloc(size_t) __attribute__((malloc));
 
-pine::MallocStats memstats();
+struct MallocStats {
+    size_t heap_size = 0;
+    size_t used_size = 0;
+    u32 num_mallocs = 0;
+    u32 num_frees = 0;
+};
+
+MallocStats memstats();

@@ -41,8 +41,8 @@ void free_list_re_add()
     int i = 0;
     void* alloc_ptr = nullptr;
     do {
-        auto alloc_ptr_and_stats = free_list.try_reserve((size_t)16);
-        alloc_ptr = alloc_ptr_and_stats.first;
+        auto allocation = free_list.try_reserve((size_t)16);
+        alloc_ptr = allocation.ptr;
         ++i;
 
         if (alloc_ptr) {
@@ -54,16 +54,16 @@ void free_list_re_add()
     while (alloc_ptr != nullptr);
     assert(i > 8);  // bare minimum
 
-    auto alloc_ptr_and_stats = free_list.try_reserve(0);
-    alloc_ptr = alloc_ptr_and_stats.first;
+    auto allocation = free_list.try_reserve(0);
+    alloc_ptr = allocation.ptr;
     assert(alloc_ptr == nullptr);
 
-    alloc_ptr_and_stats = free_list.try_reserve(1);
-    alloc_ptr = alloc_ptr_and_stats.first;
+    allocation = free_list.try_reserve(1);
+    alloc_ptr = allocation.ptr;
     assert(alloc_ptr == nullptr);
 
-    alloc_ptr_and_stats = free_list.try_reserve(16);
-    alloc_ptr = alloc_ptr_and_stats.first;
+    allocation = free_list.try_reserve(16);
+    alloc_ptr = allocation.ptr;
     assert(alloc_ptr == nullptr);
 
     auto [new_ptr, __] = allocate_scratch_page();
@@ -71,8 +71,8 @@ void free_list_re_add()
 
     i = 0;
     do {
-        auto alloc_ptr_and_stats = free_list.try_reserve(15);
-        alloc_ptr = alloc_ptr_and_stats.first;
+        allocation = free_list.try_reserve(15);
+        alloc_ptr = allocation.ptr;
         ++i;
 
         if (alloc_ptr) {
@@ -84,15 +84,15 @@ void free_list_re_add()
     while (alloc_ptr != nullptr);
     assert(i > 8);  // bare minimum
 
-    alloc_ptr_and_stats = free_list.try_reserve(0);
-    alloc_ptr = alloc_ptr_and_stats.first;
+    allocation = free_list.try_reserve(0);
+    alloc_ptr = allocation.ptr;
     assert(alloc_ptr == nullptr);
 
-    alloc_ptr_and_stats = free_list.try_reserve(1);
-    alloc_ptr = alloc_ptr_and_stats.first;
+    allocation = free_list.try_reserve(1);
+    alloc_ptr = allocation.ptr;
     assert(alloc_ptr == nullptr);
 
-    alloc_ptr_and_stats = free_list.try_reserve(16);
-    alloc_ptr = alloc_ptr_and_stats.first;
+    allocation = free_list.try_reserve(16);
+    alloc_ptr = allocation.ptr;
     assert(alloc_ptr == nullptr);
 }

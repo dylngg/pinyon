@@ -20,73 +20,48 @@ namespace pine {
  * https://www.youtube.com/watch?v=LIb3L4vKZ7U
  */
 
-struct MallocStats {
-    size_t heap_size = 0;
-    size_t amount_requested = 0;
-    size_t amount_allocated = 0;
-    u32 num_mallocs = 0;
-    u32 num_frees = 0;
-};
-
-struct AllocationStats {
-    size_t requested_size = 0;
-    size_t allocated_size = 0;
+struct Allocation {
+    void* ptr = nullptr;
+    size_t size = 0;
 };
 
 class FreeList {
-
-    // Stores the size of the memory region belonging to it (inferred from
-    // 'this' pointer)
-    struct SizeData {
-        explicit SizeData(size_t requested_size, size_t reserved_size)
-            : m_requested_size(requested_size)
-            , m_reserved_size(reserved_size) {};
-        explicit SizeData(size_t reserved_size)
-            : m_requested_size(0)
-            , m_reserved_size(reserved_size) {};
-
-        void reserve(size_t requested_size) { m_requested_size = requested_size; }
-        void shrink_by(size_t size) { m_reserved_size -= size; }
-        void grow_by(size_t size) { m_reserved_size += size; }
-        size_t requested_size() const { return m_requested_size; }
-        size_t reserved_size() const { return m_reserved_size; }
-        size_t remaining_size() const { return reserved_size() - requested_size(); }
-
-    private:
-        size_t m_requested_size;
-        size_t m_reserved_size;
+    // Wrap size in padded struct to ensure alignment.
+    // e.g. LinkedList<size_t>::Node on ARM32 is 12 bytes, which is not 8
+    //      byte aligned
+    struct Header {
+        alignas(max_align_t) size_t size;
     };
-    using SizeNode = LinkedList<SizeData>::Node;
+    using HeaderNode = LinkedList<Header>::Node;
 
 public:
     FreeList() = default;
 
     static size_t preferred_size(size_t requested_size)
     {
-        return align_up_two(allocation_size(requested_size), PageSize);
+        return align_up_two(min_allocation_size(requested_size), PageSize);
     }
 
-    Pair<void*, AllocationStats> try_reserve(size_t);
+    Allocation try_reserve(size_t);
     void add(void*, size_t);
-    AllocationStats release(void*);
+    size_t release(void*);
 
 private:
-    constexpr static size_t allocation_size(size_t requested_size)
+    constexpr static size_t min_allocation_size(size_t requested_size)
     {
-        size_t alloc_size = align_up_two(requested_size, Alignment) + sizeof(SizeNode);
-        static_assert(is_aligned_two(sizeof(SizeNode), Alignment), "Free list header size is not aligned!");
+        size_t alloc_size = align_up_two(requested_size, Alignment) + sizeof(HeaderNode);
+        static_assert(is_aligned_two(sizeof(HeaderNode), Alignment), "Free list header size is not aligned!");
         return alloc_size;
     }
-    SizeNode* find_first_free_node(size_t);
-    Pair<SizeNode*, SizeNode*> try_find_neighboring_memory_nodes(SizeNode* node_ptr);
+    HeaderNode* find_first_free_node(size_t);
+    Pair<HeaderNode*, HeaderNode*> try_find_neighboring_memory_nodes(HeaderNode* node_ptr);
 
-    static void* user_addr_from_node_ptr(SizeNode* node_ptr, size_t offset = 0);
-    static SizeNode* node_ptr_from_user_addr(void* addr);
-    static bool nodes_are_contiguous_in_memory(SizeNode* left_node_ptr, SizeNode* right_node_ptr);
-    static void adopt_right_node_size(SizeNode* left_node_ptr, SizeNode* right_node_ptr);
-    static SizeNode* construct_node(size_t region_size, void* node_location);
+    static void* to_user_ptr(HeaderNode* node_ptr, size_t offset = 0);
+    static HeaderNode* to_node_ptr(void* addr);
+    static void adopt_right_node_size(HeaderNode* left_node_ptr, HeaderNode* right_node_ptr);
+    static HeaderNode* construct_node(size_t region_size, void* node_location);
 
-    LinkedList<SizeData> m_free_list;
+    LinkedList<Header> m_free_list;
 };
 
 /*
@@ -98,8 +73,7 @@ class MemoryAllocator {
 public:
     MemoryAllocator(SubMemoryAllocator* mem_allocator)
         : m_allocator(mem_allocator)
-        , m_manager()
-        , m_stats() {};
+        , m_manager() {};
 
     template <class... Args>
     static MemoryAllocator construct(Args&&... args)
@@ -110,37 +84,27 @@ public:
 
     Pair<void*, size_t> allocate(size_t requested_size)
     {
-        auto [ptr, alloc_stats] = m_manager.try_reserve(requested_size);
-        if (!ptr) {
+        auto allocation = m_manager.try_reserve(requested_size);
+        if (!allocation.ptr) {
             auto preferred_size = MemoryManager::preferred_size(requested_size);
             auto [allocated_ptr, allocated_size] = m_allocator->allocate(preferred_size);
             if (!allocated_ptr)
                 return { nullptr, 0 };
 
             m_manager.add(allocated_ptr, allocated_size);
-            m_stats.heap_size += allocated_size;
-
-            auto ptr_and_alloc_stats = m_manager.try_reserve(requested_size);
-            ptr = ptr_and_alloc_stats.first;
-            alloc_stats = ptr_and_alloc_stats.second;
+            allocation = m_manager.try_reserve(requested_size);
         }
 
-        m_stats.amount_requested += alloc_stats.requested_size;
-        m_stats.amount_allocated += alloc_stats.allocated_size;
-        m_stats.num_mallocs += ptr ? 1 : 0;
-
-        return { ptr, requested_size };
+        return { allocation.ptr, allocation.size };
     }
 
-    void free(void* ptr)
+    size_t free(void* ptr)
     {
         if (!ptr || !m_allocator->in_bounds(ptr))
-            return; // FIXME: assert?!
+            return 0; // FIXME: assert?!
 
-        auto [requested_size, freed_size] = m_manager.release(ptr);
-        m_stats.amount_requested -= requested_size;
-        m_stats.amount_allocated -= freed_size;
-        m_stats.num_frees++;
+        size_t size_freed = m_manager.release(ptr);
+        return size_freed;
     }
 
     bool in_bounds(void* ptr) const
@@ -148,21 +112,18 @@ public:
         return m_allocator->in_bounds(ptr);
     }
 
-    MallocStats stats() const { return m_stats; }
-
 private:
     SubMemoryAllocator* m_allocator;
     MemoryManager m_manager;
-    MallocStats m_stats;
 };
 
 class HighWatermarkManager {
 public:
     static size_t preferred_size(size_t requested_size) { return requested_size; }
 
-    Pair<void*, AllocationStats> try_reserve(size_t requested_size);
+    Allocation try_reserve(size_t requested_size);
     void add(void* ptr, size_t size);
-    AllocationStats release(void*) { return { 0, 0}; }
+    size_t release(void*) { return 0; }
 
 private:
     u8* m_start = 0;
@@ -180,7 +141,7 @@ public:
     static FixedAllocation construct(PtrData start, size_t size) { return { start, size }; }
 
     Pair<void*, size_t> allocate(size_t requested_size);
-    void free(void*);
+    size_t free(void*);
     bool in_bounds(void* ptr) const;
 
 private:

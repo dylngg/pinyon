@@ -68,6 +68,8 @@ void printf(const char* fmt, ...)
     free(print_buf);
 }
 
+static MallocStats g_malloc_stats;
+
 void* sbrk(size_t increase)
 {
     return reinterpret_cast<void*>(syscall1(Syscall::Sbrk, increase));
@@ -80,6 +82,7 @@ Pair<void*, size_t> HeapExtender::allocate(size_t requested_size)
     if (!heap_start_ptr)
         return {};
 
+    g_malloc_stats.heap_size += increase;
     return { heap_start_ptr, increase };
 }
 
@@ -91,19 +94,22 @@ TaskMemoryAllocator& mem_allocator()
 
 void* malloc(size_t requested_size)
 {
-    auto [ptr, _] = mem_allocator().allocate(requested_size);
+    auto [ptr, alloc_size] = mem_allocator().allocate(requested_size);
     if (!ptr)
         printf("malloc:\tNo free space available?!\n");
 
+    g_malloc_stats.used_size += alloc_size;
+    ++g_malloc_stats.num_mallocs;
     return ptr;
 }
 
 void free(void* ptr)
 {
-    mem_allocator().free(ptr);
+    g_malloc_stats.used_size -= mem_allocator().free(ptr);
+    ++g_malloc_stats.num_frees;
 }
 
 MallocStats memstats()
 {
-    return mem_allocator().stats();
+    return g_malloc_stats;
 }
