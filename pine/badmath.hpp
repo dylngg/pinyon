@@ -7,13 +7,13 @@ unsigned int powui(unsigned int num, unsigned int power);
 unsigned int log10ul(unsigned long num);
 
 template <typename SizeType>
-SizeType max(SizeType first, SizeType second)
+constexpr const SizeType& max(const SizeType& first, const SizeType& second)
 {
     return (first > second) ? first : second;
 }
 
 template <typename SizeType>
-SizeType min(SizeType first, SizeType second)
+constexpr const SizeType& min(const SizeType& first, const SizeType& second)
 {
     return (first < second) ? first : second;
 }
