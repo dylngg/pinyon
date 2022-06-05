@@ -93,7 +93,7 @@ public:
     bool operator==(const StringView& other) const;
     const char& operator[](size_t pos) const;
 
-    using ConstIter = SeqIter<const StringView, const char>;
+    using ConstIter = RandomAccessIter<const StringView, const char>;
     ConstIter begin() const { return ConstIter::begin(*this); }
     ConstIter end() const { return ConstIter::end(*this); }
 

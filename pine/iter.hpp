@@ -52,7 +52,7 @@ constexpr bool is_output_iter = static_cast<unsigned>(Iter::type) & static_cast<
  * The different iterators defined here fit different container patterns.
  *
  * In order for a container to use an iterator here, they should simply return
- * an Iter<Container, Value>::begin(*this) and Iter<Container, Value>::end(*this)
+ * an Iter<Container, Value>::begin(...) and Iter<Container, Value>::end(...)
  * in their begin() and end() methods and fufill the particular iterator
  * requirements (such as having a .length() and operator[] method).
  *
@@ -67,42 +67,73 @@ constexpr bool is_output_iter = static_cast<unsigned>(Iter::type) & static_cast<
  * that Wraps implements a .length() and operator[] method.
  */
 template <typename Wraps, typename Value>
-class SeqIter {
+class RandomAccessIter {
 public:
-    constexpr bool operator==(SeqIter other_iter) const { return m_pos == other_iter.m_pos; }
-    constexpr bool operator!=(SeqIter other_iter) const { return m_pos != other_iter.m_pos; }
-    SeqIter operator+(size_t offset) { return { m_wraps, m_pos + offset }; }
-    SeqIter& operator++() // prefix increment
+    constexpr bool operator==(RandomAccessIter other_iter) const { return m_pos == other_iter.m_pos; }
+    constexpr bool operator!=(RandomAccessIter other_iter) const { return m_pos != other_iter.m_pos; }
+    RandomAccessIter operator+(size_t offset) { return { *m_wraps, m_pos + offset }; }
+    RandomAccessIter& operator++() // prefix increment
     {
         m_pos++;
         return *this;
     }
-    SeqIter operator++(int) // postfix increment
+    RandomAccessIter operator++(int) // postfix increment
     {
         auto prev = *this;
         m_pos++;
         return prev;
     }
-    constexpr Value& operator*() { return m_wraps[m_pos]; };
-    constexpr const Value& operator*() const { return m_wraps[m_pos]; };
+    RandomAccessIter& operator+=(size_t offset)
+    {
+        m_pos += offset;
+        return *this;
+    }
+    size_t operator-(RandomAccessIter& other) { return m_pos - other.m_pos; }
+    RandomAccessIter& operator--() // prefix increment
+    {
+        m_pos--;
+        return *this;
+    }
+    RandomAccessIter operator--(int) // postfix increment
+    {
+        auto prev = *this;
+        m_pos--;
+        return prev;
+    }
+    RandomAccessIter& operator-=(size_t offset)
+    {
+        m_pos -= offset;
+        return *this;
+    }
+    Value& operator[](int index)
+    {
+        return (*m_wraps)[index];
+    };
+    const Value& operator[](int index) const
+    {
+        return (*m_wraps)[index];
+    };
+    constexpr Value& operator*() { return (*m_wraps)[m_pos]; };
+    constexpr const Value& operator*() const { return (*m_wraps)[m_pos]; };
 
-    constexpr bool at_end() const { return m_pos >= m_wraps.length(); }
+    constexpr bool at_end() const { return m_pos >= m_wraps->length(); }
+
     static constexpr IterType type = IterType::RandomAccess;
 
 private:
-    SeqIter(Wraps& wraps, size_t pos)
-        : m_wraps(wraps)
+    RandomAccessIter(Wraps& wraps, size_t pos)
+        : m_wraps(&wraps)
         , m_pos(pos)
     {
     }
     friend Wraps;
 
-    // The Wraps class' .begin() and .end() return iterators, so they are
+    // The Wraps class' .begin() and .end() return iterators, so these are
     // there from them
-    static SeqIter begin(Wraps& wraps) { return { wraps, 0 }; }
-    static SeqIter end(Wraps& wraps) { return { wraps, wraps.length() }; }
+    static RandomAccessIter begin(Wraps& wraps) { return { wraps, 0 }; }
+    static RandomAccessIter end(Wraps& wraps) { return { wraps, wraps.length() }; }
 
-    Wraps& m_wraps;
+    Wraps* m_wraps;
     size_t m_pos;
 };
 
