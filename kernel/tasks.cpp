@@ -1,5 +1,4 @@
 #include "tasks.hpp"
-#include "console.hpp"
 #include "interrupts.hpp"
 #include "kmalloc.hpp"
 #include "panic.hpp"

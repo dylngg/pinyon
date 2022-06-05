@@ -9,6 +9,19 @@
 
 extern "C" void init();
 
+/*
+ * operator delete is required with virtual destructors.
+ */
+void operator delete(void* ptr)
+{
+    panicf("operator delete got called! (new() doesn't exist?!): ptr %p", ptr);
+}
+
+void operator delete(void* ptr, size_t size)  // C++14 specialization
+{
+    panicf("operator delete got called! (new() doesn't exist?!): ptr %p, size %zu", ptr, size);
+}
+
 void init()
 {
     interrupts_init();
@@ -17,7 +30,7 @@ void init()
     console("memory ");
     console("timer ");
     timer_init();
-    consoleln("");
+    consoleln();
 
     // No good reason for this, beyond using new kmalloc calls
     char* pinyon = static_cast<char*>(kmalloc(19));

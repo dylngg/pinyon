@@ -105,10 +105,7 @@ private:
     void poll_write(const char*);
     void poll_write(const char*, size_t);
 
-    friend void console_readline(char*, size_t);
-    friend void console(const char*);
-    friend void console(const char*, size_t);
-    friend void consoleln(const char*);
+    friend class UARTPrinter;
     friend void consolef(const char*, ...);
     friend class UARTResource;
 

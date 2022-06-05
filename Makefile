@@ -15,7 +15,7 @@ OBJDIR=obj
 #                          don't produce thread-safe initialization of statics (normally required);
 #                          this static getter is used to get around the
 #                          https://isocpp.org/wiki/faq/ctors#static-init-order problem.
-ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -fno-threadsafe-statics -nostdlib
+ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -fno-threadsafe-statics -nostdlib -fno-rtti
 INCLUDE=-I.
 UBSAN_FLAGS=-fsanitize=undefined -fsanitize-undefined-trap-on-error
 # -Wconversion: Yes, it complains a lot about unnecessary stuff; but it is

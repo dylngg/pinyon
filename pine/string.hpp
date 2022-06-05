@@ -2,8 +2,10 @@
 // Note: this magic header comes from GCC's builtin functions
 //       https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#Other-Builtins
 #include <cstdarg>
-#include <pine/iter.hpp>
-#include <pine/types.hpp>
+#include "iter.hpp"
+#include "limits.hpp"
+#include "metaprogramming.hpp"
+#include "types.hpp"
 
 namespace pine {
 
@@ -19,11 +21,66 @@ enum class ToAFlag : int {
     Lower,
 };
 
-void itoa10(char* buf, int num);
-void uitoa10(char* buf, unsigned int num);
-void ltoa10(char* buf, long num);
-void ultoa10(char* buf, unsigned long num);
-void ultoa16(char* buf, unsigned long num, ToAFlag flag);
+template <typename Int, enable_if<is_integer<Int>, Int>* = nullptr>
+void to_strbuf(char* buf, size_t bufsize, Int num)
+{
+    if (bufsize < limits<Int>::digits + 1)
+        return;
+
+    Int absnum = num;
+    if constexpr (is_signed<Int>) {
+        if (num < 0) {
+            absnum = abs(num);
+            buf[0] = '-';
+            ++buf;
+        }
+    }
+
+    // FIXME: This function is not particularly efficient, partly thanks
+    //        to the following log madness and the overzealous %, pow and / below
+    Int len = log(absnum) + 1;
+    Int pos = 0;
+
+    for (; pos < len && static_cast<size_t>(pos) < bufsize - 1; pos++) {
+        // Basically we strip the leading digits till pos and then divide by
+        // the correct base to get the number.
+        // e.g. want 3 of 345 -> 345 % 10^3 (=345) / 10^2 (=3.45)
+        //           4 of 345 -> 345 % 10^2 (=45)  / 10^1 (=4.5)
+        //           5 of 345 -> 345 % 10^1 (=5)   / 10^0 (=5.0)
+        Int digit = (absnum % pow(static_cast<Int>(10), len - pos)) / pow(static_cast<Int>(10), len - pos - 1);
+        buf[pos] = static_cast<char>('0' + digit);
+    }
+    buf[pos] = '\0';
+}
+
+template <typename UInt, enable_if<is_unsigned<UInt>, UInt>* = nullptr>
+void to_strbuf_hex(char* buf, size_t bufsize, UInt num, ToAFlag flag)
+{
+    if (bufsize < limits<UInt>::digits + 1)
+        return;
+
+    buf[0] = '0';
+    buf[1] = 'x';
+    buf += 2;
+
+    int pos = 0;
+    for (; pos < 8; pos++)
+        buf[pos] = '0';
+
+    buf[8] = '\0';
+
+    pos = 7;
+    while (pos >= 0 && num > 0) {
+        int hex_num = num % 16;
+        if (hex_num < 10)
+            buf[pos] = static_cast<char>(hex_num + '0');
+        else
+            buf[pos] = static_cast<char>((hex_num - 10) + (flag == ToAFlag::Upper ? 'A' : 'a'));
+
+        num >>= 4; // divide by 16, but no need for division
+        pos--;
+    }
+}
 
 struct StringView {
 public:
@@ -41,6 +98,7 @@ public:
     ConstIter end() const { return ConstIter::end(*this); }
 
     size_t length() const { return m_length; }
+    const char* data() const { return m_chars; }
 
 private:
     const char* m_chars;

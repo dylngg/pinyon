@@ -2,7 +2,7 @@
 
 #include <pine/malloc.hpp>
 #include <pine/maybe.hpp>
-#include <pine/printf.hpp>
+#include <pine/print.hpp>
 #include <pine/types.hpp>
 #include <pine/syscall.hpp>
 

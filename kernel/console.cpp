@@ -2,27 +2,17 @@
 #include "uart.hpp"
 
 #include <pine/barrier.hpp>
-#include <pine/printf.hpp>
+#include <pine/print.hpp>
 #include <pine/string.hpp>
 #include <pine/types.hpp>
 
-void console(const char* message)
+void UARTPrinter::print(pine::StringView message)
 {
     pine::MemoryBarrier barrier;
     auto& uart = uart_registers();
     UARTRegisters::WriteInterruptMask mask { uart };
 
-    uart.poll_write(message);
-}
-
-void consoleln(const char* message)
-{
-    pine::MemoryBarrier barrier;
-    auto& uart = uart_registers();
-    UARTRegisters::WriteInterruptMask mask { uart };
-
-    uart.poll_write(message);
-    uart.poll_put('\n');
+    uart.poll_write(message.data());
 }
 
 void consolef(const char* fmt, ...)

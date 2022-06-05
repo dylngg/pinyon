@@ -1,8 +1,9 @@
 #include "string.hpp"
-#include <pine/printf.hpp>
+
 // Note: this magic header comes from GCC's builtin functions
 //       https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#Other-Builtins
 #include <cstdarg>
+#include <pine/print.hpp>
 #include <pine/math.hpp>
 #include <pine/types.hpp>
 
@@ -58,71 +59,6 @@ int strcmp(const char* first, const char* second)
         offset++;
     }
     return first[offset] != second[offset];
-}
-
-void itoa10(char* buf, int num)
-{
-    return ltoa10(buf, num);
-}
-
-void uitoa10(char* buf, unsigned int num)
-{
-    return ultoa10(buf, num);
-}
-
-void ltoa10(char* buf, long num)
-{
-    unsigned long absnum = absl(num);
-    if (num < 0) {
-        buf[0] = '-';
-        buf++;
-    }
-
-    ultoa10(buf, absnum);
-}
-
-void ultoa10(char* buf, unsigned long num)
-{
-    // FIXME: This function is not particularly efficient, partly thanks
-    //        to the following log madness and the overzealous %, pow and / below
-    unsigned int len = log10ul(num) + 1;
-    unsigned int pos = 0;
-
-    for (; pos < len; pos++) {
-        // Basically we strip the leading digits till pos and then divide by
-        // the correct base to get the number.
-        // e.g. want 3 of 345 -> 345 % 10^3 (=345) / 10^2 (=3.45)
-        //           4 of 345 -> 345 % 10^2 (=45)  / 10^1 (=4.5)
-        //           5 of 345 -> 345 % 10^1 (=5)   / 10^0 (=5.0)
-        unsigned int digit = static_cast<unsigned int>((num % powui(10, len - pos)) / powui(10, len - pos - 1));
-        buf[pos] = static_cast<char>('0' + digit);
-    }
-    buf[pos] = '\0';
-}
-
-void ultoa16(char* buf, unsigned long num, ToAFlag flag)
-{
-    buf[0] = '0';
-    buf[1] = 'x';
-    buf += 2;
-
-    int pos = 0;
-    for (; pos < 8; pos++)
-        buf[pos] = '0';
-
-    buf[8] = '\0';
-
-    pos = 7;
-    while (pos >= 0 && num > 0) {
-        int hex_num = num % 16;
-        if (hex_num < 10)
-            buf[pos] = static_cast<char>(hex_num + '0');
-        else
-            buf[pos] = static_cast<char>((hex_num - 10) + (flag == ToAFlag::Upper ? 'A' : 'a'));
-
-        num >>= 4; // divide by 16, but no need for division
-        pos--;
-    }
 }
 
 size_t sbufprintf(char* buf, size_t bufsize, const char* fmt, ...)
