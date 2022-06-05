@@ -1,7 +1,7 @@
-#include <cstdio>
-
 #include "twomath.hpp"
 #include "maybe.hpp"
+
+#include <pine/alien/print.hpp>  // Need access to our print() ADL implementations (analogus to std::cout)
 
 /*
  * Our poor mans test suite. Because trying to get boost test and google test
@@ -12,6 +12,7 @@
 
 int main()
 {
+    alien::errorln("Testing alignment");
     align_down_two();
     align_up_two();
     is_aligned_two();
@@ -19,10 +20,12 @@ int main()
     bit_width();
     align_down_to_power();
 
+    alien::errorln("Testing Maybe<>");
     maybe_basic();
     maybe_copy_assignment();
     maybe_copy_constructor();
     maybe_move_assignment();
     maybe_move_constructor();
-    printf("Success!\n");
+
+    alien::errorln("Success!");
 }
