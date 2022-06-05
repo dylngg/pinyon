@@ -1,7 +1,52 @@
 #pragma once
+#include "twomath.hpp"
 #include "types.hpp"
 
 namespace pine {
+
+/*
+ * The type of iterator; should be accessible with the 'type' static variable
+ * in the iterator.
+ */
+enum class IterType {
+    Output = 0b1,               // can be written to
+    Input = 0b10,               // can be read from
+    IO = 0b11,                  // can be read and written to
+    Forward = 0b110,            // can be read from and supports multiple passes
+    Bidirectional = 0b1110,     // can be read from, supports multiple passes and movement backwards
+    RandomAccess = 0b11110,     // can be read from, supports multiple passes, movement backwards, and random access
+};
+
+inline const char* to_static_string(IterType iter_type)
+{
+    switch (iter_type) {
+    case IterType::Input:
+        return "IterType::Input";
+    case IterType::Output:
+        return "IterType::Output";
+    case IterType::IO:
+        return "IterType::IO";
+    case IterType::Forward:
+        return "IterType::Forward";
+    case IterType::Bidirectional:
+        return "IterType::Bidirectional";
+    case IterType::RandomAccess:
+        return "IterType::RandomAccess";
+    }
+    return "IterType::<Unknown>!";
+}
+
+template <typename Iter>
+constexpr bool is_random_access_iter = static_cast<unsigned>(Iter::type) & (1u << (bit_width(static_cast<unsigned>(IterType::RandomAccess)) - 1));
+
+template <typename Iter>
+constexpr bool is_bidirectional_iter = static_cast<unsigned>(Iter::type) & (1u << (bit_width(static_cast<unsigned>(IterType::Bidirectional)) - 1));
+
+template <typename Iter>
+constexpr bool is_forward_iter = static_cast<unsigned>(Iter::type) & (1u << (bit_width(static_cast<unsigned>(IterType::Forward)) - 1));
+
+template <typename Iter>
+constexpr bool is_output_iter = static_cast<unsigned>(Iter::type) & static_cast<unsigned>(Iter::Output);
 
 /*
  * The different iterators defined here fit different container patterns.
@@ -42,6 +87,7 @@ public:
     constexpr const Value& operator*() const { return m_wraps[m_pos]; };
 
     constexpr bool at_end() const { return m_pos >= m_wraps.length(); }
+    static constexpr IterType type = IterType::RandomAccess;
 
 private:
     SeqIter(Wraps& wraps, size_t pos)
