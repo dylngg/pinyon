@@ -2,7 +2,7 @@
 
 pine::Maybe<Stack> Stack::try_create(size_t size)
 {
-    size_t allocated_size = pine::align_up_two(size, Page);
+    size_t allocated_size = pine::align_up_two(size, PageSize);
     u32* stack_ptr = static_cast<u32*>(kmalloc(allocated_size));
     if (!stack_ptr)
         return {};

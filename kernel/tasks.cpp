@@ -23,7 +23,7 @@ Task::Task(const char* name, Heap heap, Stack kernel_stack, Stack stack, u32 use
 
 pine::Maybe<Task> Task::try_create(const char* name, u32 pc)
 {
-    auto maybe_kernel_stack = Stack::try_create(8 * Page);
+    auto maybe_kernel_stack = Stack::try_create(8 * PageSize);
     if (!maybe_kernel_stack)
         return {};
 

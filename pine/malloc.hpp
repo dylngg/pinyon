@@ -63,7 +63,7 @@ public:
 
     static size_t preferred_size(size_t requested_size)
     {
-        return align_up_two(allocation_size(requested_size), Page);
+        return align_up_two(allocation_size(requested_size), PageSize);
     }
 
     Pair<void*, AllocationStats> try_reserve(size_t);

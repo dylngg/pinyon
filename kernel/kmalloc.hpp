@@ -4,6 +4,7 @@
 #include <pine/maybe.hpp>
 #include <pine/memory.hpp>
 #include <pine/types.hpp>
+#include <pine/units.hpp>
 
 class KernelMemoryAllocator : public pine::MemoryAllocator<pine::FixedAllocation, pine::FreeList> {
 public:

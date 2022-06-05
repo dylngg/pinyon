@@ -75,7 +75,7 @@ void* sbrk(size_t increase)
 
 Pair<void*, size_t> HeapExtender::allocate(size_t requested_size)
 {
-    size_t increase = align_up_two(requested_size, Page);
+    size_t increase = align_up_two(requested_size, PageSize);
     void* heap_start_ptr = sbrk(increase);
     if (!heap_start_ptr)
         return {};
