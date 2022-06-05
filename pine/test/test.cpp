@@ -1,4 +1,5 @@
 #include "twomath.hpp"
+#include "linked_list.hpp"
 #include "maybe.hpp"
 
 #include <pine/alien/print.hpp>  // Need access to our print() ADL implementations (analogus to std::cout)
@@ -12,6 +13,12 @@
 
 int main()
 {
+    alien::errorln("Testing LinkedList");
+    linked_list_create();
+    linked_list_iterate();
+    linked_list_append();
+    linked_list_remove();
+
     alien::errorln("Testing alignment");
     align_down_two();
     align_up_two();

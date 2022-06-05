@@ -1,11 +1,14 @@
 #pragma once
+
+#include <initializer_list>  // comes with -ffreestanding
+
 #include "iter.hpp"
 #include "types.hpp"
 #include "utility.hpp"
 
 namespace pine {
 
-template <class Content>
+template <class Content, class Allocator = void>  // creation+addition funcs disabled if Allocator not given
 class LinkedList {
 public:
     struct Node {
@@ -15,12 +18,21 @@ public:
         {
             new (&m_content_space) Content(content);
         }
+        template <typename... Args>
+        explicit Node(Args&&... args)
+            : m_next(nullptr)
+            , m_prev(nullptr)
+        {
+            new (&m_content_space) Content(forward<Args>(args)...);
+        }
 
         const Content& contents() const { return *reinterpret_cast<const Content*>(&m_content_space); }
         Content& contents() { return *reinterpret_cast<Content*>(&m_content_space); }
 
         Node* next() { return m_next; }
         Node* prev() { return m_prev; }
+        const Node* next() const { return m_next; }
+        const Node* prev() const { return m_prev; }
 
     private:
         friend class LinkedList;
@@ -30,54 +42,52 @@ public:
         alignas(Content) u8 m_content_space[sizeof(Content)];
     };
 
-    struct NodeIter {
-        // prefix increment
-        NodeIter& operator++()
+    /*
+     * Less than comparator for Node* contents.
+     */
+    struct Less {
+        bool operator()(const Node* first, const Content& second)
         {
-            m_node_ptr = m_node_ptr->next();
-            return *this;
+            return first->contents() < second;
         }
-        // postfix increment
-        NodeIter operator++(int)
-        {
-            auto iter = *this;
-            m_node_ptr = m_node_ptr->next();
-            return iter;
-        }
-
-        constexpr bool at_end() const { return m_node_ptr == nullptr; }
-
-        constexpr Node*& operator*() { return m_node_ptr; };
-        constexpr const Node*& operator*() const { return m_node_ptr; };
-
-        constexpr bool operator==(const NodeIter& other) const { return m_node_ptr == other.m_node_ptr; }
-        constexpr bool operator!=(const NodeIter& other) const { return !(*this == other); }
-
-    private:
-        NodeIter() = default;
-        NodeIter(Node* ptr)
-            : m_node_ptr(ptr) {};
-        friend class LinkedList;
-
-        Node* m_node_ptr = nullptr;
     };
 
+
     LinkedList() = default;
-
-    void append(Node* new_node_ptr)
+    LinkedList(std::initializer_list<Content> contents)
+        : LinkedList()
     {
-        m_length++;
-        if (!m_head) {
-            m_head = m_tail = new_node_ptr;
-            return;
-        }
+        for (auto content : contents)
+            emplace(content);
+    };
 
-        m_tail->m_next = new_node_ptr;
-        new_node_ptr->m_prev = m_tail;
-        m_tail = new_node_ptr;
+    // FIXME: Implement these + destructor
+    LinkedList(const LinkedList&) = delete;
+    LinkedList(LinkedList&&) = delete;
+
+    template <typename... Args>
+    Node* emplace(Args&&... args)
+    {
+        auto [ptr, _] = Allocator::allocator().allocate(sizeof(Node));
+        if (!ptr)
+            return nullptr;
+
+        auto* node = new (ptr) Node(forward<Args>(args)...);
+        append_node(node);
+        return node;
     }
 
-    void detach(Node* node_ptr)
+    void append_node(Node* new_node_ptr)
+    {
+        insert_after(new_node_ptr, m_tail);
+    }
+
+    Node* append(const Content& content)
+    {
+        return emplace(content);
+    }
+
+    void remove(Node* node_ptr)
     {
         m_length--;
         auto* prev = exchange(node_ptr->m_prev, nullptr);
@@ -96,8 +106,33 @@ public:
 
     size_t length() const { return m_length; }
 
-    NodeIter begin() { return NodeIter(m_head); }
-    NodeIter end() { return NodeIter(); }
+    using Iter = PtrIter<LinkedList<Content, Allocator>, Node*>;
+    Iter begin() { return Iter::begin(m_head, m_tail); }
+    Iter end() { return Iter::end(m_tail); }
+
+    using ConstIter = PtrIter<LinkedList<Content, Allocator>, const Node*>;
+    ConstIter begin() const { return Iter::begin(m_head, m_tail); }
+    ConstIter end() const { return Iter::end(m_tail); }
+
+protected:
+    void insert_after(Node* new_node_ptr, Node* after_node_ptr)
+    {
+        m_length++;
+        if (!m_head) {  // either m_head and m_tail are non-null or both are null
+            m_head = m_tail = new_node_ptr;
+            return;
+        }
+
+        new_node_ptr->m_prev = after_node_ptr;
+        Node* next = exchange(after_node_ptr->m_next, new_node_ptr);
+        if (next) {
+            new_node_ptr->m_next = next;
+            next->m_prev = new_node_ptr;
+        }
+        else {
+            m_tail = new_node_ptr;
+        }
+    }
 
 private:
     Node* m_head = nullptr;

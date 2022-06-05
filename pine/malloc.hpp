@@ -77,7 +77,7 @@ private:
         static_assert(is_aligned_two(sizeof(SizeNode), Alignment), "Free list header size is not aligned!");
         return alloc_size;
     }
-    SizeNode* try_pick_free_node(size_t);
+    SizeNode* find_first_free_node(size_t);
     Pair<SizeNode*, SizeNode*> try_find_neighboring_memory_nodes(SizeNode* node_ptr);
 
     static void* user_addr_from_node_ptr(SizeNode* node_ptr, size_t offset = 0);

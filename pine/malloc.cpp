@@ -16,7 +16,7 @@ FreeList::SizeNode* FreeList::construct_node(size_t region_size, void* node_loca
     return new (node_location) SizeNode(SizeData(region_size - sizeof(SizeNode)));
 }
 
-FreeList::SizeNode* FreeList::try_pick_free_node(size_t min_size)
+FreeList::SizeNode* FreeList::find_first_free_node(size_t min_size)
 {
     for (auto* node_ptr : m_free_list)
         if (min_size <= node_ptr->contents().reserved_size())
@@ -27,7 +27,7 @@ FreeList::SizeNode* FreeList::try_pick_free_node(size_t min_size)
 
 Pair<void*, AllocationStats> FreeList::try_reserve(size_t requested_size)
 {
-    auto* node_ptr = try_pick_free_node(requested_size);
+    auto* node_ptr = find_first_free_node(requested_size);
     if (!node_ptr)
         return { nullptr, {} };
 
@@ -41,10 +41,10 @@ Pair<void*, AllocationStats> FreeList::try_reserve(size_t requested_size)
 
         auto* remaining_location = user_addr_from_node_ptr(node_ptr, free_size_data.reserved_size());
         auto* new_node_ptr = construct_node(aligned_remaining_size, remaining_location);
-        m_free_list.append(new_node_ptr);
+        m_free_list.append_node(new_node_ptr);
     }
 
-    m_free_list.detach(node_ptr);
+    m_free_list.remove(node_ptr);
 
     AllocationStats alloc_stats {
         free_size_data.requested_size(),
@@ -56,7 +56,7 @@ Pair<void*, AllocationStats> FreeList::try_reserve(size_t requested_size)
 void FreeList::add(void* new_location, size_t new_size)
 {
     auto* new_node_ptr = construct_node(new_size, new_location);
-    m_free_list.append(new_node_ptr);
+    m_free_list.append_node(new_node_ptr);
 }
 
 FreeList::SizeNode* FreeList::node_ptr_from_user_addr(void* addr)
@@ -117,12 +117,12 @@ AllocationStats FreeList::release(void* ptr)
         adopt_right_node_size(node_ptr, right_node_ptr);
         size_freed += sizeof(SizeNode);
 
-        m_free_list.detach(right_node_ptr); // no longer free memory; belongs to node
+        m_free_list.remove(right_node_ptr); // no longer free memory; belongs to node
         right_node_ptr->~SizeNode();
     }
 
     if (!was_adopted)
-        m_free_list.append(node_ptr);
+        m_free_list.append_node(node_ptr);
 
     return { requested_size, size_freed };
 }
