@@ -1,7 +1,8 @@
 #!/bin/sh
 sleep 10
-echo "uptime"
+printf "mem"
 sleep 1
+echo "stat"
 printf "upt"
 sleep 0.2
 printf "ime\n"
