@@ -1,4 +1,5 @@
 .section .boot
+
 .global start
 .global halt
 
@@ -38,9 +39,8 @@ ckzbssbnds:
     blo zbss            /* r2 < r7; r2 is curr addr, r7 is the end of bss */
 
 preinit:
-    bl setup_vtable     /* Set up vector interrupt table */
-
-    mov sp, #0xb000     /* Set up stack (8KiB); after IRQ and abort stacks. See setup_vtable in vector.S. */
+    bl setup_vtable
+    bl setup_stacks
 
 setup_mmu:
     ldr r0, =__code_end

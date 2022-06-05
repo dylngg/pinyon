@@ -79,6 +79,8 @@ void fast_irq_handler(void)
 
 void irq_handler(void)
 {
+    bool should_reschedule = false;
+
     // Interrupts are disabled in the IRQ handler, and enabled on exit; see vector.S
     auto disabled_tag = InterruptsDisabledTag::promise();
     auto& irq = interrupt_registers();
@@ -88,11 +90,13 @@ void irq_handler(void)
     //        should be quick.
     if (irq.timer_pending()) {
         system_timer().handle_irq(disabled_tag);
-        task_manager().schedule(disabled_tag);
+        should_reschedule = true;
     }
-    if (irq.uart_pending()) {
+    if (irq.uart_pending())
         UARTResource::handle_irq(disabled_tag);
-    }
+
+    if (should_reschedule)
+        task_manager().schedule(disabled_tag);
 }
 }
 

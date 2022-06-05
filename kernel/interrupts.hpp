@@ -2,6 +2,9 @@
 #include <pine/types.hpp>
 #include <pine/syscall.hpp>
 
+#include "panic.hpp"
+#include "processor.hpp"
+
 /*
  * The Rasbperry Pi has 72 IRQs. It is particularly weird because the GPU
  * shares interrupts with the CPU. Also, documentation in the BCM2835 manual

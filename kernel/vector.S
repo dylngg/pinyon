@@ -1,6 +1,13 @@
 .section .text
 .global setup_vtable
+.global setup_stacks
 .global enable_irq
+
+/* FIXME? These should just be macros? We don't change them anywhere. */
+super_sp = 0xb000
+irq_sp = 0x3000
+abort_sp = 0x2000
+undef_sp = 0x1000
 
 setup_vtable:
     ldr r0, =vtable
@@ -29,23 +36,24 @@ setup_vtable:
     ldmia r0!, {r2-r8}
     stmia r1!, {r2-r8}
 
+setup_stacks:
     /* Each mode, including IRQ mode, has their own stack. We'll use this to save
      * registers in the IRQ handler.
      *
      * WARNING! If stacks are changed, you will need to modify bootup.S and linker.ld
      */
+    mov sp, #super_sp   /* Set up stack (8KiB); after IRQ and abort stacks. */
     cps #0x12           /* Enter IRQ mode */
-    mov sp, #0x3000     /* Small IRQ stack of 4KiB since we switch to supervisor mode after an IRQ anyways... */
+    mov sp, #irq_sp      /* Small IRQ stack of 4KiB; we don't do much processing */
     cps #0x17           /* Enter Abort mode */
-    mov sp, #0x2000     /* Small Abort mode stack of 4KiB */
+    mov sp, #abort_sp    /* Small Abort mode stack of 4KiB */
     cps #0x1b           /* Enter Undefined instruction mode */
-    mov sp, #0x1000     /* Small Undefined mode stack of ~4KiB (minus vector table size) */
+    mov sp, #undef_sp    /* Small Undefined mode stack of ~4KiB (minus vector table size) */
     cps #0x13           /* Go back to supervisor mode */
     bx lr
 
 enable_irq:
     cpsie i             /* Enable IRQ interrupts */
-    dmb
     bx lr
 
     /*
@@ -78,14 +86,15 @@ undefined_instruction_wrap:
     /*
      * We hit an undefined instruction and are switched to undefined mode. The
      * processor has saved the old PC into LR, and the old LR is saved into the
-     * old mode's LR. the old CPSR is also saved into this mode's SPSR.
+     * old mode's LR. The SP is this mode's SP. The old CPSR is also saved into
+     * this mode's SPSR.
      */
-    mrs r0, spsr            /* Save the old SPSR into arg1 */
-    mov r1, lr              /* Save the old PC into arg2 */
-    bic r3, r0, #0x7fffffe0 /* Get the current mode */
-    msr cpsr, r3            /* Switch back to that mode */
-    mov r2, lr              /* Save old LR into arg3 */
-    cps #0x1b               /* Go back to undefined mode */
+    mrs r0, spsr            /* arg1 (SPSR) */
+    mov r1, lr              /* arg2 (old PC) */
+    bic r3, r0, #0x7fffffe0 /* shadow mode */
+    msr cpsr, r3
+    mov r2, lr              /* arg3 (old LR) */
+    cps #0x1b               /* undefined mode */
     bl undefined_instruction_handler
     b halt
 
@@ -93,57 +102,36 @@ irq_wrap:
     /*
      * We are interrupting a task in IRQ mode. The processor has saved the old
      * PC into LR, and the old LR is saved in the old mode's LR. The old CPSR
-     * is also saved into this mode's SPSR, so we'll have to save that upon
-     * restoration. Also, interrupts are disabled.
-     *
-     * It should be noted that each mode also has their own stack, but this
-     * feature is not presently used.
-     *
-     * The following slide deck found on the internet is extremely useful:
-     * http://s3-us-west-2.amazonaws.com/valpont/uploads/20160326012043/Exception_handling.pdf
+     * is also saved into this mode's SPSR. The SP is this mode's SP (whatever
+     * it last was). Also, interrupts are disabled.
      *
      * See also B1.8.3 in ARMv7 Reference Manual
      */
-    sub lr, lr, #4          /* LR points to next instruction; undo that quirk */
-    srsdb #0x13!            /* Save SPRS and LR on the supervisor stack */
-    cps #0x13               /* Switch to supervisor mode */
-    push {r0-r4, r12, lr}   /* Save caller registers for irq_handler call */
-    and r4, sp, #4          /* Align the stack to 8 bytes; this works because the SP is _always_ aligned to 4 bytes */
-    sub sp, sp, r4
+    sub lr, #4              /* LR points to next instruction */
+    srsdb sp!, #0x13        /* Save LR and SPSR onto supervisor stack */
+    cpsid i, #0x13          /* Switch to supervisor mode, clobbering LR but retrieving kernel SP */
+    push {r0-r3, r12}
     bl irq_handler
-    add sp, sp, r4          /* Undo stack alignment */
-    pop {r0-r4, r12, lr}
-    cpsie i                 /* Reenable interrupts so we don't get stuck in that task */
+    pop {r0-r3, r12}
     rfeia sp!               /* Return to LR, restore SPRS into CPRS (e.g. returns back to old mode) */
 
 swi_wrap:
     /*
-     * At this point we are in supervisor mode, so SP is our supervisor stack
-     * and LR is our supervisor link register*, which points to after the SWI
-     * instruction. If we want to get the number assicated with the SWI, we
-     * basically have to load the SWI instruction (LR-4) into a register and
-     * mask off the last 8 bits (the opcode, bits 31-24). Also, interrupts are
-     * disabled.
+     * We are responding to a task syscall (called from user mode). The
+     * processor has saved the old PC into LR, and the old LR is saved in the
+     * old mode's LR. The old CPSR is also saved into this mode's SPSR, so
+     * we'll have to save that upon restoration. Also, interrupts are disabled.
      *
      * Notably, we do not have to do as much register saving as the IRQ handler
      * as this is a voluntary call from a task; we can assume they are
      * following the C ABI calling conventions.
-     *
-     * *Of note is the fact that tasks currently live in supervisor mode; this
-     *  means the old LR is clobbered by the saving of LR into the calling
-     *  mode's LR register. So, LR must be preserved by tasks before a SWI.
-     *
-     * The following docs were useful:
-     * https://heyrick.eu/assembler/swi.html
-     * https://iitd-plos.github.io/col718/ref/arm-instructionset.pdf
-     * https://github.com/ARM-software/abi-aa/releases/download/2021Q3/aapcs32.pdf
      */
-    // FIXME: Switch back to old CPSR; we can get away with it right now because we never drop privs
-    push {r4, r12, lr}      /* Save callee registers we are using; r0-r3 are syscall args */
+    srsdb sp!, #0x13        /* Save LR and SPSR */
+    push {r12}              /* r12 caller saved register (r0-r3 are syscall args) */
     cpsie i                 /* Re-enable interrupts; allow for interrupt nesting to occur */
-    and r4, sp, #4          /* Align the stack to 8 bytes; this works because the SP is _always_ aligned to 4 bytes */
-    sub sp, sp, r4
     bl software_interrupt_handler
-    add sp, sp, r4          /* Undo stack alignment */
-    pop {r4, r12, lr}       /* Restore callee registers; Return value in r0 and r1 */
-    bx lr
+    pop {r12}
+    mov r1, #0              /* r0 is used as return value; we shouldn't leak for the rest */
+    mov r2, #0
+    mov r3, #0
+    rfeia sp!               /* Return to LR, restore SPRS into CPRS (e.g. returns back to old mode) */

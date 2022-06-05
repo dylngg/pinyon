@@ -8,13 +8,14 @@
 #include <pine/string.hpp>
 #include <pine/units.hpp>
 
-Task::Task(const char* name, Heap heap, u32 stack_pointer, u32 pc)
-    : m_sp(stack_pointer)
-    , m_pc(pc)
-    , m_sleep_end_time(0)
-    , m_name(name)
+Task::Task(const char* name, Heap heap, Stack kernel_stack, Stack stack, u32 user_pc, ProcessorMode user_mode)
+    : m_name(name)
     , m_state(State::New)
+    , m_kernel_stack(move(kernel_stack))
+    , m_stack(move(stack))
+    , m_registers(m_stack.sp(), m_kernel_stack.sp(), user_pc, user_mode)
     , m_heap(heap)
+    , m_sleep_end_time(0)
     , m_jiffies_when_scheduled(0)
     , m_cpu_jiffies(0)
     , m_maybe_uart_resource()
@@ -23,12 +24,13 @@ Task::Task(const char* name, Heap heap, u32 stack_pointer, u32 pc)
 
 Maybe<Task> Task::try_create(const char* name, u32 pc)
 {
-    size_t stack_size = 4 * MiB;
-    auto* stack_ptr = kmalloc(stack_size);
-    if (!stack_ptr)
+    auto maybe_kernel_stack = Stack::try_create(8 * Page);
+    if (!maybe_kernel_stack)
         return {};
 
-    auto sp = reinterpret_cast<u32>(stack_ptr) + stack_size;
+    auto maybe_stack = Stack::try_create(2 * MiB);
+    if (!maybe_stack)
+        return {};
 
     size_t heap_size = 4 * MiB;
     auto* heap_ptr = kmalloc(heap_size);
@@ -38,29 +40,28 @@ Maybe<Task> Task::try_create(const char* name, u32 pc)
     auto heap_ptr_data = reinterpret_cast<PtrData>(heap_ptr);
     Heap heap = Heap::construct(heap_ptr_data, heap_ptr_data + heap_size);
 
-    return Task { name, heap, sp, pc };
+    return Task {
+        name,
+        heap,
+        move(*maybe_kernel_stack),
+        move(*maybe_stack),
+        pc,
+        ProcessorMode::User
+    };
 }
 
 void Task::switch_to(Task& to_run_task, InterruptsDisabledTag tag)
 {
     m_cpu_jiffies += jiffies() - m_jiffies_when_scheduled;
-    if (to_run_task.has_not_started())
-        to_run_task.start(&m_sp, tag);
-    else
-        to_run_task.resume(&m_sp, tag);
+    to_run_task.start(&m_registers, tag);
 }
 
-void Task::start(u32* prev_task_sp_ptr, InterruptsDisabledTag)
+void Task::start(Registers* to_save_registers, InterruptsDisabledTag)
 {
-    m_state = State::Runnable; // move away from New state
+    m_state = State::Runnable;  // move away from New state if new
     m_jiffies_when_scheduled = jiffies();
-    task_start(prev_task_sp_ptr, m_pc, m_sp);
-}
 
-void Task::resume(u32* prev_task_sp_ptr, InterruptsDisabledTag)
-{
-    m_jiffies_when_scheduled = jiffies();
-    task_resume(prev_task_sp_ptr, m_sp);
+    task_switch(to_save_registers, &m_registers);
 }
 
 void Task::sleep(u32 secs)
@@ -168,10 +169,7 @@ void TaskManager::schedule(InterruptsDisabledTag disabled_tag)
 
 void TaskManager::start_scheduler(InterruptsDisabledTag disabled_tag)
 {
-    // When we start, we save the previous task's SP into the task object; we
-    // are starting afresh, so just put it in a dummy variable
-    u32 dummy_old_sp;
-    m_tasks[0].start(&dummy_old_sp, disabled_tag);
+    m_tasks[0].start(nullptr, disabled_tag);
 }
 
 extern "C" {
@@ -194,10 +192,10 @@ TaskManager::TaskManager()
     // Well anyways this is our hack
     u32 spin_task_addr;
     u32 shell_task_addr;
-    asm volatile("ldr %0, =spin_task"
-                 : "=r"(spin_task_addr));
-    asm volatile("ldr %0, =shell"
-                 : "=r"(shell_task_addr));
+    asm volatile("ldr %0, 1f"
+                 : "=r"(spin_task_addr));  // 1f -> 1: at end of func
+    asm volatile("ldr %0, 2f"
+                 : "=r"(shell_task_addr));  // 2f -> 2: at end of func
 
     auto maybe_task = Task::try_create("shell", shell_task_addr);
     PANIC_MESSAGE_IF(!maybe_task, "Could not create shell task! Out of memory?!");
@@ -212,6 +210,10 @@ TaskManager::TaskManager()
 
     m_num_tasks = 2;
     m_running_task_index = 0;
+
+    /* Place relative ldr pool behind this code */
+    asm volatile("1: .word  spin_task");
+    asm volatile("2: .word  shell");
 }
 
 TaskManager& task_manager()
