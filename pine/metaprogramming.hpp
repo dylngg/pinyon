@@ -95,6 +95,17 @@ using remove_volatile = typename remove_volatile_func<Value>::type;
 template <class Value>
 using remove_cv = remove_const<remove_volatile<Value>>;
 
+template <class Value>
+struct remove_ptr_func {
+    using type = Value;
+};
+template <class Value>
+struct remove_ptr_func<Value*> {
+    using type = Value;
+};
+template <class Value>
+using remove_ptr = typename remove_ptr_func<remove_cv<Value>>::type;
+
 template <class Value>  // e.g. floating point types
 struct make_unsigned_func {
     using type = void;
@@ -222,6 +233,19 @@ constexpr bool is_function = !is_const<const Value> && !is_reference<Value>;
 //        T(0) < T(-1) instead of unsigned integer...
 template <class Value>
 constexpr bool is_unsigned = is_same<Value, make_unsigned<Value>>;
+
+template <class>
+struct is_pointer_impl : falsey {
+};
+template <class Value>
+struct is_pointer_impl<Value*> : truthy {
+};
+template <class Value>
+struct is_pointer_func : is_pointer_impl<remove_cv<Value>> {
+};
+
+template <class Value>
+constexpr bool is_pointer = is_pointer_func<Value>::value;
 
 // Here, we use the void_t trick but since Args... prevents a default template,
 // parameter we'll kick that responsibility our constexpr bool alias
