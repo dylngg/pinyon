@@ -3,7 +3,7 @@
 // Note: this magic header comes from GCC's builtin functions
 //       https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#Other-Builtins
 #include <cstdarg>
-#include <pine/badmath.hpp>
+#include <pine/math.hpp>
 #include <pine/types.hpp>
 
 namespace pine {

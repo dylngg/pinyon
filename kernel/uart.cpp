@@ -3,7 +3,7 @@
 #include "kmalloc.hpp"
 #include "panic.hpp"
 
-#include <pine/badmath.hpp>
+#include <pine/math.hpp>
 #include <pine/barrier.hpp>
 #include <pine/twomath.hpp>
 
