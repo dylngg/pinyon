@@ -11,17 +11,20 @@ void* memcpy(void* __restrict__ to, const void* __restrict__ from, size_t size)
 {
     unsigned char* _to = (unsigned char*)to;
     unsigned char* _from = (unsigned char*)from;
-    while (size-- > 0)
+    while (size-- > 0) {
         *_to = *_from;
+        _to++;
+        _from++;
+    }
 
-    return const_cast<void*>(from);
+    return to;
 }
 
 void* memset(void* to, int c, size_t size)
 {
     unsigned char* _to = (unsigned char*)to;
     unsigned char c_ = (unsigned char)c;
-    for (size_t i = 0; i < size; i++)
+    while (size-- > 0)
         *_to++ = c_;
 
     return to;
