@@ -29,7 +29,7 @@ Pair<void*, AllocationStats> FreeList::try_reserve(size_t requested_size)
 {
     auto* node_ptr = try_pick_free_node(requested_size);
     if (!node_ptr)
-        return { nullptr, 0 };
+        return { nullptr, {} };
 
     auto& free_size_data = node_ptr->contents();
     free_size_data.reserve(requested_size);
@@ -154,7 +154,7 @@ Pair<void*, AllocationStats> HighWatermarkManager::try_reserve(size_t requested_
 
     void* ptr = m_watermark;
     m_watermark += requested_size;
-    return { ptr, requested_size };
+    return { ptr, AllocationStats { requested_size, requested_size } };
 }
 
 void HighWatermarkManager::add(void* ptr, size_t size)

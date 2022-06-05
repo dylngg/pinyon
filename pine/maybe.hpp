@@ -29,7 +29,16 @@ struct Maybe : private ConditionallyCopyable<Value>, private ConditionallyMovabl
     constexpr static Maybe Not() { return {}; }
 
     // ctor: e.g. int i = 0; Maybe<Value> maybe { i };
-    constexpr Maybe(const Value& value)
+    template<class Convert, enable_if<is_implicitly_convertible<Convert, Value>>* = nullptr>
+    constexpr Maybe(const Convert& value)
+        : m_has_value(true)
+    {
+        new (&m_value_space) Value(value);
+    }
+    // Make explicit if the given type can be converted to Value
+    // https://devblogs.microsoft.com/cppblog/c20s-conditionally-explicit-constructors/
+    template<class Convert, enable_if<!is_implicitly_convertible<Convert, Value>>* = nullptr>
+    constexpr explicit Maybe(const Convert& value)
         : m_has_value(true)
     {
         new (&m_value_space) Value(value);
