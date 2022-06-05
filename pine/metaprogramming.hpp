@@ -224,8 +224,21 @@ constexpr bool is_array = is_array_func<Value>::value;
 template <class Value>
 constexpr bool is_reference = !is_same<remove_ref<Value>, Value>;
 
+template <typename Value>
+struct is_lvalue_impl : falsey {};
+template <typename Value>
+struct is_lvalue_impl<Value&> : truthy {};
+
 template <class Value>
-constexpr bool is_rvalue = is_same<Value, Value&&>;
+constexpr bool is_lvalue = is_lvalue_impl<Value>::value;
+
+template <typename Value>
+struct is_rvalue_impl : falsey {};
+template <typename Value>
+struct is_rvalue_impl<Value&&> : truthy {};
+
+template <class Value>
+constexpr bool is_rvalue = is_rvalue_impl<Value>::value;
 
 // See https://en.cppreference.com/w/cpp/types/is_function; this is a clever
 // and cleaner way to implement is_function than some (boost) implementations:
@@ -244,7 +257,7 @@ constexpr bool is_arithmetic = is_integer<Value> || is_floating_point<Value>;
 // Checking if is_same<Value, make_unsigned<Value>> will not work here, if we
 // want an e.g. enum class that has an unsigned representation to work.
 template <class Value, bool = is_arithmetic<Value>>
-struct is_unsigned_impl : true_or_false_func< Value(0) < Value(-1)> {};
+struct is_unsigned_impl : true_or_false_func<Value(0) < Value(-1)> {};
 
 template <class Value>
 struct is_unsigned_impl<Value, false> : falsey {};
