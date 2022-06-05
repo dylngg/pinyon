@@ -1,6 +1,7 @@
 #include "shell.hpp"
 #include "lib.hpp"
 
+#include <pine/badmath.hpp>
 #include <pine/units.hpp>
 
 static void builtin_memstat()
@@ -24,7 +25,7 @@ static void builtin_uptime()
     auto uptime_jiffies = uptime();
     auto uptime_seconds = uptime_jiffies >> SYS_HZ_BITS;
     auto cputime_jiffies = cputime();
-    auto cpu_usage = cputime_jiffies * 100 / uptime_jiffies;
+    auto cpu_usage = cputime_jiffies * 100 / max(uptime_jiffies, 1lu);
     printf("up %lds, usage: %lu%% (%lu / %lu jiffies)\n", uptime_seconds, cpu_usage, cputime_jiffies, uptime_jiffies);
 }
 
