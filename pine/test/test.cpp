@@ -15,6 +15,9 @@ int main()
     align_down_two();
     align_up_two();
     is_aligned_two();
+    alignment_up_two();
+    bit_width();
+    align_down_to_power();
 
     maybe_basic();
     maybe_copy_assignment();

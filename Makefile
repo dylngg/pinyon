@@ -11,17 +11,21 @@ COMPILEDB=python3 -m compiledb
 QEMU=qemu-system-arm
 QEMU_FLAGS=-m 1G -M raspi2
 OBJDIR=obj
+HOSTOBJDIR=obj/host
 # -fno-threadsafe-statics: for static initialization (T& getT() { static Type t {}; return t; })
 #                          don't produce thread-safe initialization of statics (normally required);
 #                          this static getter is used to get around the
 #                          https://isocpp.org/wiki/faq/ctors#static-init-order problem.
 ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -fno-threadsafe-statics -nostdlib -fno-rtti
-INCLUDE=-I.
-UBSAN_FLAGS=-fsanitize=undefined -fsanitize-undefined-trap-on-error
+INCLUDE=-I. -Ipine
+UBSAN_FLAGS=-fsanitize=undefined
+ARCH_UBSAN_FLAGS=$(UBSAN_FLAGS) -fsanitize-undefined-trap-on-error
+HOST_UBSAN_FLAGS=$(UBSAN_FLAGS) # -fsanitize=unsigned-integer-overflow -fsanitize=integer  # clang only
 # -Wconversion: Yes, it complains a lot about unnecessary stuff; but it is
 #               also the only tool to catch real issues here...
 CXXFLAGS=-Wall -Wextra -Wpedantic -Wconversion -std=c++17 -g -O2 $(UBSAN_FLAGS)
 PINE_OBJ=$(OBJDIR)/pine/string.o $(OBJDIR)/pine/malloc.o $(OBJDIR)/pine/c_builtins.o
+PINE_HOST_OBJ=
 KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/mmu.o $(OBJDIR)/kernel/panic.o $(OBJDIR)/kernel/stack.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/timer.o $(OBJDIR)/kernel/uart.o
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/bootup.o $(OBJDIR)/kernel/switch.o $(OBJDIR)/kernel/vector.o
 USER_OBJ=$(OBJDIR)/userspace/shell.o $(OBJDIR)/userspace/lib.o
@@ -35,6 +39,9 @@ all: pinyon.elf
 # Pine: the shared Userspace and Kernel library
 .PHONY: pine
 pine: $(OBJDIR) $(PINE_OBJ)
+
+.PHONY: pine_host
+pine_host: $(HOSTOBJDIR) $(PINE_HOST_OBJ)
 
 .PHONY: userspace
 userspace: $(OBJDIR) $(USER_ASM_OBJ) $(USER_OBJ)
@@ -76,8 +83,8 @@ trace: pinyon.elf
 test: test_pine
 	./test_pine
 
-test_pine: $(TESTS) $(TESTFILE)
-	$(HOST_CC) $(INCLUDE) $(CXXFLAGS) $(TESTFILE) -o $@
+test_pine: pine_host $(TESTS) $(TESTFILE)
+	$(HOST_CC) $(INCLUDE) $(CXXFLAGS) $(HOST_UBSAN_FLAGS) $(TESTFILE) $(PINE_HOST_OBJ) -o $@
 
 .PHONY:
 compile_commands.json: clean
@@ -88,7 +95,10 @@ clean:
 	rm -rf obj/ pinyon.elf pinyon.out
 
 $(OBJDIR)/%.o: %.cpp
-	$(CC) $(ARCHFLAGS) $(INCLUDE) $(CXXFLAGS) -c $< -o $@
+	$(CC) $(ARCHFLAGS) $(INCLUDE) $(CXXFLAGS) $(ARCH_UBSAN_FLAGS) -c $< -o $@
+
+$(HOSTOBJDIR)/%.o: %.cpp
+	$(HOST_CC) $(INCLUDE) $(CXXFLAGS) $(HOST_UBSAN_FLAGS) -c $< -o $@
 
 $(OBJDIR)/%.o: %.S
 	$(CC) $(ARCHFLAGS) -c $< -o $@
@@ -97,3 +107,6 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)/kernel
 	mkdir -p $(OBJDIR)/userspace
 	mkdir -p $(OBJDIR)/pine
+
+$(HOSTOBJDIR): $(OBJDIR)
+	mkdir -p $(HOSTOBJDIR)/pine
