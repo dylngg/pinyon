@@ -2,6 +2,7 @@
 
 #include <new>
 
+#include "type_traits.hpp"
 #include "types.hpp"
 #include "utility.hpp"
 
@@ -19,7 +20,7 @@
  * reference implementation of std::optional.
  */
 template <typename Value>
-struct Maybe {
+struct Maybe : private ConditionallyCopyable<Value>, private ConditionallyMovable<Value> {
     // empty: e.g. Maybe<Value> maybe {};
     constexpr Maybe()
         : m_has_value(false) {};
@@ -86,10 +87,7 @@ struct Maybe {
     constexpr Value release_value()
     {
         m_has_value = false;
-        auto& val = value();
-        Value moved_value { move(val) };
-        val.~Value();
-        return moved_value;
+        return move(value());
     }
     constexpr Value& value() & { return *value_ptr(); }
     constexpr const Value& value() const& { return *value_ptr(); }

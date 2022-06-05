@@ -37,6 +37,10 @@ struct MutationState {
             && total_moves == other_state.total_moves
         );
     }
+    bool operator!=(const MutationState& other_state)
+    {
+        return !(*this == other_state);
+    }
 
     friend std::ostream& operator<<(std::ostream&, const MutationState&);
 };
@@ -47,19 +51,20 @@ std::ostream& operator<<(std::ostream& os, const MutationState& state)
     return os;
 }
 
-class MutationTrackerDefaultMove {
+class MutationTrackerNoMove {
 public:
-    MutationTrackerDefaultMove() = default;
-    ~MutationTrackerDefaultMove()
+    MutationTrackerNoMove() = default;
+    ~MutationTrackerNoMove()
     {
         m_shared_state->total_destructions++;
     }
-    MutationTrackerDefaultMove(const MutationTrackerDefaultMove& other)
+    MutationTrackerNoMove(const MutationTrackerNoMove& other)
         : m_shared_state(other.m_shared_state)
     {
         m_shared_state->total_copies++;
     };
-    MutationTrackerDefaultMove& operator=(const MutationTrackerDefaultMove& other)
+    MutationTrackerNoMove(MutationTrackerNoMove&&) = delete;
+    MutationTrackerNoMove& operator=(const MutationTrackerNoMove& other)
     {
         if (this != &other) {
             m_shared_state = other.m_shared_state;
@@ -67,6 +72,7 @@ public:
         }
         return *this;
     };
+    MutationTrackerNoMove& operator=(MutationTrackerNoMove&&) = delete;
 
     bool has_expected_state(MutationState expected_state) const
     {
@@ -82,67 +88,80 @@ protected:
     std::shared_ptr<MutationState> m_shared_state = std::make_shared<MutationState>();
 };
 
-class MutationTracker : public MutationTrackerDefaultMove {
+class MutationTracker : public MutationTrackerNoMove {
 public:
-    using MutationTrackerDefaultMove::MutationTrackerDefaultMove;
+    using MutationTrackerNoMove::MutationTrackerNoMove;
 
-    MutationTracker(const MutationTracker&& other)
+    MutationTracker(MutationTracker&& other)
     {
-        m_shared_state = std::move(other.m_shared_state);
+        m_shared_state = other.m_shared_state;  // copy; we need to mark destructor (will leak)
         m_shared_state->total_moves++;
     }
-    MutationTracker& operator=(const MutationTracker&& other)
+    MutationTracker& operator=(MutationTracker&& other)
     {
         if (this != &other) {
-            m_shared_state = std::move(other.m_shared_state);
+            m_shared_state = other.m_shared_state;  // copy; we need to mark destructor (will leak)
             m_shared_state->total_moves++;
         }
         return *this;
     }
 };
 
-class MutationTrackerNoCopies : public MutationTracker {
+class MutationTrackerNoCopy : public MutationTracker {
 public:
-    MutationTrackerNoCopies() = default;
-    MutationTrackerNoCopies(const MutationTrackerNoCopies& other) = delete;
-    MutationTrackerNoCopies(MutationTrackerNoCopies&& other) = default;
-    MutationTrackerNoCopies& operator=(MutationTrackerNoCopies&& other)
-    {
-        return static_cast<MutationTrackerNoCopies&>(MutationTracker::operator=(std::move(other)));
-    };
-    MutationTrackerNoCopies& operator=(const MutationTrackerNoCopies& other) = delete;
+    using MutationTracker::MutationTracker;
+
+    MutationTrackerNoCopy(const MutationTrackerNoCopy& other) = delete;
+    MutationTrackerNoCopy(MutationTrackerNoCopy&& other) = default;
+    MutationTrackerNoCopy& operator=(const MutationTrackerNoCopy& other) = delete;
+    MutationTrackerNoCopy& operator=(MutationTrackerNoCopy&& other) = default;
 };
+
+#define ASSERT_EXPECTED_STATE(t, e) \
+    assert_expected_state((t), (e), __PRETTY_FUNCTION__, __FILE__, __LINE__)
+
+template <typename T>
+inline void assert_expected_state(const T& t, MutationState expected, const char* function, const char* filename, int line)
+{
+    auto actual = t.state();
+    if (actual != expected) {
+        std::cerr << filename << ":" << line << " " << function << "\tExpected " << expected << ", but got " << actual << std::endl;
+        assert(false);
+    }
+}
 
 void maybe_copy_assignment()
 {
-    auto m = Maybe<MutationTrackerDefaultMove> {{}};
+    auto tracker = MutationTrackerNoMove {};
+    auto m = Maybe<MutationTrackerNoMove> { tracker };
     assert(m.has_value());
 
     MutationState expected_state {};
     expected_state.total_copies = 1;
-    expected_state.total_destructions = 1;
-    assert(m.value().has_expected_state(expected_state));
+    expected_state.total_destructions = 0;
+    ASSERT_EXPECTED_STATE(m.value(), expected_state);
 }
 
 void maybe_copy_constructor()
 {
-    Maybe<MutationTrackerDefaultMove> m1 {{}};
-    Maybe<MutationTrackerDefaultMove> m2 { m1 };
+    auto tracker = MutationTrackerNoMove {};
+    Maybe<MutationTrackerNoMove> m1 { tracker };
+    Maybe<MutationTrackerNoMove> m2 { m1 };
     assert(m2.has_value());
 
     MutationState expected_state {};
     // first copy of default constructed Tracker, then copy into m2
     expected_state.total_copies = 2;
-    expected_state.total_destructions = 1;
-    assert(m2.value().has_expected_state(expected_state));
+    expected_state.total_destructions = 0;
+    ASSERT_EXPECTED_STATE(m2.value(), expected_state);
 }
 
-void maybe_move_assignemnt()
+void maybe_move_assignment()
 {
-    Maybe<MutationTracker> m1 {{}};
+    Maybe<MutationTrackerNoCopy> m1 {{}};
     {
         assert(m1.has_value());
-        Maybe<MutationTracker> m2 = std::move(m1);
+        Maybe<MutationTrackerNoCopy> m2 = std::move(m1);  // destroy old m1 value after move
         assert(!m1.has_value());
         assert(m2.has_value());
 
@@ -150,7 +169,7 @@ void maybe_move_assignemnt()
         // move and destruct of m1, then another move of m1 into m2
         expected_state.total_destructions = 1;
         expected_state.total_moves = 2;
-        assert(m2.value().has_expected_state(expected_state));
+        ASSERT_EXPECTED_STATE(m2.value(), expected_state);
     }
 
     assert(!m1.has_value());
@@ -158,29 +177,29 @@ void maybe_move_assignemnt()
     MutationState expected_state {};
     expected_state.total_moves = 2;
     expected_state.total_destructions = 2;
-    assert(m1.value().has_expected_state(expected_state));
+    ASSERT_EXPECTED_STATE(m1.value(), expected_state);
 }
 
 void maybe_move_constructor()
 {
-    Maybe<MutationTrackerNoCopies> m1 {{}};
+    Maybe<MutationTrackerNoCopy> m1 {{}};
     {
         assert(m1.has_value());
-        Maybe<MutationTrackerNoCopies> m2 { std::move(m1) };
+        Maybe<MutationTrackerNoCopy> m2 { std::move(m1) };  // destroy old m1 value after move
         assert(!m1.has_value());
         assert(m2.has_value());
 
         MutationState expected_state {};
         expected_state.total_destructions = 1;
         expected_state.total_moves = 2;
-        assert(m2.value().has_expected_state(expected_state));
+        ASSERT_EXPECTED_STATE(m2.value(), expected_state);
     }
     assert(!m1.has_value());
 
     MutationState expected_state {};
     expected_state.total_moves = 2;
     expected_state.total_destructions = 2;
-    assert(m1.value().has_expected_state(expected_state));
+    ASSERT_EXPECTED_STATE(m1.value(), expected_state);
 }
 
 class NonDefaultConstructible {

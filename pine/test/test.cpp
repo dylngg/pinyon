@@ -19,7 +19,7 @@ int main()
     maybe_basic();
     maybe_copy_assignment();
     maybe_copy_constructor();
-    maybe_move_assignemnt();
+    maybe_move_assignment();
     maybe_move_constructor();
     printf("Success!\n");
 }
