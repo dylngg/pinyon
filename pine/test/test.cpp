@@ -1,6 +1,7 @@
 #include "twomath.hpp"
 #include "linked_list.hpp"
 #include "maybe.hpp"
+#include "malloc.hpp"
 
 #include <pine/alien/print.hpp>  // Need access to our print() ADL implementations (analogus to std::cout)
 
@@ -33,6 +34,9 @@ int main()
     maybe_copy_constructor();
     maybe_move_assignment();
     maybe_move_constructor();
+
+    alien::errorln("Testing FreeList");
+    free_list_re_add();
 
     alien::errorln("Success!");
 }

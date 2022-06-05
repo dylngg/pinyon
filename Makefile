@@ -25,7 +25,7 @@ HOST_UBSAN_FLAGS=$(UBSAN_FLAGS) # -fsanitize=unsigned-integer-overflow -fsanitiz
 #               also the only tool to catch real issues here...
 CXXFLAGS=-Wall -Wextra -Wpedantic -Wconversion -std=c++17 -g -O2
 PINE_OBJ=$(OBJDIR)/pine/string.o $(OBJDIR)/pine/malloc.o $(OBJDIR)/pine/c_builtins.o
-PINE_HOST_OBJ=$(HOSTOBJDIR)/pine/string.o $(HOSTOBJDIR)/pine/c_builtins.o
+PINE_HOST_OBJ=$(HOSTOBJDIR)/pine/string.o $(HOSTOBJDIR)/pine/malloc.o $(HOSTOBJDIR)/pine/c_builtins.o
 KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/mmu.o $(OBJDIR)/kernel/panic.o $(OBJDIR)/kernel/stack.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/timer.o $(OBJDIR)/kernel/uart.o
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/bootup.o $(OBJDIR)/kernel/switch.o $(OBJDIR)/kernel/vector.o
 USER_OBJ=$(OBJDIR)/userspace/shell.o $(OBJDIR)/userspace/lib.o

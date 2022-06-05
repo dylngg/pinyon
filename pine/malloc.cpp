@@ -90,9 +90,8 @@ Pair<FreeList::SizeNode*, FreeList::SizeNode*> FreeList::try_find_neighboring_me
 void FreeList::adopt_right_node_size(SizeNode* left_node_ptr, SizeNode* right_node_ptr)
 {
     auto& left_size_data = left_node_ptr->contents();
-    size_t left_size = left_size_data.reserved_size();
-    left_size += sizeof(SizeNode) + right_node_ptr->contents().reserved_size();
-    left_size_data.grow_by(left_size);
+    auto& right_side_data = right_node_ptr->contents();
+    left_size_data.grow_by(sizeof(SizeNode) + right_side_data.reserved_size());
 }
 
 AllocationStats FreeList::release(void* ptr)
