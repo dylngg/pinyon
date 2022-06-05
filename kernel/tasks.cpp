@@ -21,7 +21,7 @@ Task::Task(const char* name, Heap heap, u32 stack_pointer, u32 pc)
 {
 }
 
-Maybe<Task> Task::try_construct(const char* name, u32 pc)
+Maybe<Task> Task::try_create(const char* name, u32 pc)
 {
     size_t stack_size = 4 * MiB;
     auto* stack_ptr = kmalloc(stack_size);
@@ -199,15 +199,15 @@ TaskManager::TaskManager()
     asm volatile("ldr %0, =shell"
                  : "=r"(shell_task_addr));
 
-    auto maybe_task = Task::try_construct("shell", shell_task_addr);
-    PANIC_MESSAGE_IF(!maybe_task, "Could not construct shell task! Out of memory?!");
+    auto maybe_task = Task::try_create("shell", shell_task_addr);
+    PANIC_MESSAGE_IF(!maybe_task, "Could not create shell task! Out of memory?!");
     new (&m_tasks[0]) Task(move(*maybe_task));
 
     // The idea behind this task is that it will always be runnable so we
     // never have to deal with no runnable tasks. It will spin of course,
     // which is not ideal :P
-    maybe_task = Task::try_construct("spin", spin_task_addr);
-    PANIC_MESSAGE_IF(!maybe_task, "Could not construct spin task! Out of memory?!");
+    maybe_task = Task::try_create("spin", spin_task_addr);
+    PANIC_MESSAGE_IF(!maybe_task, "Could not create spin task! Out of memory?!");
     new (&m_tasks[1]) Task(move(*maybe_task));
 
     m_num_tasks = 2;

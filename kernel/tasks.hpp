@@ -29,7 +29,7 @@ public:
         Waiting,
     };
 
-    static Maybe<Task> try_construct(const char* name, u32 pc);
+    static Maybe<Task> try_create(const char* name, u32 pc);
     Task(const Task& other) = delete;
     Task& operator=(Task&& other) = delete;
     Task(Task&& other) = default;
