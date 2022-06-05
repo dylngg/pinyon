@@ -32,3 +32,14 @@ constexpr UInt overwrite_bit_range(UInt dest, UInt2 value, int start_inclusive, 
     UInt mask = ((1 << (end_inclusive - start_inclusive)) - 1) << start_inclusive;
     return (dest & ~mask) | (value & mask);
 }
+
+template <typename UInt>
+constexpr UInt bit_width(UInt value)
+{
+    int count = 0;
+    while (value != 0) {
+        count += value & 1;
+        value <<= 1;
+    }
+    return count;
+}

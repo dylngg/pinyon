@@ -2,6 +2,8 @@
 
 #include <cstddef> // size_t
 #include <cstdint> // int types
+#include <climits> // sizes of types
+
 
 /*
  * Define easier to type aliases for sized integers here.
