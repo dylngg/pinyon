@@ -14,11 +14,11 @@
 
 int main()
 {
-    alien::errorln("Testing LinkedList");
-    linked_list_create();
-    linked_list_iterate();
-    linked_list_append();
-    linked_list_remove();
+    alien::errorln("Testing ManualLinkedList");
+    manual_linked_list_create();
+    manual_linked_list_iterate();
+    manual_linked_list_append();
+    manual_linked_list_remove();
 
     alien::errorln("Testing alignment");
     align_down_two();

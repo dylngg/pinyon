@@ -27,12 +27,12 @@ struct Allocation {
 
 class FreeList {
     // Wrap size in padded struct to ensure alignment.
-    // e.g. LinkedList<size_t>::Node on ARM32 is 12 bytes, which is not 8
+    // e.g. ManualLinkedList<size_t>::Node on ARM32 is 12 bytes, which is not 8
     //      byte aligned
     struct Header {
         alignas(max_align_t) size_t size;
     };
-    using HeaderNode = LinkedList<Header>::Node;
+    using HeaderNode = ManualLinkedList<Header>::Node;
 
 public:
     FreeList() = default;
@@ -61,7 +61,7 @@ private:
     static void adopt_right_node_size(HeaderNode* left_node_ptr, HeaderNode* right_node_ptr);
     static HeaderNode* construct_node(size_t region_size, void* node_location);
 
-    LinkedList<Header> m_free_list;
+    ManualLinkedList<Header> m_free_list;
 };
 
 /*

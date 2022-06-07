@@ -8,8 +8,8 @@
 
 namespace pine {
 
-template <class Content, class Allocator = void>  // creation+addition funcs disabled if Allocator not given
-class LinkedList {
+template <class Content>
+class ManualLinkedList {
 public:
     struct Node {
         explicit Node(const Content& content)
@@ -35,7 +35,7 @@ public:
         const Node* prev() const { return m_prev; }
 
     private:
-        friend class LinkedList;
+        friend class ManualLinkedList;
 
         Node* m_next;
         Node* m_prev;
@@ -53,38 +53,14 @@ public:
     };
 
 
-    LinkedList() = default;
-    LinkedList(std::initializer_list<Content> contents)
-        : LinkedList()
-    {
-        for (auto content : contents)
-            emplace(content);
-    };
-
+    ManualLinkedList() = default;
     // FIXME: Implement these + destructor
-    LinkedList(const LinkedList&) = delete;
-    LinkedList(LinkedList&&) = delete;
+    ManualLinkedList(const ManualLinkedList&) = delete;
+    ManualLinkedList(ManualLinkedList&&) = delete;
 
-    template <typename... Args>
-    Node* emplace(Args&&... args)
-    {
-        auto [ptr, _] = Allocator::allocator().allocate(sizeof(Node));
-        if (!ptr)
-            return nullptr;
-
-        auto* node = new (ptr) Node(forward<Args>(args)...);
-        append_node(node);
-        return node;
-    }
-
-    void append_node(Node* new_node_ptr)
+    void append(Node* new_node_ptr)
     {
         insert_after(new_node_ptr, m_tail);
-    }
-
-    Node* append(const Content& content)
-    {
-        return emplace(content);
     }
 
     void remove(Node* node_ptr)
@@ -106,11 +82,11 @@ public:
 
     size_t length() const { return m_length; }
 
-    using Iter = PtrIter<LinkedList<Content, Allocator>, Node*>;
+    using Iter = PtrIter<ManualLinkedList<Content>, Node*>;
     Iter begin() { return Iter::begin(m_head, m_tail); }
     Iter end() { return Iter::end(m_tail); }
 
-    using ConstIter = PtrIter<LinkedList<Content, Allocator>, const Node*>;
+    using ConstIter = PtrIter<ManualLinkedList<Content>, const Node*>;
     ConstIter begin() const { return Iter::begin(m_head, m_tail); }
     ConstIter end() const { return Iter::end(m_tail); }
 

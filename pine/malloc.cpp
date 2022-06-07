@@ -39,7 +39,7 @@ Allocation FreeList::try_reserve(size_t requested_size)
         alloc_size -= remaining_size;
 
         void* new_node_location = to_user_ptr(node_ptr, alloc_size);
-        m_free_list.append_node(construct_node(remaining_size, new_node_location));
+        m_free_list.append(construct_node(remaining_size, new_node_location));
     }
 
     m_free_list.remove(node_ptr);
@@ -50,7 +50,7 @@ Allocation FreeList::try_reserve(size_t requested_size)
 void FreeList::add(void* new_location, size_t new_size)
 {
     auto* new_node_ptr = construct_node(new_size, new_location);
-    m_free_list.append_node(new_node_ptr);
+    m_free_list.append(new_node_ptr);
 }
 
 FreeList::HeaderNode* FreeList::to_node_ptr(void* addr)
@@ -108,7 +108,7 @@ size_t FreeList::release(void* ptr)
     }
 
     if (!was_adopted)
-        m_free_list.append_node(node_ptr);
+        m_free_list.append(node_ptr);
 
     return size_freed;
 }
