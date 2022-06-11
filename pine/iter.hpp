@@ -37,26 +37,55 @@ inline const char* to_static_string(IterType iter_type)
     return "IterType::<Unknown>!";
 }
 
-template <typename Iter>
-constexpr bool is_random_access_iter = static_cast<unsigned>(Iter::type) & (1u << (bit_width(static_cast<unsigned>(IterType::RandomAccess)) - 1));
+constexpr unsigned iter_type_mask(IterType type)
+{
+    return 1u << (bit_width(static_cast<unsigned>(type)) - 1);
+}
+
+template <typename Iter, IterType, typename = void>
+struct is_iter_type_func : falsey {};
+template <typename Iter, IterType type>
+struct is_iter_type_func<Iter, type, void_t<decltype(Iter::type)>> : true_or_false_func<(static_cast<unsigned>(Iter::type) & iter_type_mask(type)) != 0> {};
+
+template <typename Iter, IterType, typename = void>
+struct has_iter_trait_func : falsey {};
+template <typename Iter, IterType trait>
+struct has_iter_trait_func<Iter, trait, void_t<decltype(Iter::type)>> : true_or_false_func<(static_cast<unsigned>(Iter::type) & static_cast<unsigned>(trait)) != 0> {};
+
 
 template <typename Iter>
-constexpr bool is_bidirectional_iter = static_cast<unsigned>(Iter::type) & (1u << (bit_width(static_cast<unsigned>(IterType::Bidirectional)) - 1));
+constexpr bool is_random_access_iter = is_iter_type_func<Iter, IterType::RandomAccess>::value;
 
 template <typename Iter>
-constexpr bool is_forward_iter = static_cast<unsigned>(Iter::type) & (1u << (bit_width(static_cast<unsigned>(IterType::Forward)) - 1));
+constexpr bool is_bidirectional_iter = is_iter_type_func<Iter, IterType::Bidirectional>::value;
 
 template <typename Iter>
-constexpr bool is_output_iter = static_cast<unsigned>(Iter::type) & static_cast<unsigned>(Iter::Output);
+constexpr bool is_forward_iter = is_iter_type_func<Iter, IterType::Forward>::value;
 
-template <typename Iter, enable_if<is_random_access_iter<Iter>, Iter*> = nullptr>
-void advance(Iter& it, size_t steps)
+template <typename Iter>
+constexpr bool is_output_iter = has_iter_trait_func<Iter, IterType::Output>::value;
+
+template <typename Iter, typename Distance, enable_if<is_random_access_iter<Iter>, Iter*> = nullptr>
+void advance(Iter& it, Distance steps)
 {
     it += steps;
 }
 
-template <typename Iter, enable_if<!is_random_access_iter<Iter>, void*> = nullptr>
-void advance(Iter& it, size_t steps)
+template <typename Iter, typename Distance, enable_if<!is_random_access_iter<Iter> && is_bidirectional_iter<Iter>, void*> = nullptr>
+void advance(Iter& it, Distance steps)
+{
+    while (steps > 0) {
+        ++it;
+        --steps;
+    }
+    while (steps < 0) {
+        --it;
+        ++steps;
+    }
+}
+
+template <typename Iter, typename Distance, enable_if<!is_random_access_iter<Iter> && !is_bidirectional_iter<Iter>, void*> = nullptr>
+void advance(Iter& it, Distance steps)
 {
     while (steps > 0) {
         ++it;
@@ -76,6 +105,21 @@ Iter prev(Iter it, size_t steps = 1)
 {
     advance(it, -steps);
     return it;
+}
+
+template <typename Iter, enable_if<is_random_access_iter<Iter>>* = nullptr>
+size_t distance(Iter begin, Iter end)
+{
+    return end - begin;
+}
+
+template <typename Iter, enable_if<!is_random_access_iter<Iter>>* = nullptr>
+size_t distance(Iter begin, Iter end)
+{
+    size_t dist = 0;
+    while (begin != end)
+        ++begin;
+    return dist;
 }
 
 /*
