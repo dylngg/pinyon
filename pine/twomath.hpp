@@ -1,6 +1,7 @@
 #pragma once
 #include "types.hpp"
 #include "metaprogramming.hpp"
+#include "limits.hpp"
 
 namespace pine {
 
@@ -98,6 +99,16 @@ constexpr UInt align_down_to_power(UInt value)
         return 0;
 
     return 1u << (bit_width(value) - 1u);
+}
+
+template <typename UInt>
+constexpr UInt align_up_to_power(UInt value)
+{
+    static_assert(is_unsigned<UInt>);
+    if (value == 0)
+        return 0;
+
+    return 1u << bit_width(value);
 }
 
 }

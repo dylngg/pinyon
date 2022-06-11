@@ -71,6 +71,13 @@ Iter next(Iter it, size_t steps = 1)
     return it;
 }
 
+template <typename Iter>
+Iter prev(Iter it, size_t steps = 1)
+{
+    advance(it, -steps);
+    return it;
+}
+
 /*
  * The different iterators defined here fit different container patterns.
  *
@@ -86,12 +93,17 @@ Iter next(Iter it, size_t steps = 1)
  */
 
 /*
- * Iterator for Wraps classes with sequential access to some Value. Requires
+ * Iterator for Wraps classes with random access to some Value. Requires
  * that Wraps implements a .length() and operator[] method.
+ *
+ * The iterator is guaranteed to be stable, so long as the length is not
+ * reduced below the corresponding index of this iterator.
  */
 template <typename Wraps, typename Value>
 class RandomAccessIter {
 public:
+    RandomAccessIter() = default;  // required for e.g. default initialization in array[]
+
     constexpr bool operator==(RandomAccessIter other_iter) const { return m_pos == other_iter.m_pos; }
     constexpr bool operator!=(RandomAccessIter other_iter) const { return m_pos != other_iter.m_pos; }
     RandomAccessIter operator+(size_t offset) { return { *m_wraps, m_pos + offset }; }
@@ -156,8 +168,8 @@ private:
     static RandomAccessIter begin(Wraps& wraps) { return { wraps, 0 }; }
     static RandomAccessIter end(Wraps& wraps) { return { wraps, wraps.length() }; }
 
-    Wraps* m_wraps;
-    size_t m_pos;
+    Wraps* m_wraps = nullptr;
+    size_t m_pos = 0;
 };
 
 /*

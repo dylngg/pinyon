@@ -1,7 +1,9 @@
-#include "twomath.hpp"
+#include "forward_container.hpp"
 #include "linked_list.hpp"
-#include "maybe.hpp"
 #include "malloc.hpp"
+#include "maybe.hpp"
+#include "twomath.hpp"
+#include "vector.hpp"
 
 #include <pine/alien/print.hpp>  // Need access to our print() ADL implementations (analogus to std::cout)
 
@@ -14,7 +16,12 @@
 
 int main()
 {
+    alien::errorln("Testing Vector");
+    forward_container_tests<Vector<int, alien::Allocator>>();
+
     alien::errorln("Testing ManualLinkedList");
+    // ManualLinkedList, though a forward iterator, cannot use the generic
+    // forward_container_tests since it is manually allocated.
     manual_linked_list_create();
     manual_linked_list_iterate();
     manual_linked_list_append();
