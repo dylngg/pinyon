@@ -1,3 +1,4 @@
+#include "algorithm.hpp"
 #include "forward_container.hpp"
 #include "linked_list.hpp"
 #include "malloc.hpp"
@@ -44,6 +45,10 @@ int main()
 
     alien::errorln("Testing FreeList");
     free_list_re_add();
+
+    alien::errorln("Testing Algorithms");
+    algorithm_find();
+    algorithm_find_if();
 
     alien::errorln("Success!");
 }
