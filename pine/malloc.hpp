@@ -82,7 +82,7 @@ public:
         return MemoryAllocator<SubMemoryAllocator, MemoryManager> { &sub_allocator };
     }
 
-    Pair<void*, size_t> allocate(size_t requested_size)
+    Allocation allocate(size_t requested_size)
     {
         auto allocation = m_manager.try_reserve(requested_size);
         if (!allocation.ptr) {
@@ -140,7 +140,7 @@ public:
 
     static FixedAllocation construct(PtrData start, size_t size) { return { start, size }; }
 
-    Pair<void*, size_t> allocate(size_t requested_size);
+    Allocation allocate(size_t requested_size);
     size_t free(void*);
     bool in_bounds(void* ptr) const;
 

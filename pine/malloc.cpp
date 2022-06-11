@@ -108,7 +108,7 @@ size_t FreeList::release(void* ptr)
     return size_freed;
 }
 
-Pair<void*, size_t> FixedAllocation::allocate(size_t)
+Allocation FixedAllocation::allocate(size_t)
 {
     if (!m_has_memory)
         return { nullptr, 0 };
