@@ -1,3 +1,4 @@
+#include "algorithm.hpp"
 #include "malloc.hpp"
 #include "twomath.hpp"
 #include "units.hpp"
@@ -16,21 +17,15 @@ FreeList::HeaderNode* FreeList::construct_node(size_t region_size, void* node_lo
     return new (node_location) HeaderNode(Header{region_size - sizeof(HeaderNode)});
 }
 
-FreeList::HeaderNode* FreeList::find_first_free_node(size_t min_size)
-{
-    for (auto* node_ptr : m_free_list)
-        if (min_size <= node_ptr->contents().size)
-            return node_ptr;
-
-    return nullptr;
-}
-
 Allocation FreeList::try_reserve(size_t requested_size)
 {
-    auto* node_ptr = find_first_free_node(requested_size);
-    if (!node_ptr)
-        return { nullptr, {} };
+    auto it = find_if(m_free_list.begin(), m_free_list.end(), [&](const auto* node) {
+        return node->contents().size >= requested_size;
+    });
+    if (it == m_free_list.end())
+        return {};
 
+    auto* node_ptr = *it;
     size_t& alloc_size = node_ptr->contents().size;
     size_t remaining_size = align_down_two(alloc_size - requested_size, Alignment);
 
