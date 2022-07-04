@@ -25,6 +25,7 @@ int main()
     // forward_container_tests since it is manually allocated.
     manual_linked_list_create();
     manual_linked_list_iterate();
+    manual_linked_list_insert();
     manual_linked_list_append();
     manual_linked_list_remove();
 

@@ -58,11 +58,32 @@ public:
     ManualLinkedList(const ManualLinkedList&) = delete;
     ManualLinkedList(ManualLinkedList&&) = delete;
 
-    void append(Node* new_node_ptr)
+    void insert(Node* after_node_ptr, Node& new_node)
     {
-        insert_after(new_node_ptr, m_tail);
-    }
+        m_length++;
+        if (!after_node_ptr)
+            after_node_ptr = m_tail;
 
+        auto new_node_ptr = &new_node;
+        if (!m_head) {  // either m_head and m_tail are non-null or both are null
+            m_head = m_tail = new_node_ptr;
+            return;
+        }
+
+        new_node_ptr->m_prev = after_node_ptr;
+        Node* next = exchange(after_node_ptr->m_next, new_node_ptr);
+        if (next) {
+            new_node_ptr->m_next = next;
+            next->m_prev = new_node_ptr;
+        }
+        else {
+            m_tail = new_node_ptr;
+        }
+    }
+    void append(Node& new_node)
+    {
+        insert(m_tail, new_node);
+    }
     void remove(Node* node_ptr)
     {
         m_length--;
@@ -80,7 +101,7 @@ public:
             m_tail = prev ? prev : next;
     }
 
-    size_t length() const { return m_length; }
+    [[nodiscard]] size_t length() const { return m_length; }
 
     using Iter = PtrIter<ManualLinkedList<Content>, Node*>;
     Iter begin() { return Iter::begin(m_head, m_tail); }
@@ -91,24 +112,6 @@ public:
     ConstIter end() const { return Iter::end(m_tail); }
 
 protected:
-    void insert_after(Node* new_node_ptr, Node* after_node_ptr)
-    {
-        m_length++;
-        if (!m_head) {  // either m_head and m_tail are non-null or both are null
-            m_head = m_tail = new_node_ptr;
-            return;
-        }
-
-        new_node_ptr->m_prev = after_node_ptr;
-        Node* next = exchange(after_node_ptr->m_next, new_node_ptr);
-        if (next) {
-            new_node_ptr->m_next = next;
-            next->m_prev = new_node_ptr;
-        }
-        else {
-            m_tail = new_node_ptr;
-        }
-    }
 
 private:
     Node* m_head = nullptr;

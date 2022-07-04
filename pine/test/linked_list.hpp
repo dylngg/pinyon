@@ -25,8 +25,10 @@ void manual_linked_list_iterate()
 
     int items[3] = { 1, 2, 3 };
     pine::ManualLinkedList<int> list2 {};
-    for (int i = 0; i < 3; i++)
-        list2.append(new (alien::malloc<Node>()) Node(items[i]));
+    for (int i = 0; i < 3; i++) {
+        auto node_ptr = new (alien::malloc<Node>()) Node(items[i]);
+        list2.append(*node_ptr);
+    }
 
     assert(list2.begin() != list2.end());
 
@@ -93,6 +95,58 @@ void manual_linked_list_iterate()
     assert(list2.length() == 3);
 }
 
+void manual_linked_list_insert()
+{
+    using Node = pine::ManualLinkedList<int>::Node;
+    pine::ManualLinkedList<int> list {};
+
+    struct ToAdd {
+        int value;
+        size_t offset;
+    };
+    ToAdd added[5] {
+        { 1, 0 },
+        { 3, 0 },
+        { 2, 0 },
+        { 5, 2 },
+        { 4, 2 },
+    };
+
+    for (size_t i = 0; i < 5; i++) {
+        auto it = next(list.begin(), added[i].offset);
+        assert(i == 0 || it != list.end());
+
+        assert(list.length() == i);
+        auto node_ptr = new (alien::malloc<Node>()) Node(added[i].value);
+        list.insert(*it, *node_ptr);
+
+        // Ensure we placed into the right spot
+        auto node = *next(list.begin(), (size_t)(added[i].value-1));
+        assert(node->contents() == added[i].value);
+
+        // Should always be sorted
+        auto prev_value = (*list.begin())->contents();
+        for (size_t j = 0; j < i; j++) {
+            auto curr_value = (*next(list.begin(), j))->contents();
+            assert(curr_value >= prev_value);
+            prev_value = curr_value;
+        }
+
+        assert(list.length() == i + 1);
+    }
+
+    // Ensure sorted and 1-5
+    auto begin = list.begin();
+    int prev_value = -1;
+    for (size_t i = 0; i < 5; i++) {
+        assert((*begin)->contents() > prev_value);
+        assert((*begin)->contents() == (int)i+1);
+        assert((*next(list.begin(), i))->contents() > prev_value);
+        assert((*next(list.begin(), i))->contents() == (int)i+1);
+        ++begin;
+    }
+}
+
 void manual_linked_list_append()
 {
     using Node = pine::ManualLinkedList<int>::Node;
@@ -102,7 +156,8 @@ void manual_linked_list_append()
     int added[5] { 1, 2, 3, 4, 5 };
     for (size_t i = 0; i < 5; i++) {
         assert(list.length() == i);
-        list.append(new (alien::malloc<Node>()) Node(added[i]));
+        auto node_ptr = new (alien::malloc<Node>()) Node(added[i]);
+        list.append(*node_ptr);
 
         auto node = *next(list.begin(), i);
         assert(node->prev() == prev);
@@ -121,8 +176,10 @@ void manual_linked_list_remove()
 {
     using Node = pine::ManualLinkedList<int>::Node;
     pine::ManualLinkedList<int> list;
-    for (int i = 1; i <= 2; i++)
-        list.append(new (alien::malloc<Node>()) Node(i));
+    for (int i = 1; i <= 2; i++) {
+        auto node_ptr = new (alien::malloc<Node>()) Node(i);
+        list.append(*node_ptr);
+    }
 
     assert(list.length() == 2);
 
