@@ -68,7 +68,7 @@ constexpr bool is_output_iter = has_iter_trait_func<Iter, IterType::Output>::val
 template <typename Iter, typename Distance, enable_if<is_random_access_iter<Iter>, Iter*> = nullptr>
 void advance(Iter& it, Distance steps)
 {
-    it += steps;
+    it += static_cast<ptrdiff_t>(steps);
 }
 
 template <typename Iter, typename Distance, enable_if<!is_random_access_iter<Iter> && is_bidirectional_iter<Iter>, void*> = nullptr>
@@ -103,7 +103,7 @@ Iter next(Iter it, size_t steps = 1)
 template <typename Iter>
 Iter prev(Iter it, size_t steps = 1)
 {
-    advance(it, -steps);
+    advance(it, -static_cast<ptrdiff_t>(steps));
     return it;
 }
 
@@ -167,6 +167,17 @@ public:
         m_pos += offset;
         return *this;
     }
+    RandomAccessIter& operator+=(ptrdiff_t offset)
+    {
+        // A negative offset may be given. This avoids having to switch
+        // between -= and += depending on negativity for callers. The caller
+        // is responsible for ensuring that the offset does not go further than
+        // the distance to the beginning (the same follows for the size_t variant)
+
+        // ASSERT (offset + static_cast<ptrdiff_t>(m_pos) >= 0)
+        m_pos = static_cast<size_t>(static_cast<ptrdiff_t>(m_pos) + offset);
+        return *this;
+    }
     size_t operator-(RandomAccessIter& other) { return m_pos - other.m_pos; }
     RandomAccessIter& operator--() // prefix increment
     {
@@ -182,6 +193,18 @@ public:
     RandomAccessIter& operator-=(size_t offset)
     {
         m_pos -= offset;
+        return *this;
+    }
+    RandomAccessIter& operator-=(ptrdiff_t offset)
+    {
+        // A negative offset may be given (moves in the positive direction).
+        // This avoids having to switch between -= and += depending on
+        // negativity for callers. The caller is responsible for ensuring that
+        // the offset does not go further than the distance to the end
+        // (the same follows for the size_t variant)
+
+        // ASSERT (offset - static_cast<ptrdiff_t>(m_pos) >= 0)
+        m_pos = static_cast<size_t>(static_cast<ptrdiff_t>(m_pos) - offset);
         return *this;
     }
     Value& operator[](int index)
