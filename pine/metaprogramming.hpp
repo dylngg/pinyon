@@ -254,8 +254,8 @@ constexpr bool is_floating_point = is_one_of<remove_cv<Value>, float, double, lo
 template <class Value>
 constexpr bool is_arithmetic = is_integer<Value> || is_floating_point<Value>;
 
-// Checking if is_same<Value, make_unsigned<Value>> will not work here, if we
-// want an e.g. enum class that has an unsigned representation to work.
+// Checking if is_same<Value, make_unsigned<Value>> will not work here, since
+// char may or may not be signed, depending on the platform
 template <class Value, bool = is_arithmetic<Value>>
 struct is_unsigned_impl : true_or_false_func<Value(0) < Value(-1)> {};
 

@@ -33,24 +33,20 @@ void to_strbuf(char* buf, size_t bufsize, Int num)
             absnum = abs(num);
             buf[0] = '-';
             ++buf;
+            --bufsize;
         }
     }
 
-    // FIXME: This function is not particularly efficient, partly thanks
-    //        to the following log madness and the overzealous %, pow and / below
     Int len = log(absnum) + 1;
-    Int pos = 0;
-
-    for (; pos < len && static_cast<size_t>(pos) < bufsize - 1; pos++) {
-        // Basically we strip the leading digits till pos and then divide by
-        // the correct base to get the number.
-        // e.g. want 3 of 345 -> 345 % 10^3 (=345) / 10^2 (=3.45)
-        //           4 of 345 -> 345 % 10^2 (=45)  / 10^1 (=4.5)
-        //           5 of 345 -> 345 % 10^1 (=5)   / 10^0 (=5.0)
-        Int digit = (absnum % pow(static_cast<Int>(10), len - pos)) / pow(static_cast<Int>(10), len - pos - 1);
+    for (Int pos = 0; pos < len && static_cast<size_t>(pos) < bufsize; pos++) {
+        // e.g. 345
+        Int divisor = pow(static_cast<Int>(10), len - pos - 1);
+        Int digit = absnum / divisor;  // 345 / 100 = 3
         buf[pos] = static_cast<char>('0' + digit);
+        absnum -= digit * divisor;  // 345 - 300 = 45
     }
-    buf[pos] = '\0';
+
+    buf[len] = '\0';
 }
 
 template <typename UInt, enable_if<is_unsigned<UInt>, UInt>* = nullptr>
