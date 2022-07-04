@@ -106,9 +106,10 @@ constexpr UInt align_up_to_power(UInt value)
 {
     static_assert(is_unsigned<UInt>);
     if (value == 0)
-        return 0;
+        return 1;
 
-    return 1u << bit_width(value);
+    auto aligned_down = align_down_to_power(value);
+    return aligned_down == value ? value : aligned_down << 1;
 }
 
 }

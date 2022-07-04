@@ -35,6 +35,7 @@ int main()
     alignment_up_two();
     bit_width();
     align_down_to_power();
+    align_up_to_power();
 
     alien::errorln("Testing Maybe<>");
     maybe_basic();

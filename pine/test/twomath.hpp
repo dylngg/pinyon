@@ -211,7 +211,7 @@ void align_down_to_power()
     assert(align_down_to_power(24u) == 16);
 
     assert(align_down_to_power(1u) == 1);
-    assert(align_down_to_power(0u) == 0);
+    assert(align_down_to_power(2u) == 2);
     assert(align_down_to_power(15u) == 8);
     assert(align_down_to_power(16u) == 16);
     assert(align_down_to_power(34u) == 32);
@@ -228,4 +228,37 @@ void align_down_to_power()
 
     unsigned large_num = 1u << (sizeof(large_num) * CHAR_BIT - 1);
     assert(align_down_to_power(large_num + 5) == large_num);
+}
+
+void align_up_to_power()
+{
+    assert(align_up_to_power(17u) == 32);
+    assert(align_up_to_power(18u) == 32);
+    assert(align_up_to_power(19u) == 32);
+    assert(align_up_to_power(20u) == 32);
+    assert(align_up_to_power(21u) == 32);
+    assert(align_up_to_power(22u) == 32);
+    assert(align_up_to_power(23u) == 32);
+    assert(align_up_to_power(24u) == 32);
+
+    assert(align_up_to_power(1u) == 1);
+    assert(align_up_to_power(2u) == 2);
+    assert(align_up_to_power(15u) == 16);
+    assert(align_up_to_power(16u) == 16);
+    assert(align_up_to_power(34u) == 64);
+    assert(align_up_to_power(33u) == 64);
+    assert(align_up_to_power(8u) == 8);
+    assert(align_up_to_power(33u) == 64);
+
+    assert(align_up_to_power(0u) == 1);
+    assert(align_up_to_power(1u) == 1);
+    assert(align_up_to_power(2u) == 2);
+    assert(align_up_to_power(3u) == 4);
+    assert(align_up_to_power(7u) == 8);
+    assert(align_up_to_power(8u) == 8);
+
+    unsigned below_large_num = 1u << (sizeof(below_large_num)*CHAR_BIT - 2);
+    unsigned large_num = 1u << (sizeof(large_num)*CHAR_BIT - 1);
+    assert(align_up_to_power(below_large_num) != large_num);
+    assert(align_up_to_power(below_large_num + 5) == large_num);
 }
