@@ -25,6 +25,18 @@ public:
         {
             new (&m_content_space) Content(forward<Args>(args)...);
         }
+        ~Node()
+        {
+            auto* prev = exchange(m_prev, nullptr);
+            auto* next = exchange(m_next, nullptr);
+
+            if (prev)
+                prev->m_next = next;
+            if (next)
+                next->m_prev = prev;
+
+            contents().~Content();
+        }
 
         const Content& contents() const { return *reinterpret_cast<const Content*>(&m_content_space); }
         Content& contents() { return *reinterpret_cast<Content*>(&m_content_space); }
@@ -54,7 +66,19 @@ public:
 
 
     ManualLinkedList() = default;
-    // FIXME: Implement these + destructor
+    ~ManualLinkedList()
+    {
+        // Cannot use range-based for loop since we are destructing while we
+        // are iterating (setting m_next to null)
+        auto next = m_head;
+        while (next != nullptr) {
+            auto curr = next;
+            next = curr->m_next;
+            curr->~Node();
+        }
+    }
+    // Because the user is manually dealing with memory we cannot have copy
+    // semantics
     ManualLinkedList(const ManualLinkedList&) = delete;
     ManualLinkedList(ManualLinkedList&&) = delete;
 
@@ -87,13 +111,9 @@ public:
     void remove(Node* node_ptr)
     {
         m_length--;
-        auto* prev = exchange(node_ptr->m_prev, nullptr);
-        auto* next = exchange(node_ptr->m_next, nullptr);
-
-        if (prev)
-            prev->m_next = next;
-        if (next)
-            next->m_prev = prev;
+        auto prev = node_ptr->m_prev;
+        auto next = node_ptr->m_next;
+        node_ptr->~Node();
 
         if (node_ptr == m_head)
             m_head = next;
