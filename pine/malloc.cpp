@@ -109,9 +109,9 @@ size_t FreeList::release(void* ptr)
     return size_freed;
 }
 
-Allocation FixedAllocation::allocate(size_t)
+Allocation FixedAllocation::allocate(size_t amount)
 {
-    if (!m_has_memory)
+    if (!m_has_memory || amount > m_size)
         return { nullptr, 0 };
 
     m_has_memory = false;
