@@ -19,4 +19,7 @@ extern "C" {
 void bzero(void* target, size_t size);
 void* memcpy(void* __restrict__ to, const void* __restrict__ from, size_t size);
 void* memset(void* to, int c, size_t size);
+
+// We don't use this in any capacity
+int atexit(void (*)());
 }

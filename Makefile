@@ -16,7 +16,7 @@ HOSTOBJDIR=obj/host
 #                          don't produce thread-safe initialization of statics (normally required);
 #                          this static getter is used to get around the
 #                          https://isocpp.org/wiki/faq/ctors#static-init-order problem.
-ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -fno-threadsafe-statics -nostdlib -fno-rtti
+ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -fno-threadsafe-statics -nostdlib -fno-rtti -fno-use-cxa-atexit
 INCLUDE=-I. -Ipine
 UBSAN_FLAGS=-fsanitize=undefined
 ARCH_UBSAN_FLAGS=$(UBSAN_FLAGS) -fsanitize-undefined-trap-on-error

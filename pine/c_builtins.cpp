@@ -1,5 +1,7 @@
 #include "c_builtins.hpp"
 
+extern "C" {
+
 void bzero(void* target, size_t size)
 {
     unsigned char* _target = (unsigned char*)target;
@@ -33,4 +35,12 @@ void* memset(void* to, int c, size_t size)
     }
 
     return to;
+}
+
+int atexit(void (*)())
+{
+    // ASSERT not reached
+    return 0;
+}
+
 }
