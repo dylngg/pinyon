@@ -1,8 +1,11 @@
 #pragma once
 #include "c_builtins.hpp"
 #include "linked_list.hpp"
+#include "maybe.hpp"
 #include "twomath.hpp"
 #include "types.hpp"
+#include "page.hpp"
+#include "print.hpp"
 #include "units.hpp"
 
 namespace pine {
@@ -23,6 +26,8 @@ namespace pine {
 struct Allocation {
     void* ptr = nullptr;
     size_t size = 0;
+
+    operator bool() const { return size != 0; }
 };
 
 class FreeList {
@@ -33,6 +38,7 @@ class FreeList {
         alignas(max_align_t) size_t size;
     };
     using HeaderNode = ManualLinkedList<Header>::Node;
+    static_assert(sizeof(HeaderNode) % Alignment == 0);
 
 public:
     FreeList() = default;
@@ -40,6 +46,10 @@ public:
     static size_t preferred_size(size_t requested_size)
     {
         return align_up_two(min_allocation_size(requested_size), PageSize);
+    }
+    static constexpr size_t overhead()
+    {
+        return sizeof(HeaderNode);
     }
 
     Allocation try_reserve(size_t);
@@ -49,11 +59,10 @@ public:
 private:
     constexpr static size_t min_allocation_size(size_t requested_size)
     {
-        size_t alloc_size = align_up_two(requested_size, Alignment) + sizeof(HeaderNode);
+        size_t alloc_size = align_up_two(requested_size, Alignment) + overhead();
         static_assert(is_aligned_two(sizeof(HeaderNode), Alignment), "Free list header size is not aligned!");
         return alloc_size;
     }
-    HeaderNode* find_first_free_node(size_t);
     Pair<HeaderNode*, HeaderNode*> try_find_neighboring_memory_nodes(HeaderNode* node_ptr);
 
     static void* to_user_ptr(HeaderNode* node_ptr, size_t offset = 0);
@@ -151,5 +160,105 @@ private:
 };
 
 using FixedHeapAllocator = MemoryAllocator<FixedAllocation, HighWatermarkManager>;
+
+struct BrokeredAllocation {
+    Region region;
+    size_t overhead_used;
+
+    [[nodiscard]] Allocation as_allocation() const
+    {
+        return {region.ptr(), region.size() };
+    }
+};
+
+using AllocationCost = PtrData;
+
+enum class PageAlignmentLevel : unsigned {
+    Page = 1,
+    HugePage = HugePageSize / PageSize,
+};
+
+
+class PageAllocatorBackend {
+public:
+    PageAllocatorBackend() = default;
+    void init(Region allocating_range, Region scratch_pages);
+
+    [[nodiscard]] BrokeredAllocation reserve_region(Region region);
+    [[nodiscard]] BrokeredAllocation allocate(unsigned num_pages, PageAlignmentLevel page_alignment = PageAlignmentLevel::Page);
+    void add(Region);
+    void free(Allocation);
+
+    static constexpr size_t max_overhead()
+    {
+        return FreeList::overhead() * max_depth;
+    }
+    static constexpr size_t initial_cost()
+    {
+        return FreeList::overhead();
+    }
+
+    friend void print_with(Printer&, const PageAllocatorBackend&);
+
+private:
+    static unsigned depth_from_page_length(unsigned num_pages)
+    {
+        if (num_pages == 0)
+            return 0;
+
+        static_assert(bit_width(1u) == 1);
+        return bit_width(num_pages) - 1;
+    }
+
+    using Node = ManualLinkedList<Region>::Node;
+
+    static constexpr unsigned max_depth = (sizeof(size_t) * CHAR_BIT) - bit_width(PageSize) + 2;
+
+    Node* find_free_pages(unsigned num_pages, PageAlignmentLevel page_alignment);
+    Node* find_free_region(Region);
+    Pair<Region, AllocationCost> remove_and_trim_pages(Node* node, unsigned min_pages);
+    Pair<Region, AllocationCost> remove_and_trim_region(Node* node, Region min_region);
+    Pair<Region, AllocationCost> trim_aligned_region(Region curr_region, unsigned curr_depth, unsigned end_depth);
+    AllocationCost free_region(Region);
+    Pair<unsigned, Node*> create_node(Region);
+    void remove_node(unsigned depth, Node* node);
+    void insert_node(unsigned depth, Node* node);
+
+    FreeList m_node_allocator {};  // FIXME: Replace with a more space-efficient bitfield based allocator (slab)
+    ManualLinkedList<Region> m_free_lists[max_depth] {};  // 0 is PageSize
+};
+
+/*
+ * Ensures that the allocator has enough memory required for internal needs
+ * by acting as an intermediary allocator. The broker may request more memory
+ * from the allocator than necessary in order to do so.
+ *
+ * The broker mai=ntains the invariant that the allocator can always free or
+ * allocate memory unless there is not enough memory in the system to do so.
+ * (the allocation or free will not fail because there is not enough scratch
+ *  space for metadata)
+ */
+class PageBroker {
+public:
+    PageBroker() = default;
+    void init(Region allocating_range, Region scratch_pages);
+
+    [[nodiscard]] Allocation reserve_region(Region region);
+    [[nodiscard]] Allocation allocate_section(unsigned num_sections);
+    [[nodiscard]] Allocation allocate(unsigned num_pages, PageAlignmentLevel page_alignment = PageAlignmentLevel::Page);
+    void free(Allocation);
+
+    friend void print_with(Printer&, const PageBroker& page_broker);
+
+private:
+    [[nodiscard]] bool allocate_required_runway();
+
+    static constexpr size_t c_required_runway = align_up_to_power(PageAllocatorBackend::max_overhead());
+
+    size_t m_curr_runway;
+    PageAllocatorBackend m_page_allocator;
+};
+
+using PageAllocator = PageBroker;
 
 }

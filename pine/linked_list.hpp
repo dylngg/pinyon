@@ -1,10 +1,10 @@
 #pragma once
 
-#include <initializer_list>  // comes with -ffreestanding
-
 #include "iter.hpp"
 #include "types.hpp"
 #include "utility.hpp"
+#include "print.hpp"
+#include "units.hpp"
 
 namespace pine {
 
@@ -52,18 +52,28 @@ public:
         Node* m_next;
         Node* m_prev;
         alignas(Content) u8 m_content_space[sizeof(Content)];
+        // Needed for allocators
     };
 
+    static_assert(offsetof(Node, m_content_space) % Alignment == 0);
+
     /*
-     * Less than comparator for Node* contents.
+     * Comparators for Node* contents.
      */
     struct Less {
-        bool operator()(const Node* first, const Content& second)
+        template <typename Second>
+        bool operator()(const Node* first, const Second& second)
         {
             return first->contents() < second;
         }
     };
-
+    struct Greater {
+        template <typename Second>
+        bool operator()(const Node* first, const Second& second)
+        {
+            return first->contents() > second;
+        }
+    };
 
     ManualLinkedList() = default;
     ~ManualLinkedList()
@@ -82,7 +92,7 @@ public:
     ManualLinkedList(const ManualLinkedList&) = delete;
     ManualLinkedList(ManualLinkedList&&) = delete;
 
-    void insert(Node* after_node_ptr, Node& new_node)
+    void insert_after(Node* after_node_ptr, Node& new_node)
     {
         m_length++;
         if (!after_node_ptr)
@@ -106,7 +116,7 @@ public:
     }
     void append(Node& new_node)
     {
-        insert(m_tail, new_node);
+        insert_after(m_tail, new_node);
     }
     void remove(Node* node_ptr)
     {
@@ -128,10 +138,21 @@ public:
     Iter end() { return Iter::end(m_tail); }
 
     using ConstIter = PtrIter<ManualLinkedList<Content>, const Node*>;
-    ConstIter begin() const { return Iter::begin(m_head, m_tail); }
-    ConstIter end() const { return Iter::end(m_tail); }
+    ConstIter cbegin() const { return ConstIter::begin(m_head, m_tail); }
+    ConstIter cend() const { return ConstIter::end(m_tail); }
 
 protected:
+    friend void print_with(Printer& printer, const ManualLinkedList<Content>& list)
+    {
+        auto it = list.cbegin();
+        print_with(printer, "[");
+        while (it != list.cend()) {
+            print_with(printer, (*it)->contents());
+            if (++it != list.cend())
+                print_with(printer, " <-> ");
+        }
+        print_with(printer, "]");
+    }
 
 private:
     Node* m_head = nullptr;

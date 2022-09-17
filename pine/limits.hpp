@@ -1,6 +1,6 @@
 #pragma once
-#include "math.hpp"
 #include <climits>
+#include "math.hpp"
 
 namespace pine {
 

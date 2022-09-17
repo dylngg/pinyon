@@ -1,5 +1,7 @@
 #pragma once
 
+#include <pine/malloc.hpp>
+#include <pine/print.hpp>
 #include <pine/types.hpp>
 #include <pine/units.hpp>
 
@@ -7,6 +9,7 @@
 #define DEVICES_END 0x3FFFFFFF
 #define HEAP_START 0x20000000
 #define HEAP_END 0x24000000
+#define MEMORY_END_PAGES 1048576  // 2^32 / PageSize
 
 // We do conversions between bitfields and full types all the time around here,
 // not worth the extra reinterpret_cast<>(*) everywhere...
@@ -22,7 +25,9 @@ struct VirtualAddress {
         : m_ptr(reinterpret_cast<u8*>(ptr)) {};
 
     /* Note: Table entries are 4 bytes */
+    static VirtualAddress from_l1_index(int index) { return VirtualAddress(L1Tag{}, static_cast<u32>(index)); };
     int l1_index() const { return m_as.l1_table_index; }
+    static VirtualAddress from_l2_index(int index) { return VirtualAddress(L2Tag{}, static_cast<u32>(index)); };
     int l2_index() const { return m_as.l2_table_index; }
 
     void* ptr() const { return m_ptr; }
@@ -30,6 +35,13 @@ struct VirtualAddress {
     operator void*() const { return ptr(); }
 
 private:
+    struct L1Tag {};
+    struct L2Tag {};
+    VirtualAddress(L1Tag, u32 index)
+        : m_as(As{0, 0, index}) {};
+    VirtualAddress(L2Tag, u32 index)
+        : m_as(As{0, index, 0}) {};
+
     struct As {
         u32 _ : 10;
         u32 l2_table_index : 10;
@@ -101,6 +113,14 @@ enum class L1Type : u32 {
     SuperSection = 3,
 };
 
+inline L1Type l1_type_from_bits(u32 bits)
+{
+    L1Type type;
+    static_assert(sizeof(type) == sizeof(bits));
+    memcpy (&type, &bits, sizeof(type));
+    return type;
+}
+
 struct Fault {
     Fault()
         : type(L1Type::Fault)
@@ -116,6 +136,10 @@ struct L2Ptr {
     u32 domain : 4;
     u32 p : 1;
     u32 base_addr : 22;
+
+    PhysicalAddress physical_address() const { return PhysicalAddress::from_l2_base_addr(base_addr); }
+
+    friend void print_with(pine::Printer&, const L2Ptr&);
 };
 
 struct Section {
@@ -151,6 +175,8 @@ struct Section {
     u32 _ : 1;
     u32 sbz : 1;
     PtrData base_addr : 10;
+
+    friend void print_with(pine::Printer&, const Section&);
 };
 
 struct SuperSection {
@@ -168,9 +194,16 @@ struct SuperSection {
     u32 _ : 1;
     u32 sbz : 5;
     u32 base_addr : 8;
+
+    PhysicalAddress physical_address() const { return PhysicalAddress::from_l1_base_addr(base_addr); }
+
+    friend void print_with(pine::Printer&, const SuperSection&);
 };
 
 union L1Entry {
+    L1Entry()
+        : _() {};
+
     static constexpr auto vm_size = MiB;
 
     L1Entry& operator=(const L2Ptr& ptr)
@@ -189,7 +222,8 @@ union L1Entry {
         return *this;
     }
 
-private:
+    L1Type type() const { return l1_type_from_bits(static_cast<u32>(as_ptr.type)); }
+
     Fault _;
     L2Ptr as_ptr;
     Section as_section;
@@ -197,9 +231,16 @@ private:
 };
 
 struct L1Table {
+    L1Table() = default;
+
     static constexpr auto num_entries = 4096;
 
     void reserve_section(VirtualAddress, Section);
+
+    template <typename... SArgs>
+    void reserve_section(VirtualAddress vm_addr, SArgs&& ...args) { reserve_section(vm_addr, Section(pine::forward<SArgs>(args)...)); }
+
+    friend void print_with(pine::Printer&, const L1Table&);
 
 private:
     L1Entry m_entries[num_entries];
@@ -258,5 +299,9 @@ void set_l1_table(PhysicalAddress l1_addr);
 PhysicalAddress l1_table();
 
 }
+
+using PhysicalPageAllocator = pine::PageAllocator;
+
+PhysicalPageAllocator& physical_page_allocator();
 
 #pragma GCC diagnostic pop

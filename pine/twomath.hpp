@@ -67,6 +67,13 @@ constexpr bool is_pointer_aligned_two(Ptr ptr, UInt2 base_two_num)
     return is_aligned_two<PtrData, PtrData>(reinterpret_cast<PtrData>(ptr), alignment);
 }
 
+template <typename UInt>
+constexpr bool is_aligned_two_power(UInt value)
+{
+    static_assert(is_unsigned<UInt>);
+    return value & (value - 1);
+}
+
 template <typename UInt, typename UInt2>
 constexpr UInt overwrite_bit_range(UInt dest, UInt2 value, int start_inclusive, int end_inclusive)
 {

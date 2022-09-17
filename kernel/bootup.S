@@ -50,6 +50,7 @@ setup_mmu:
     blx r1
 
     mcr p15, 0, r0, c8, c7, 0   /* See B3.18.7; Invalidate entire unified TLB; r0 is dummy */
+    dmb
     dsb                         /* Data and instruction barrier */
 
     mov r2, #3

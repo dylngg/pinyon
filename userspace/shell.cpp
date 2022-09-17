@@ -25,7 +25,7 @@ static void builtin_uptime()
     auto uptime_jiffies = uptime();
     auto uptime_seconds = uptime_jiffies >> SYS_HZ_BITS;
     auto cputime_jiffies = cputime();
-    auto cpu_usage = cputime_jiffies * 100 / max(uptime_jiffies, 1lu);
+    auto cpu_usage = cputime_jiffies * 100u / pine::max(uptime_jiffies, static_cast<decltype(cputime_jiffies)>(1));
     printf("up %lds, usage: %lu%% (%lu / %lu jiffies)\n", uptime_seconds, cpu_usage, cputime_jiffies, uptime_jiffies);
 }
 

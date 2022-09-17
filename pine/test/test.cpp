@@ -48,6 +48,9 @@ int main()
     alien::errorln("Testing FreeList");
     free_list_re_add();
 
+    alien::errorln("Testing PageAllocator");
+    page_allocator_backend_create();
+
     alien::errorln("Testing Algorithms");
     algorithm_find();
     algorithm_find_if();

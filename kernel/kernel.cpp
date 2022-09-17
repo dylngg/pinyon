@@ -14,12 +14,12 @@ extern "C" void init();
  */
 void operator delete(void* ptr)
 {
-    panicf("operator delete got called! (new() doesn't exist?!): ptr %p", ptr);
+    panic("operator delete got called! (new() doesn't exist?!): ptr", ptr);
 }
 
 void operator delete(void* ptr, size_t size)  // C++14 specialization
 {
-    panicf("operator delete got called! (new() doesn't exist?!): ptr %p, size %zu", ptr, size);
+    panic("operator delete got called! (new() doesn't exist?!): ptr", ptr, ", size", size);
 }
 
 void init()

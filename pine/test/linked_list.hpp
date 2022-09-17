@@ -118,7 +118,7 @@ void manual_linked_list_insert()
 
         assert(list.length() == i);
         auto node_ptr = new (alien::malloc<Node>()) Node(added[i].value);
-        list.insert(*it, *node_ptr);
+        list.insert_after(*it, *node_ptr);
 
         // Ensure we placed into the right spot
         auto node = *next(list.begin(), (size_t)(added[i].value-1));

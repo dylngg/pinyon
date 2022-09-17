@@ -25,7 +25,7 @@ u32 uptime();
 
 u32 cputime();
 
-void printf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
+int printf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 
 struct HeapExtender {
     static HeapExtender construct() { return {}; }
@@ -51,3 +51,6 @@ struct MallocStats {
 };
 
 MallocStats memstats();
+
+// We don't use this in any capacity, but compilers will insert calls to it
+inline int atexit(void (*)()) { return 0; };

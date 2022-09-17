@@ -1,7 +1,6 @@
 #pragma once
 #include "interrupts.hpp"
 #include "uart.hpp"
-#include "panic.hpp"
 #include "processor.hpp"
 #include "stack.hpp"
 

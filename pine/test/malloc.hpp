@@ -11,8 +11,9 @@
 #include <algorithm>
 
 #include <pine/units.hpp>
-#include <pine/units.hpp>
+#include <pine/limits.hpp>
 #include <pine/malloc.hpp>
+#include <pine/print.hpp>
 #include <pine/alien/print.hpp>  // Need access to our print() ADL implementations (analogus to std::cout)
 
 using namespace pine;
@@ -21,15 +22,20 @@ static size_t host_page_size = (size_t)sysconf(_SC_PAGESIZE);
 
 static Pair<char*, size_t> allocate_scratch_page(unsigned num_pages = 1)
 {
+    size_t total_size = host_page_size * num_pages;
     // mmap a page so that we have true isolation
     errno = 0;
-    void* scratch_page_ptr = mmap(nullptr, host_page_size * num_pages, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    void* scratch_page_ptr = mmap(nullptr, total_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     assert(errno == 0);
+    assert(scratch_page_ptr != nullptr);
 
-    memset(scratch_page_ptr, 0, num_pages * host_page_size);
-    assert(host_page_size == PageSize);
-    size_t scratch_page = reinterpret_cast<uintptr_t>(scratch_page_ptr) / host_page_size;
-    return { static_cast<char*>(scratch_page_ptr), scratch_page };
+    memset(scratch_page_ptr, 0, total_size);
+    return { static_cast<char*>(scratch_page_ptr), total_size };
+}
+
+static void free_scratch_page(void* ptr, size_t size)
+{
+    assert(munmap(ptr, size) == 0);
 }
 
 void free_list_re_add()
@@ -95,4 +101,60 @@ void free_list_re_add()
     allocation = free_list.try_reserve(16);
     alloc_ptr = allocation.ptr;
     assert(alloc_ptr == nullptr);
+}
+
+void page_allocator_backend_create()
+{
+    // Try allocate differing sizes; typically 12-20 for 32-bit machine
+    unsigned max_page_bit_width = 31;
+    for (unsigned i = 0; i < max_page_bit_width; i++) {
+        auto [ptr, size] = allocate_scratch_page();
+        {  // Make sure allocator is destructed before we free the scratch page!
+            PageAllocatorBackend allocator;
+            allocator.init(PageRegion { 0, 1u << max_page_bit_width },  PageRegion::from_ptr(ptr, size));
+
+            unsigned num_pages = 1 << i;
+            auto allocation = allocator.allocate(num_pages);
+            assert(allocation.region.length != 0);
+            assert(allocation.region.length == num_pages);
+        }
+        free_scratch_page(ptr, size);
+    }
+
+    // Try allocating successfully then allocating again (failing)
+    auto ptr_and_size = allocate_scratch_page();
+    auto ptr = ptr_and_size.first;
+    auto size = ptr_and_size.second;
+    {  // Make sure allocator is destructed before we free the scratch page!
+        PageAllocatorBackend allocator;
+        allocator.init(PageRegion { 0, 1 },  PageRegion::from_ptr(ptr, size));
+
+        auto allocation = allocator.allocate(1);
+        assert(allocation.region.offset == 0);
+        assert(allocation.region.length != 0);
+        assert(allocation.region.length == 1);
+
+        for (unsigned i = 0; i < max_page_bit_width; i++) {
+            unsigned num_pages = 1 << i;
+            allocation = allocator.allocate(num_pages);
+            assert(allocation.region.length == 0);
+        }
+    }
+    free_scratch_page(ptr, size);
+
+    // Try allocating sizes larger than given
+    ptr_and_size = allocate_scratch_page();
+    ptr = ptr_and_size.first;
+    size = ptr_and_size.second;
+    {  // Make sure allocator is destructed before we free the scratch page!
+        PageAllocatorBackend allocator;
+        allocator.init(PageRegion { 0, 1 },  PageRegion::from_ptr(ptr, size));
+
+        for (unsigned i = 1; i < max_page_bit_width; i++) {
+            unsigned num_pages = 1 << i;
+            auto allocation = allocator.allocate(num_pages);
+            assert(allocation.region.length == 0);
+        }
+    }
+    free_scratch_page(ptr, size);
 }

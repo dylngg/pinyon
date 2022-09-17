@@ -1,7 +1,5 @@
 #include "algorithm.hpp"
 #include "malloc.hpp"
-#include "twomath.hpp"
-#include "units.hpp"
 
 #include <new>
 
@@ -146,6 +144,233 @@ void HighWatermarkManager::add(void* ptr, size_t size)
     m_start = reinterpret_cast<u8*>(ptr);
     m_watermark = m_start;
     m_end = m_start + size;
+}
+
+void PageBroker::init(Region allocating_range, Region scratch_pages)
+{
+    m_curr_runway = scratch_pages.size() - PageAllocatorBackend::initial_cost();
+    m_page_allocator.init(allocating_range, scratch_pages);
+}
+
+bool PageBroker::allocate_required_runway()
+{
+    static_assert(c_required_runway < PageSize, "Cannot handle runway greater than a page in size");
+
+    BrokeredAllocation brokered_alloc = m_page_allocator.allocate(1);
+    if (!brokered_alloc.region)
+        return false;
+
+    m_curr_runway += brokered_alloc.region.size();  //
+    m_curr_runway -= brokered_alloc.overhead_used;
+    return true;
+}
+
+Allocation PageBroker::reserve_region(Region region)
+{
+    if (m_curr_runway < c_required_runway && !allocate_required_runway())
+        return {};
+
+    auto broker_allocation = m_page_allocator.reserve_region(region);
+    m_curr_runway -= broker_allocation.overhead_used;
+    return broker_allocation.as_allocation();
+}
+
+Allocation PageBroker::allocate(unsigned num_pages, PageAlignmentLevel page_alignment)
+{
+    if (m_curr_runway < c_required_runway && !allocate_required_runway())
+        return {};
+
+    auto broker_allocation = m_page_allocator.allocate(num_pages, page_alignment);
+    m_curr_runway -= broker_allocation.overhead_used;
+    return broker_allocation.as_allocation();
+}
+
+Allocation PageBroker::allocate_section(unsigned num_sections)
+{
+    constexpr auto pages_in_sections = HugePageSize / PageSize;
+    return allocate(num_sections * pages_in_sections, PageAlignmentLevel::HugePage);
+}
+
+BrokeredAllocation PageAllocatorBackend::allocate(unsigned num_pages, PageAlignmentLevel page_alignment)
+{
+    auto* node = find_free_pages(num_pages, page_alignment);
+    if (!node)
+        return {};
+
+    auto [region, num_splits] = remove_and_trim_pages(node, num_pages);
+    return { region, num_splits * sizeof(Node) };
+}
+
+void PageBroker::free(Allocation allocation)
+{
+    m_page_allocator.free(allocation);
+}
+
+void PageAllocatorBackend::init(Region allocating_range, Region scratch_pages)
+{
+    add(scratch_pages);
+    free_region(allocating_range);
+}
+
+BrokeredAllocation PageAllocatorBackend::reserve_region(Region region)
+{
+    auto* node = find_free_region(region);
+    if (!node)
+        return {};
+
+    auto [final_region, num_splits] = remove_and_trim_region(node, region);
+    return { final_region, num_splits * sizeof(Node) };
+}
+
+void PageAllocatorBackend::add(Region pages)
+{
+    m_node_allocator.add(pages.ptr(), pages.size());
+}
+
+AllocationCost PageAllocatorBackend::free_region(Region region)
+{
+    auto [depth, node] = create_node(region);
+    if (!node)
+        return 0;  // ASSERT false? this should be guaranteed by the broker
+
+    insert_node(depth, node);
+    return FreeList::overhead();
+}
+
+void PageAllocatorBackend::free(Allocation allocation)
+{
+    auto region = Region::from_ptr(allocation.ptr, allocation.size);
+    free_region(region);
+}
+
+ManualLinkedList<Region>::Node* PageAllocatorBackend::find_free_pages(unsigned num_pages, PageAlignmentLevel page_alignment)
+{
+    unsigned depth = depth_from_page_length(num_pages);
+
+    while (depth != max_depth) {
+        auto begin = m_free_lists[depth].begin();
+        auto end = m_free_lists[depth].end();
+        auto it = find_if(begin, end, [&](const Node* node) {
+            return node->contents().fits(num_pages)
+                && node->contents().aligned_to(static_cast<unsigned>(page_alignment));
+        });
+        if (it != end)
+            return *it;
+
+        ++depth;
+    }
+
+    return nullptr;
+}
+
+ManualLinkedList<Region>::Node* PageAllocatorBackend::find_free_region(Region region)
+{
+    unsigned depth = depth_from_page_length(region.length);
+
+    while (depth != max_depth) {
+        auto begin = m_free_lists[depth].begin();
+        auto end = m_free_lists[depth].end();
+        auto it = lower_bound(begin, end, region, ManualLinkedList<Region>::Less{});
+        if (it != end)
+            return *it;
+
+        ++depth;
+    }
+
+    return nullptr;
+}
+
+Pair<Region, AllocationCost> PageAllocatorBackend::trim_aligned_region(Region curr_region, unsigned curr_depth, unsigned end_depth)
+{
+    while (curr_depth != end_depth) {
+        auto [reserved_region, remainder_region] = curr_region.halve();
+        --curr_depth;
+
+        auto [_, node] = create_node(remainder_region);
+        if (!node)
+            break;
+
+        insert_node(curr_depth, node);
+        curr_region = reserved_region;
+    }
+
+    return { curr_region, (end_depth - curr_depth) * FreeList::overhead() };
+}
+
+Pair<Region, AllocationCost> PageAllocatorBackend::remove_and_trim_pages(ManualLinkedList<Region>::Node* node, unsigned min_pages)
+{
+    auto curr_region = node->contents();
+    auto curr_depth = depth_from_page_length(curr_region.length);
+
+    remove_node(curr_depth, node);
+
+    auto num_pages_aligned = align_up_to_power(min_pages);
+    auto min_depth = depth_from_page_length(num_pages_aligned);
+
+    return trim_aligned_region(curr_region, curr_depth, min_depth);
+}
+
+Pair<Region, AllocationCost> PageAllocatorBackend::remove_and_trim_region(ManualLinkedList<Region>::Node* node, Region min_region)
+{
+    auto curr_region = node->contents();
+    auto curr_depth = depth_from_page_length(curr_region.length);
+
+    remove_node(curr_depth, node);
+
+    auto left_trim = Region {curr_region.offset, curr_region.offset - min_region.offset };
+    auto right_trim = Region {min_region.end_offset(), curr_region.end_offset() - min_region.end_offset() };
+
+    AllocationCost total_distance = 0;
+    if (left_trim)
+        total_distance += free_region(left_trim);
+    if (right_trim)
+        total_distance += free_region(right_trim);
+
+    return {Region {left_trim.end_offset(), right_trim.offset }, total_distance };
+}
+
+Pair<unsigned, PageAllocatorBackend::Node*> PageAllocatorBackend::create_node(Region region)
+{
+    auto allocation = m_node_allocator.try_reserve(sizeof(Node));
+    if (!allocation.ptr)
+        return { 0, nullptr };
+
+    unsigned depth = depth_from_page_length(region.length);
+    return { depth, new (static_cast<Node*>(allocation.ptr)) Node(region) };
+}
+
+void PageAllocatorBackend::remove_node(unsigned depth, ManualLinkedList<Region>::Node* node)
+{
+    m_free_lists[depth].remove(node);
+    m_node_allocator.release(static_cast<void*>(node));
+}
+
+void PageAllocatorBackend::insert_node(unsigned depth, Node* node)
+{
+    auto begin = m_free_lists[depth].begin();
+    auto end = m_free_lists[depth].end();
+    auto insertion_pt = lower_bound(begin, end, node->contents(), ManualLinkedList<Region>::Greater{});
+    m_free_lists[depth].insert_after(*insertion_pt, *node);
+}
+
+void print_with(Printer& printer, const PageBroker& page_broker)
+{
+    print_with(printer, page_broker.m_page_allocator);
+    print_with(printer, " [runway=");
+    print_with(printer, page_broker.m_curr_runway);
+    print_with(printer, " bytes]");
+}
+
+void print_with(Printer& printer, const PageAllocatorBackend& alloc)
+{
+    print_with(printer, "PageAllocator {\n");
+    for (const auto& region_list : alloc.m_free_lists) {
+        print_with(printer, "\t");
+        print_with(printer, region_list);
+        print_with(printer, ",\n");
+    }
+
+    print_with(printer, "}");
 }
 
 }

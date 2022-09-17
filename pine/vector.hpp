@@ -3,6 +3,7 @@
 #include <initializer_list>  // comes with -ffreestanding
 
 #include <pine/math.hpp>
+#include <pine/page.hpp>
 #include <pine/twomath.hpp>
 #include <pine/types.hpp>
 #include <pine/units.hpp>

@@ -1,5 +1,4 @@
 #include "kmalloc.hpp"
-#include "panic.hpp"
 
 #include <pine/barrier.hpp>
 

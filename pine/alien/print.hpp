@@ -9,8 +9,6 @@ namespace alien {
 
 class IOErrorStream : public pine::Printer {
 public:
-    ~IOErrorStream() override = default;
-
     void print(pine::StringView string) override
     {
         std::cerr << string.data();
@@ -19,8 +17,6 @@ public:
 
 class IOOutputStream : public pine::Printer {
 public:
-    ~IOOutputStream() override = default;
-
     void print(pine::StringView string) override
     {
         std::cout << string.data();

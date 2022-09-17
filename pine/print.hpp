@@ -8,19 +8,41 @@
 #include "math.hpp"
 #include "string.hpp"
 
+/*
+ * This header defines simple conatenation based printing of arguments to some
+ * "print()" function. No spaces are inserted between arguments, unlike the
+ * similar look to Python's print function. The particular name of this print
+ * function depends on the environment. (kernel, userspace, alien)
+ *
+ * The format of each argument is based on the type of each argument. More
+ * specifically, the formatting is implemented with an associated
+ * print_with(Printer&, const Arg& arg) function. Class-specific formatting
+ * may be implemented with a friend function, much like the STL and operator<<
+ * with ostream.
+ *
+ * To abstract away the particular printing mechanism (UART/console, stdio)
+ * from the implementation, a virtual Printer functor is used (much like
+ * operator<< in the STL)
+ *
+ * See pine/alien/print.hpp for a reference implementation of print() and the
+ * ARMv7 CPSR class in the kernel for a reference implementation of print_with().
+ */
+
 namespace pine {
 
 class Printer {
 public:
     virtual ~Printer() = default;
 
+protected:
     virtual void print(StringView) = 0;
+    friend void print_with(Printer& printer, StringView string);
 };
 
 template <typename First>
-void print_each_with(Printer& printer, const First& first)
+inline void print_each_with(Printer& printer, const First& first)
 {
-    print_with(printer, first); // ADL lookup
+    print_with(printer, first);
 }
 
 template <typename First, typename... Args>
@@ -39,18 +61,18 @@ void print_with(Printer& printer, Int num)
     bzero(buf, bufsize);
 
     to_strbuf(buf, bufsize, num);
-    printer.print(buf);
+    print_with(printer, buf);
 }
 
 template <typename Ptr, enable_if<is_pointer<Ptr> && !is_implicitly_convertible<Ptr, pine::StringView>, Ptr>* = nullptr>
 void print_with(Printer& printer, Ptr ptr)
 {
-    constexpr int bufsize = limits<uintptr_t>::characters / 16 + 3; // + 0x + '\0'
+    constexpr int bufsize = limits<uintptr_t>::characters + 3; // + 0x + '\0'
     char buf[bufsize]; // FIXME: Replace with Buffer<>/Array<>
     bzero(buf, bufsize);
 
     to_strbuf_hex(buf, bufsize, reinterpret_cast<uintptr_t>(ptr), ToAFlag::Lower);
-    printer.print(buf);
+    print_with(printer, buf);
 }
 
 inline void print_with(Printer& printer, StringView string)
@@ -160,9 +182,9 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
             break;
         }
 
-        case 'p': {
-            void* ptr = va_arg(rest, void*);
-            auto ptr_data = reinterpret_cast<PtrData>(ptr);
+        case 'p':
+        case 'x': {
+            PtrData ptr_data = va_arg(rest, PtrData);
 
             constexpr int bufsize = limits<PtrData>::digits + 1;
             char hex[bufsize]; // FIXME: Replace with Buffer<>/Array<>

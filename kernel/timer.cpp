@@ -46,7 +46,7 @@ void SystemTimer::reinit()
      * here. Each initialization should be the current timer value + the time
      * you want to wait.
      *
-     * There is overhead in re-initing the timer, and this is fixed by only
+     * There is max_overhead in re-initing the timer, and this is fixed by only
      * waiting our SYS_HZ period minus the time left: compare1 + counter_match
      *
      * But this does not work well alone when emulating in QEMU. The system

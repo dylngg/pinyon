@@ -12,8 +12,6 @@
  */
 class UARTPrinter : public pine::Printer {
 public:
-    ~UARTPrinter() override = default;
-
     void print(pine::StringView) override;
 };
 

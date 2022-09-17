@@ -1,5 +1,6 @@
 #pragma once
 #include <pine/types.hpp>
+#include <pine/print.hpp>
 
 enum class ProcessorMode : u32 {
     User = 0b10000,
@@ -12,6 +13,8 @@ enum class ProcessorMode : u32 {
     Undefined = 0b11011,
     System = 0b11111,
 };
+
+void print_with(pine::Printer& printer, const ProcessorMode& mode);
 
 struct CPSR {
     explicit CPSR(ProcessorMode mode)
@@ -32,6 +35,14 @@ struct CPSR {
         , z(0)
         , n(0) {};
 
+    static CPSR from_data(PtrData cpsr_as_u32)
+    {
+        // For some reason reinterpret_cast doesn't
+        CPSR cpsr;
+        static_assert(sizeof(cpsr) == sizeof(cpsr_as_u32));
+        memcpy (&cpsr, &cpsr_as_u32, sizeof(cpsr));
+        return cpsr;
+    }
     static CPSR cpsr()
     {
         CPSR cpsr {};
@@ -85,6 +96,8 @@ struct CPSR {
     u32 c: 1;               // 29: Carry condition flag
     u32 z: 1;               // 30: Zero condition flag
     u32 n: 1;               // 31: Negative condition flag
+
+    friend void print_with(pine::Printer& printer, const CPSR& cpsr);
 
 private:
     explicit CPSR() = default;  // used by static methods to avoid proper initialization

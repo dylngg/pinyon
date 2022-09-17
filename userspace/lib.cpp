@@ -37,14 +37,14 @@ u32 cputime()
     return syscall0(Syscall::CPUTime);
 }
 
-void printf(const char* fmt, ...)
+int printf(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
     size_t bufsize = strlen(fmt) * 2;
     char* print_buf = static_cast<char*>(malloc(bufsize));
     if (!print_buf)
-        return;
+        return 0;
 
     size_t print_buf_pos = 0;
 
@@ -66,6 +66,7 @@ void printf(const char* fmt, ...)
     vfnprintf(try_add_wrapper, fmt, args);
     write(print_buf, print_buf_pos);
     free(print_buf);
+    return 0;
 }
 
 static MallocStats g_malloc_stats;
