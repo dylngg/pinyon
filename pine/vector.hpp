@@ -63,7 +63,7 @@ public:
 
         size_t new_capacity = align_capacity(amount);
 
-        auto alloc = Allocator::allocator();
+        auto& alloc = Allocator::allocator();
         auto [ptr, allocated_size] = alloc.allocate(new_capacity * sizeof(Value));
         auto* old_contents = m_contents;
         m_contents = static_cast<Value*>(ptr);
@@ -98,12 +98,12 @@ public:
      * Attempts to append an item to the vector and returns whether the append
      * was successful (whether memory was able to be allocated if required).
      */
-    bool append(const Value& value)
+    bool append(Value&& value)
     {
         if (!ensure(m_count+1))
             return false;
 
-        emplace_unensured(value);
+        emplace_unensured(pine::move(value));
         return true;
     }
 

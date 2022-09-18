@@ -7,6 +7,7 @@
 #include <pine/maybe.hpp>
 #include <pine/memory.hpp>
 #include <pine/types.hpp>
+#include <pine/vector.hpp>
 
 extern "C" {
 // In bootup.S
@@ -127,6 +128,7 @@ public:
     TaskManager();
     void start_scheduler(InterruptsDisabledTag);
     void schedule(InterruptsDisabledTag);
+    void exit_running_task(InterruptsDisabledTag, int code);
     Task& running_task() { return m_tasks[m_running_task_index]; }
 
 private:
@@ -134,9 +136,10 @@ private:
     TaskManager(TaskManager&&) = delete;
     Task& pick_next_task();
 
-    Task* m_tasks;
-    int m_num_tasks;
-    int m_running_task_index;
+    bool try_create_task(const char* name, PtrData start_addr);
+
+    KVector<Task> m_tasks;
+    unsigned m_running_task_index;
 };
 
 TaskManager& task_manager();

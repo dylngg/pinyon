@@ -5,6 +5,7 @@
 #include <pine/memory.hpp>
 #include <pine/types.hpp>
 #include <pine/units.hpp>
+#include <pine/vector.hpp>
 
 class KernelMemoryAllocator : public pine::MemoryAllocator<pine::FixedAllocation, pine::FreeList> {
 public:
@@ -27,3 +28,6 @@ void* kmalloc(size_t) __attribute__((malloc));
 
 template <class Value>
 using KOwner = pine::Owner<Value, KernelMemoryAllocator>;
+
+template <class Value>
+using KVector = pine::Vector<Value, KernelMemoryAllocator>;

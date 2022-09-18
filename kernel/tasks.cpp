@@ -146,7 +146,7 @@ Task& TaskManager::pick_next_task()
     do {
         // Round robben
         m_running_task_index++;
-        if (m_running_task_index >= m_num_tasks)
+        if (m_running_task_index >= m_tasks.length())
             m_running_task_index = 0;
 
         m_tasks[m_running_task_index].update_state();
@@ -178,10 +178,9 @@ u32 shell_addr(); // forward declare; in userspace/shell.hpp
 }
 
 TaskManager::TaskManager()
+    : m_tasks()
+    , m_running_task_index(0)
 {
-    m_tasks = static_cast<Task*>(kmalloc(2 * sizeof *m_tasks));
-    PANIC_MESSAGE_IF(!m_tasks, "Could not find memory for initial tasks?!");
-
     // The compiler will literally give us null if we try and get the address
     // of a function via (void*) or (u32) casts... undefined behavior?
     //
@@ -189,19 +188,22 @@ TaskManager::TaskManager()
     auto spin_task_addr = spin_addr();
     auto shell_task_addr = shell_addr();
 
-    auto maybe_task = Task::try_create("shell", shell_task_addr);
-    PANIC_MESSAGE_IF(!maybe_task, "Could not create shell task! Out of memory?!");
-    new (&m_tasks[0]) Task(pine::move(*maybe_task));
+    PANIC_MESSAGE_IF(!try_create_task("shell", shell_task_addr), "Could not create shell task! Out of memory?!");
 
     // The idea behind this task is that it will always be runnable so we
     // never have to deal with no runnable tasks. It will spin of course,
     // which is not ideal :P
-    maybe_task = Task::try_create("spin", spin_task_addr);
-    PANIC_MESSAGE_IF(!maybe_task, "Could not create spin task! Out of memory?!");
-    new (&m_tasks[1]) Task(pine::move(*maybe_task));
+    PANIC_MESSAGE_IF(!try_create_task("spin", spin_task_addr), "Could not create spin task! Out of memory?!");
+}
 
-    m_num_tasks = 2;
-    m_running_task_index = 0;
+bool TaskManager::try_create_task(const char* name, PtrData start_addr)
+{
+    auto maybe_task = Task::try_create(name, start_addr);
+    if (!maybe_task)
+        return false;
+
+    m_tasks.append(pine::move(*maybe_task));
+    return true;
 }
 
 TaskManager& task_manager()
