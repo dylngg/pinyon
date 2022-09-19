@@ -12,7 +12,8 @@ void* FreeList::to_user_ptr(HeaderNode* node_ptr, size_t offset)
 
 FreeList::HeaderNode* FreeList::construct_node(size_t region_size, void* node_location)
 {
-    return new (node_location) HeaderNode(Header{region_size - sizeof(HeaderNode)});
+    auto header = Header{region_size - sizeof(HeaderNode), 0};
+    return new (node_location) HeaderNode(header);
 }
 
 Allocation FreeList::try_reserve(size_t requested_size)

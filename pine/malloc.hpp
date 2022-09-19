@@ -31,14 +31,16 @@ struct Allocation {
 };
 
 class FreeList {
-    // Wrap size in padded struct to ensure alignment.
+    // Use padding in struct to ensure alignment.
     // e.g. ManualLinkedList<size_t>::Node on ARM32 is 12 bytes, which is not 8
     //      byte aligned
     struct Header {
-        alignas(max_align_t) size_t size;
+        size_t size;
+        size_t _padding;
     };
     using HeaderNode = ManualLinkedList<Header>::Node;
     static_assert(sizeof(HeaderNode) % Alignment == 0);
+    static_assert(sizeof(Header) % Alignment == 0);
 
 public:
     FreeList() = default;
