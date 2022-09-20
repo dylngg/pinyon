@@ -22,22 +22,23 @@
 task_save:
     /*
      * This is exported as:
-     * void task_save(Registers* to_save_registers);
+     * void task_save(Registers* to_save_registers, bool is_kernel_task);
      *
      * Saves the current context into the given registers (r0) for a context
      * switch, returning false. When a context switch occurs back to this
      * Task, task_save() is returned from once again with a true value.
      */
     /* Note: It is also ok to use r1-r3 because they are caller saved */
-    mrs r1, cpsr
-    str r1, [r0]
+    mrs r2, cpsr                /* Save CPSR into r2 */
+    str r2, [r0]
     add r0, #4
-    stmia r0, {sp, lr}^             /* Save SP and LR from user mode */
-    add r0, #8
-    stmia r0!, {sp, lr}
-    stmia r0!, {r0-r12}
-    ldr r1, =_task_return_again     /* PC for context switch back */
-    str r1, [r0]
+    cmp r1, #0
+    stmeqia r0, {sp, lr}^       /* Save SP and LR from user mode if not is_kernel_task */
+    add r0, #8                  /* cannot use ! in prev stmia */
+    stmia r0!, {sp, lr}         /* Save SP and LR from current mode */
+    stmia r0!, {r0-r12}         /* Save general registers */
+    ldr r2, =_task_return_again /* PC for context switch back */
+    str r2, [r0]
     mov r0, #0
     b _task_return
 _task_return_again:
@@ -48,7 +49,7 @@ _task_return:
 task_switch:
     /*
      * This is exported as:
-     * void task_switch(Registers* to_save_registers, const Registers* stored_registers);
+     * void task_switch(Registers* to_save_registers, bool is_kernel_task_save, const Registers* stored_registers, bool is_kernel_task_stored);
      *
      * Saves the current task into the first given registers (r0) if not NULL,
      * and switches to the second given registers.
@@ -58,18 +59,19 @@ task_switch:
 
     push {r0-r3, r12, lr}
     bl task_save
-    cmp r0, #0
+    cmp r0, #0                  /* Check if returning from context switch */
     pop {r0-r3, r12, lr}
-    bxne lr                     /* If returning from context switch */
+    bxne lr                     /* return if coming from context switch */
 
 _task_start:
-    ldr r2, [r1]                /* Restore the CPSR into the SPSR */
-    msr spsr, r2
-    add r1, #4
-    ldmia r1, {sp, lr}^         /* Restore SP and LR in user mode */
-    add r1, #8
-    ldmia r1!, {sp, lr}         /* Restore SP and LR of current mode; if we are starting a new task this is their supervisor SP and LR */
-    ldmia r1, {r0-r12, pc}^     /* Go to PC; SPSR is copied into CPSR */
+    ldr r1, [r2]                /* Restore the CPSR into the SPSR */
+    msr spsr, r1
+    add r2, #4
+    cmp r3, #0
+    ldmeqia r2, {sp, lr}^       /* Restore SP and LR in user mode if not is_kernel_task_stored */
+    add r2, #8
+    ldmia r2!, {sp, lr}         /* Restore SP and LR of current mode; if we are starting a new task this is their supervisor SP and LR */
+    ldmia r2, {r0-r12, pc}^     /* Go to PC; SPSR is copied into CPSR */
 
 task_kernel_return:
     // FIXME: We should panic here, since if somehow the kernel LR is returned

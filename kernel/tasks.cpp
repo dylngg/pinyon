@@ -7,12 +7,24 @@
 #include <pine/string.hpp>
 #include <pine/units.hpp>
 
-Task::Task(const char* name, Heap heap, Stack kernel_stack, Stack stack, u32 user_pc, ProcessorMode user_mode)
+Registers construct_user_task_registers(const Stack& stack, const Stack& kernel_stack, PtrData pc)
+{
+    return Registers(stack.sp(), kernel_stack.sp(), pc, ProcessorMode::User);
+}
+
+Registers construct_kernel_task_registers(const Stack& kernel_stack, PtrData pc)
+{
+    auto registers = Registers(kernel_stack.sp(), kernel_stack.sp(), pc, ProcessorMode::Supervisor);
+    PANIC_IF(!registers.is_kernel_registers());
+    return registers;
+}
+
+Task::Task(const char* name, Heap heap, Stack kernel_stack, pine::Maybe<Stack> user_stack, Registers registers)
     : m_name(name)
     , m_state(State::New)
+    , m_user_stack(pine::move(user_stack))
     , m_kernel_stack(pine::move(kernel_stack))
-    , m_stack(pine::move(stack))
-    , m_registers(m_stack.sp(), m_kernel_stack.sp(), user_pc, user_mode)
+    , m_registers(registers)
     , m_heap(heap)
     , m_sleep_end_time(0)
     , m_jiffies_when_scheduled(0)
@@ -21,15 +33,25 @@ Task::Task(const char* name, Heap heap, Stack kernel_stack, Stack stack, u32 use
 {
 }
 
-pine::Maybe<Task> Task::try_create(const char* name, u32 pc)
+pine::Maybe<Task> Task::try_create(const char* name, u32 pc, CreateFlags flags)
 {
     auto maybe_kernel_stack = Stack::try_create(8 * PageSize);
     if (!maybe_kernel_stack)
         return {};
 
-    auto maybe_stack = Stack::try_create(2 * MiB);
-    if (!maybe_stack)
-        return {};
+    pine::Maybe<Registers> registers;  // delay initialization
+    pine::Maybe<Stack> maybe_stack;
+
+    if (!(flags & CreateKernelTask)) {
+        maybe_stack = Stack::try_create(2 * MiB);
+        if (!maybe_stack)
+            return {};
+
+        registers = construct_user_task_registers(*maybe_stack, *maybe_kernel_stack, pc);
+    }
+    else {
+        registers = construct_kernel_task_registers(*maybe_kernel_stack, pc);
+    }
 
     size_t heap_size = 4 * MiB;
     auto* heap_ptr = kmalloc(heap_size);
@@ -42,25 +64,24 @@ pine::Maybe<Task> Task::try_create(const char* name, u32 pc)
     return Task {
         name,
         heap,
-        pine::move(*maybe_kernel_stack),
         pine::move(*maybe_stack),
-        pc,
-        ProcessorMode::User
+        pine::move(*maybe_kernel_stack),
+        *registers,
     };
 }
 
 void Task::switch_to(Task& to_run_task, InterruptsDisabledTag tag)
 {
     m_cpu_jiffies += jiffies() - m_jiffies_when_scheduled;
-    to_run_task.start(&m_registers, tag);
+    to_run_task.start(&m_registers, is_kernel_task(), tag);
 }
 
-void Task::start(Registers* to_save_registers, InterruptsDisabledTag)
+void Task::start(Registers* to_save_registers, bool is_kernel_task_to_save, InterruptsDisabledTag)
 {
     m_state = State::Runnable;  // move away from New state if new
     m_jiffies_when_scheduled = jiffies();
 
-    task_switch(to_save_registers, &m_registers);
+    task_switch(to_save_registers, is_kernel_task_to_save, &m_registers, is_kernel_task());
 }
 
 void Task::sleep(u32 secs)
@@ -168,7 +189,7 @@ void TaskManager::schedule(InterruptsDisabledTag disabled_tag)
 
 void TaskManager::start_scheduler(InterruptsDisabledTag disabled_tag)
 {
-    m_tasks[0].start(nullptr, disabled_tag);
+    m_tasks[0].start(nullptr, false, disabled_tag);
 }
 
 extern "C" {
@@ -188,17 +209,17 @@ TaskManager::TaskManager()
     auto spin_task_addr = spin_addr();
     auto shell_task_addr = shell_addr();
 
-    PANIC_MESSAGE_IF(!try_create_task("shell", shell_task_addr), "Could not create shell task! Out of memory?!");
+    PANIC_MESSAGE_IF(!try_create_task("shell", shell_task_addr, Task::CreateUserTask), "Could not create shell task! Out of memory?!");
 
     // The idea behind this task is that it will always be runnable so we
     // never have to deal with no runnable tasks. It will spin of course,
     // which is not ideal :P
-    PANIC_MESSAGE_IF(!try_create_task("spin", spin_task_addr), "Could not create spin task! Out of memory?!");
+    PANIC_MESSAGE_IF(!try_create_task("spin", spin_task_addr, Task::CreateKernelTask), "Could not create spin task! Out of memory?!");
 }
 
-bool TaskManager::try_create_task(const char* name, PtrData start_addr)
+bool TaskManager::try_create_task(const char* name, PtrData start_addr, Task::CreateFlags flags)
 {
-    auto maybe_task = Task::try_create(name, start_addr);
+    auto maybe_task = Task::try_create(name, start_addr, flags);
     if (!maybe_task)
         return false;
 
@@ -210,7 +231,7 @@ void TaskManager::exit_running_task(InterruptsDisabledTag disabler, int code)
 {
     consoleln(running_task().name(), "has exited with code:", code);
     m_tasks.remove(m_running_task_index);
-    pick_next_task().start(nullptr, disabler);
+    pick_next_task().start(nullptr, false, disabler);
 }
 
 TaskManager& task_manager()

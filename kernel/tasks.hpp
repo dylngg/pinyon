@@ -41,6 +41,8 @@ struct Registers {
         kernel_lr = stop_addr;
     };
 
+    bool is_kernel_registers() const { return user_sp == kernel_sp; };
+
     CPSR cpsr;  // The CPSR to return to (either user or kernel, depending on if starting a task)
     u32 user_sp;
     u32 user_lr;
@@ -62,11 +64,14 @@ struct Registers {
     u32 pc;     // The PC to return to (either user or kernel, depending on if starting a task)
 };
 
+Registers construct_user_task_registers(const Stack& stack, const Stack& kernel_stack, PtrData pc);
+Registers construct_kernel_task_registers(const Stack& kernel_stack, PtrData pc);
+
 using IsSecondReturn = bool;
 
 extern "C" {
 // In switch.S
-void task_switch(Registers* to_save_registers, const Registers* new_registers);
+void task_switch(Registers* to_save_registers, bool is_kernel_task_save, const Registers* new_registers, bool is_kernel_task_new);
 }
 
 class Task {
@@ -79,8 +84,12 @@ public:
         Sleeping,
         Waiting,
     };
+    enum CreateFlags {
+        CreateUserTask = 0,
+        CreateKernelTask = 1,
+    };
 
-    static pine::Maybe<Task> try_create(const char* name, u32 pc);
+    static pine::Maybe<Task> try_create(const char* name, u32 pc, CreateFlags flags);
     Task(const Task& other) = delete;
     Task(Task&& other) = default;
     Task& operator=(Task&& other) = default;
@@ -92,10 +101,12 @@ public:
     u32 cputime();
     void* sbrk(size_t increase);
 
+    bool is_kernel_task() const { return m_registers.is_kernel_registers(); }
+
 private:
-    Task(const char* name, Heap heap, Stack kernel_stack, Stack stack, u32 pc, ProcessorMode mode);
+    Task(const char* name, Heap heap, Stack kernel_stack, pine::Maybe<Stack> user_stack, Registers registers);
     void update_state();
-    void start(Registers*, InterruptsDisabledTag);
+    void start(Registers*, bool is_kernel_task_to_save, InterruptsDisabledTag);
     void switch_to(Task&, InterruptsDisabledTag);
     friend class TaskManager;
 
@@ -111,8 +122,8 @@ private:
 
     const char* m_name; // must be static pointer!
     State m_state;
+    pine::Maybe<Stack> m_user_stack;
     Stack m_kernel_stack;
-    Stack m_stack;
     Registers m_registers;
     Heap m_heap;
     u32 m_sleep_end_time;
@@ -138,7 +149,7 @@ private:
     TaskManager(TaskManager&&) = delete;
     Task& pick_next_task();
 
-    bool try_create_task(const char* name, PtrData start_addr);
+    bool try_create_task(const char* name, PtrData start_addr, Task::CreateFlags flags);
 
     KVector<Task> m_tasks;
     unsigned m_running_task_index;
