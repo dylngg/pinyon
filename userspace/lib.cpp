@@ -114,3 +114,8 @@ MallocStats memstats()
 {
     return g_malloc_stats;
 }
+
+void exit(int code)
+{
+    syscall1(Syscall::Exit, code);
+}

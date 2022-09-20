@@ -9,4 +9,5 @@ enum class Syscall : u32 {
     Sbrk,
     Uptime,
     CPUTime,
+    Exit,
 };

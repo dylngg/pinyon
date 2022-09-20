@@ -2,6 +2,7 @@
 
 #include <initializer_list>  // comes with -ffreestanding
 
+#include <pine/algorithm.hpp>
 #include <pine/math.hpp>
 #include <pine/page.hpp>
 #include <pine/twomath.hpp>
@@ -61,22 +62,7 @@ public:
         if (amount <= m_capacity)
             return true;
 
-        size_t new_capacity = align_capacity(amount);
-
-        auto& alloc = Allocator::allocator();
-        auto [ptr, allocated_size] = alloc.allocate(new_capacity * sizeof(Value));
-        auto* old_contents = m_contents;
-        m_contents = static_cast<Value*>(ptr);
-        if (!m_contents)
-            return false;
-
-        new_capacity = allocated_size / sizeof(Value);  // allocator may return more; use full space
-        if (old_contents) {
-            memcpy(m_contents, old_contents, m_count * sizeof(Value));
-            alloc.free(old_contents);
-        }
-        m_capacity = new_capacity;
-        return true;
+        return resize(amount);
     }
 
     /*
@@ -104,6 +90,52 @@ public:
             return false;
 
         emplace_unensured(pine::move(value));
+        return true;
+    }
+
+    /*
+     * Removes an item at the given index.
+     */
+    bool remove(size_t index)
+    {
+        if (index >= m_count)
+            return false;
+
+        m_contents[index].Value::~Value();
+        m_count--;
+
+        if (index == m_count)  // tail; no need for resize
+            return true;
+
+        size_t new_capacity = align_capacity(m_count);
+
+        auto& alloc = Allocator::allocator();
+        auto [ptr, new_size] = alloc.allocate(new_capacity * sizeof(Value));
+        auto new_contents = static_cast<Value*>(ptr);
+        if (!new_contents)
+            return false;
+
+        size_t from = 0;
+        size_t to = 0;
+        while (to < m_count) {
+            if (from == index) {
+                from++;
+                continue;
+            }
+
+            new (new_contents + to) Value(move(*(m_contents + from)));
+            from++;
+            to++;
+        }
+
+        m_capacity = new_size;
+        auto old_contents = m_contents;
+        m_contents = new_contents;
+        if (old_contents) {
+            auto& alloc = Allocator::allocator();
+            alloc.free(old_contents);
+        }
+
         return true;
     }
 
@@ -151,6 +183,31 @@ private:
 
         // align_up_to_power cannot be called with a number greater than 1 << (limits<...>::width - 1)
         return max(align_up_to_power(new_capacity), (size_t)8u);
+    }
+
+    // Resizes the capacity to be amount and returns whether it was successful
+    // in doing so. No destructors are ran if the new amount is less than the
+    // old capacity
+    bool resize(size_t amount)
+    {
+        size_t new_capacity = align_capacity(amount);
+
+        auto& alloc = Allocator::allocator();
+        auto [ptr, new_size] = alloc.allocate(new_capacity * sizeof(Value));
+        auto new_contents = static_cast<Value*>(ptr);
+        if (!new_contents)
+            return false;
+
+        for (size_t i = 0; i < m_count; i++)
+            new (new_contents + i) Value(move(*(m_contents + i)));
+
+        m_capacity = new_size;
+        auto old_contents = m_contents;
+        m_contents = new_contents;
+        if (old_contents)
+            alloc.free(old_contents);
+
+        return true;
     }
 
     size_t m_count = 0;

@@ -29,6 +29,13 @@ u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2)
     //consolef("Handling syscall %u with args %u\n", syscall_id, arg);
 
     switch (call) {
+    case Syscall::Exit: {
+        InterruptDisabler disabler;
+        int code = static_cast<int>(arg1);
+        task_mgr.exit_running_task(disabler, code);
+        break;
+    }
+
     case Syscall::Yield: {
         InterruptDisabler disabler;
         task_mgr.schedule(disabler);

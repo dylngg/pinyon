@@ -206,6 +206,13 @@ bool TaskManager::try_create_task(const char* name, PtrData start_addr)
     return true;
 }
 
+void TaskManager::exit_running_task(InterruptsDisabledTag disabler, int code)
+{
+    consoleln(running_task().name(), "has exited with code:", code);
+    m_tasks.remove(m_running_task_index);
+    pick_next_task().start(nullptr, disabler);
+}
+
 TaskManager& task_manager()
 {
     static TaskManager g_task_manager {};

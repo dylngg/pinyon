@@ -83,7 +83,9 @@ public:
     static pine::Maybe<Task> try_create(const char* name, u32 pc);
     Task(const Task& other) = delete;
     Task(Task&& other) = default;
+    Task& operator=(Task&& other) = default;
 
+    const char* name() const { return m_name; }
     void sleep(u32 secs);
     size_t read(char* buf, size_t at_most_bytes);
     void write(char* buf, size_t bytes);

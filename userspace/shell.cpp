@@ -87,7 +87,7 @@ void shell()
     free(buf);
 
     printf("goodbye.\n");
-    asm volatile("b halt");
+    exit(0);
 }
 
 u32 shell_addr() {

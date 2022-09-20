@@ -52,5 +52,7 @@ struct MallocStats {
 
 MallocStats memstats();
 
+void exit(int code);
+
 // We don't use this in any capacity, but compilers will insert calls to it
 inline int atexit(void (*)()) { return 0; };
