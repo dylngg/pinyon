@@ -35,7 +35,7 @@ Iter lower_bound(Iter begin, Iter end, const Value& value, Compare compare)
         advance(it, offset);
         if (compare(*it, value)) {
             // search the right half
-            begin = ++it;
+            begin = next(it);
             len -= offset + 1;
         }
         else {
@@ -61,7 +61,7 @@ Iter find_if(Iter begin, Iter end, UnaryPredicate pred)
         if (pred(*begin))
             return begin;
 
-        ++begin;
+        begin = next(begin);
     }
     return end;
 }
@@ -72,6 +72,26 @@ Iter find(Iter begin, Iter end, const Value& value)
     return find_if(begin, end, [&](const Value& other) {
         return EqualTo<Value>{}(other, value);
     });
+}
+
+template <typename Iter>
+void move(Iter old_begin, Iter old_end, Iter new_begin)
+{
+    while (old_begin != old_end) {
+        *old_begin = pine::move(*new_begin);
+        old_begin = next(old_begin);
+        new_begin = next(new_begin);
+    }
+}
+
+template <typename Iter>
+void copy(Iter old_begin, Iter old_end, Iter new_begin)
+{
+    while (old_begin != old_end) {
+        *old_begin = *new_begin;
+        old_begin = next(old_begin);
+        new_begin = next(new_begin);
+    }
 }
 
 }
