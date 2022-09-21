@@ -11,10 +11,43 @@ static_assert(HugePageSize == mmu::L1Entry::vm_size);
 namespace mmu {
 
 static PhysicalPageAllocator g_physical_page_allocator;  // dummy; ctor not called
+static VirtualPageAllocator g_virtual_page_allocator;  // dummy; ctor not called
 
 PhysicalPageAllocator& physical_page_allocator()
 {
     return g_physical_page_allocator;
+}
+
+static bool reserve_identity_section(L1Table* l1_table, SectionRegion region)
+{
+    auto phys_alloc = g_physical_page_allocator.reserve_region(as_page_region(region));
+    if (!phys_alloc)
+        return false;
+
+    auto virt_alloc = g_virtual_page_allocator.reserve_region(as_page_region(region));
+    if (!virt_alloc)
+        return false;
+
+    l1_table->reserve_identity_section_region(region);
+
+    return true;
+}
+
+
+static bool reserve_backed_section(L1Table* l1_table, SectionRegion region)
+{
+    auto phys_alloc = g_physical_page_allocator.allocate_section(region.length);
+    if (!phys_alloc)
+        return false;
+
+    auto virt_alloc = g_virtual_page_allocator.reserve_region(as_page_region(region));
+    if (!virt_alloc)
+        return false;
+
+    auto virt_region = SectionRegion::from_ptr(virt_alloc.ptr, virt_alloc.size);
+    l1_table->reserve_section_region(region, virt_region);
+
+    return true;
 }
 
 extern "C" {
@@ -23,39 +56,30 @@ void init_page_tables(PtrData code_end)
 {
     auto code_section_end = pine::align_up_two(code_end, HugePageSize);
 
-    Region vm_region { 0, MEMORY_END_PAGES };
-    Region scratch { code_section_end / PageSize, HugePageSize };
-    g_physical_page_allocator.init(vm_region, scratch);
-
-    // Reserve from 0 to code end first, so not used for L1 table
-    auto code_alloc = g_physical_page_allocator.reserve_region(Region {0, code_section_end / PageSize });
-    PANIC_MESSAGE_IF(!code_alloc, "Failed to reserve code region in MMU!");
-
     // FIXME: We are wasting a lot of space with 1MiB alignment for code and
     //        especially for 16KiB L1Table
-    // Reserve L1 table itself
-    auto l1_alloc = g_physical_page_allocator.allocate_section(1);
-    auto* l1 = new(static_cast<L1Table*>(l1_alloc.ptr)) L1Table();
-    PANIC_MESSAGE_IF(!l1_alloc, "Failed to reserve L1 code region in MMU!");
-    l1->reserve_section(l1, PhysicalAddress(l1));
+    auto code_region = SectionRegion::from_range(0, code_section_end);
+    SectionRegion l1_region { code_region.end_offset(), 1 };
+    SectionRegion phys_scratch_region {l1_region.end_offset(), 1 };
+    SectionRegion virt_scratch_region {phys_scratch_region.end_offset(), 1 };
+    PageRegion vm_region { as_page_region(virt_scratch_region).end_offset(), MEMORY_END_PAGES-as_page_region(virt_scratch_region).offset };
+    g_physical_page_allocator.init(vm_region, as_page_region(phys_scratch_region));
+    g_virtual_page_allocator.init(vm_region, as_page_region(virt_scratch_region));
 
-    // Reserve code as L1 blocks; start at 0x0 because that is where the vector
-    // tables, then mode stacks live.
-    for (PtrData addr = 0; addr < code_section_end / HugePageSize; addr += HugePageSize)
-        l1->reserve_section(addr, PhysicalAddress(addr));
+    // Map into L1 table
+    auto* l1 = new(static_cast<L1Table*>(l1_region.ptr())) L1Table();
+    l1->reserve_identity_section_region(code_region);
+    l1->reserve_identity_section_region(l1_region);
+    l1->reserve_identity_section_region(phys_scratch_region);
+    l1->reserve_identity_section_region(virt_scratch_region);
 
     // Map devices in upper address space to themselves
-    for (PtrData addr = DEVICES_START; addr <= DEVICES_END; addr += HugePageSize)
-        l1->reserve_section(addr, PhysicalAddress(addr));
+    auto device_region = SectionRegion::from_range(DEVICES_START, DEVICES_END);
+    PANIC_IF(!reserve_identity_section(l1, device_region));
 
     // FIXME: This is a waste... we should manage this memory somehow...
-    auto l1_region = Region::from_ptr(l1_alloc.ptr, l1_alloc.size);
-
-    auto heap_phys_addr = PhysicalAddress(l1_region.end_ptr());
-    for (PtrData region = HEAP_START; region <= HEAP_END; region += HugePageSize) {
-        l1->reserve_section(region, heap_phys_addr);
-        heap_phys_addr += HugePageSize;
-    }
+    auto heap_region = SectionRegion::from_range(HEAP_START, HEAP_END);
+    PANIC_IF(!reserve_backed_section(l1, heap_region));
 
     set_l1_table(PhysicalAddress(l1));
 }

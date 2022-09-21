@@ -16,8 +16,6 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 
-namespace mmu {
-
 struct VirtualAddress {
     VirtualAddress(PtrData ptr)
         : m_ptr(reinterpret_cast<u8*>(ptr)) {};
@@ -105,6 +103,8 @@ private:
 };
 
 static_assert(sizeof(PhysicalAddress) == sizeof(PtrData));
+
+namespace mmu {
 
 enum class L1Type : u32 {
     Fault = 0,
@@ -239,6 +239,19 @@ struct L1Table {
 
     template <typename... SArgs>
     void reserve_section(VirtualAddress vm_addr, SArgs&& ...args) { reserve_section(vm_addr, Section(pine::forward<SArgs>(args)...)); }
+    void reserve_section_region(SectionRegion vm_region, SectionRegion phys_region)
+    {
+        auto phys_addr = reinterpret_cast<PtrData>(phys_region.ptr());
+        for (auto addr = reinterpret_cast<PtrData>(vm_region.ptr()); addr < reinterpret_cast<PtrData>(vm_region.end_ptr()); addr += HugePageSize) {
+            reserve_section(addr, PhysicalAddress(phys_addr));
+            phys_addr += HugePageSize;
+        }
+    }
+    void reserve_identity_section_region(SectionRegion region)
+    {
+        for (auto addr = reinterpret_cast<PtrData>(region.ptr()); addr < reinterpret_cast<PtrData>(region.end_ptr()); addr += HugePageSize)
+            reserve_section(addr, PhysicalAddress(addr));
+    }
 
     friend void print_with(pine::Printer&, const L1Table&);
 
@@ -301,7 +314,9 @@ PhysicalAddress l1_table();
 }
 
 using PhysicalPageAllocator = pine::PageAllocator;
+using VirtualPageAllocator = pine::PageAllocator;
 
 PhysicalPageAllocator& physical_page_allocator();
+VirtualPageAllocator& virtual_page_allocator();
 
 #pragma GCC diagnostic pop

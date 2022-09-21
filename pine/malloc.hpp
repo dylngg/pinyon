@@ -164,13 +164,15 @@ private:
 using FixedHeapAllocator = MemoryAllocator<FixedAllocation, HighWatermarkManager>;
 
 struct BrokeredAllocation {
-    Region region;
+    void* ptr;
+    size_t size;
     size_t overhead_used;
 
     [[nodiscard]] Allocation as_allocation() const
     {
-        return {region.ptr(), region.size() };
+        return { ptr, size };
     }
+    operator bool() const { return size != 0; }
 };
 
 using AllocationCost = PtrData;
@@ -184,11 +186,11 @@ enum class PageAlignmentLevel : unsigned {
 class PageAllocatorBackend {
 public:
     PageAllocatorBackend() = default;
-    void init(Region allocating_range, Region scratch_pages);
+    void init(PageRegion allocating_range, PageRegion scratch_pages);
 
-    [[nodiscard]] BrokeredAllocation reserve_region(Region region);
+    [[nodiscard]] BrokeredAllocation reserve_region(PageRegion region);
     [[nodiscard]] BrokeredAllocation allocate(unsigned num_pages, PageAlignmentLevel page_alignment = PageAlignmentLevel::Page);
-    void add(Region);
+    void add(PageRegion);
     void free(Allocation);
 
     static constexpr size_t max_overhead()
@@ -212,22 +214,22 @@ private:
         return bit_width(num_pages) - 1;
     }
 
-    using Node = ManualLinkedList<Region>::Node;
+    using Node = ManualLinkedList<PageRegion>::Node;
 
     static constexpr unsigned max_depth = (sizeof(size_t) * CHAR_BIT) - bit_width(PageSize) + 2;
 
     Node* find_free_pages(unsigned num_pages, PageAlignmentLevel page_alignment);
-    Node* find_free_region(Region);
-    Pair<Region, AllocationCost> remove_and_trim_pages(Node* node, unsigned min_pages);
-    Pair<Region, AllocationCost> remove_and_trim_region(Node* node, Region min_region);
-    Pair<Region, AllocationCost> trim_aligned_region(Region curr_region, unsigned curr_depth, unsigned end_depth);
-    AllocationCost free_region(Region);
-    Pair<unsigned, Node*> create_node(Region);
+    Node* find_free_region(PageRegion);
+    Pair<PageRegion, AllocationCost> remove_and_trim_pages(Node* node, unsigned min_pages);
+    Pair<PageRegion, AllocationCost> remove_and_trim_region(Node* node, PageRegion min_region);
+    Pair<PageRegion, AllocationCost> trim_aligned_region(PageRegion curr_region, unsigned curr_depth, unsigned end_depth);
+    AllocationCost free_region(PageRegion);
+    Pair<unsigned, Node*> create_node(PageRegion);
     void remove_node(unsigned depth, Node* node);
     void insert_node(unsigned depth, Node* node);
 
     FreeList m_node_allocator {};  // FIXME: Replace with a more space-efficient bitfield based allocator (slab)
-    ManualLinkedList<Region> m_free_lists[max_depth] {};  // 0 is PageSize
+    ManualLinkedList<PageRegion> m_free_lists[max_depth] {};  // 0 is PageSize
 };
 
 /*
@@ -243,9 +245,9 @@ private:
 class PageBroker {
 public:
     PageBroker() = default;
-    void init(Region allocating_range, Region scratch_pages);
+    void init(PageRegion allocating_range, PageRegion scratch_pages);
 
-    [[nodiscard]] Allocation reserve_region(Region region);
+    [[nodiscard]] Allocation reserve_region(PageRegion region);
     [[nodiscard]] Allocation allocate_section(unsigned num_sections);
     [[nodiscard]] Allocation allocate(unsigned num_pages, PageAlignmentLevel page_alignment = PageAlignmentLevel::Page);
     void free(Allocation);
