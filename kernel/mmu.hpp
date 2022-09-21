@@ -109,7 +109,7 @@ namespace mmu {
 enum class L1Type : u32 {
     Fault = 0,
     L2Ptr = 1,
-    Section = 2,
+    HugePage = 2,
     SuperSection = 3,
 };
 
@@ -142,9 +142,9 @@ struct L2Ptr {
     friend void print_with(pine::Printer&, const L2Ptr&);
 };
 
-struct Section {
-    Section(PhysicalAddress addr)
-        : type(L1Type::Section)
+struct HugePage {
+    HugePage(PhysicalAddress addr)
+        : type(L1Type::HugePage)
         , b(0)
         , c(0)
         , xn(0)
@@ -176,7 +176,7 @@ struct Section {
     u32 sbz : 1;
     PtrData base_addr : 10;
 
-    friend void print_with(pine::Printer&, const Section&);
+    friend void print_with(pine::Printer&, const HugePage&);
 };
 
 struct SuperSection {
@@ -211,14 +211,14 @@ union L1Entry {
         as_ptr = ptr;
         return *this;
     }
-    L1Entry& operator=(const Section& section)
+    L1Entry& operator=(const HugePage& huge_page)
     {
-        as_section = section;
+        as_huge_page = huge_page;
         return *this;
     }
-    L1Entry& operator=(const SuperSection& super_section)
+    L1Entry& operator=(const SuperSection& super_huge_page)
     {
-        as_super_section = super_section;
+        as_super_huge_page = super_huge_page;
         return *this;
     }
 
@@ -226,8 +226,8 @@ union L1Entry {
 
     Fault _;
     L2Ptr as_ptr;
-    Section as_section;
-    SuperSection as_super_section;
+    HugePage as_huge_page;
+    SuperSection as_super_huge_page;
 };
 
 struct L1Table {
@@ -235,22 +235,22 @@ struct L1Table {
 
     static constexpr auto num_entries = 4096;
 
-    void reserve_section(VirtualAddress, Section);
+    void reserve_huge_page(VirtualAddress, HugePage);
 
     template <typename... SArgs>
-    void reserve_section(VirtualAddress vm_addr, SArgs&& ...args) { reserve_section(vm_addr, Section(pine::forward<SArgs>(args)...)); }
-    void reserve_section_region(SectionRegion vm_region, SectionRegion phys_region)
+    void reserve_huge_page(VirtualAddress vm_addr, SArgs&& ...args) { reserve_huge_page(vm_addr, HugePage(pine::forward<SArgs>(args)...)); }
+    void reserve_huge_page_region(HugePageRegion vm_region, HugePageRegion phys_region)
     {
         auto phys_addr = reinterpret_cast<PtrData>(phys_region.ptr());
         for (auto addr = reinterpret_cast<PtrData>(vm_region.ptr()); addr < reinterpret_cast<PtrData>(vm_region.end_ptr()); addr += HugePageSize) {
-            reserve_section(addr, PhysicalAddress(phys_addr));
+            reserve_huge_page(addr, PhysicalAddress(phys_addr));
             phys_addr += HugePageSize;
         }
     }
-    void reserve_identity_section_region(SectionRegion region)
+    void reserve_identity_huge_page_region(HugePageRegion region)
     {
         for (auto addr = reinterpret_cast<PtrData>(region.ptr()); addr < reinterpret_cast<PtrData>(region.end_ptr()); addr += HugePageSize)
-            reserve_section(addr, PhysicalAddress(addr));
+            reserve_huge_page(addr, PhysicalAddress(addr));
     }
 
     friend void print_with(pine::Printer&, const L1Table&);
@@ -305,13 +305,14 @@ struct L2Table {
     L2Entry m_entries[num_entries];
 };
 
+
+#pragma GCC diagnostic pop
+
 extern "C" void init_page_tables(PtrData code_end);
 
-void set_l1_table(PhysicalAddress l1_addr);
+void set_l1_table(L1Table& l1_addr);
 
-PhysicalAddress l1_table();
-
-}
+L1Table& l1_table();
 
 using PhysicalPageAllocator = pine::PageAllocator;
 using VirtualPageAllocator = pine::PageAllocator;
@@ -319,4 +320,7 @@ using VirtualPageAllocator = pine::PageAllocator;
 PhysicalPageAllocator& physical_page_allocator();
 VirtualPageAllocator& virtual_page_allocator();
 
-#pragma GCC diagnostic pop
+bool reserve_identity_huge_page(L1Table& l1_table, HugePageRegion region);
+bool reserve_backed_huge_page(L1Table& l1_table, HugePageRegion region);
+
+}

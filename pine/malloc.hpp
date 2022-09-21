@@ -248,7 +248,7 @@ public:
     void init(PageRegion allocating_range, PageRegion scratch_pages);
 
     [[nodiscard]] Allocation reserve_region(PageRegion region);
-    [[nodiscard]] Allocation allocate_section(unsigned num_sections);
+    [[nodiscard]] Allocation allocate_huge_page(unsigned num_huge_pages);
     [[nodiscard]] Allocation allocate(unsigned num_pages, PageAlignmentLevel page_alignment = PageAlignmentLevel::Page);
     void free(Allocation);
 

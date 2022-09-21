@@ -186,10 +186,10 @@ Allocation PageBroker::allocate(unsigned num_pages, PageAlignmentLevel page_alig
     return broker_allocation.as_allocation();
 }
 
-Allocation PageBroker::allocate_section(unsigned num_sections)
+Allocation PageBroker::allocate_huge_page(unsigned num_huge_pages)
 {
-    constexpr auto pages_in_sections = HugePageSize / PageSize;
-    return allocate(num_sections * pages_in_sections, PageAlignmentLevel::HugePage);
+    constexpr auto pages_in_huge_pages = HugePageSize / PageSize;
+    return allocate(num_huge_pages * pages_in_huge_pages, PageAlignmentLevel::HugePage);
 }
 
 BrokeredAllocation PageAllocatorBackend::allocate(unsigned num_pages, PageAlignmentLevel page_alignment)

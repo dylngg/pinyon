@@ -99,9 +99,9 @@ struct Region {
 };
 
 using PageRegion = Region<PageSize>;
-using SectionRegion = Region<HugePageSize>;
+using HugePageRegion = Region<HugePageSize>;
 
-inline PageRegion as_page_region(SectionRegion section_region)
+inline PageRegion as_page_region(HugePageRegion huge_page_region)
 {
-    return SectionRegion::convert_to<PageSize>(section_region);
+    return HugePageRegion::convert_to<PageSize>(huge_page_region);
 }
