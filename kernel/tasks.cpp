@@ -199,7 +199,7 @@ u32 shell_addr(); // forward declare; in userspace/shell.hpp
 }
 
 TaskManager::TaskManager()
-    : m_tasks()
+    : m_tasks(kernel_allocator())
     , m_running_task_index(0)
 {
     // The compiler will literally give us null if we try and get the address

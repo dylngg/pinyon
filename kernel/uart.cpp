@@ -287,7 +287,7 @@ pine::Maybe<KOwner<UARTResource>> UARTResource::try_request(char* buf, size_t bu
     if (g_uart_resource) // Can only handle one request at a time
         panic("UART resource has already been acquired!");
 
-    auto maybe_resource = KOwner<UARTResource>::try_create(buf, bufsize, options);
+    auto maybe_resource = KOwner<UARTResource>::try_create(kernel_allocator(), buf, bufsize, options);
     if (!maybe_resource) // FIXME: Indicate out of memory!
         return {};
 

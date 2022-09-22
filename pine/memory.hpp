@@ -6,13 +6,19 @@
 namespace pine {
 
 template <class Value, class Allocator>
-struct DefaultDestructor {
-    constexpr DefaultDestructor(Allocator& allocator = Allocator::allocator())
+class DefaultDestructor {
+protected:
+    constexpr explicit DefaultDestructor(Allocator& allocator)
         : m_allocator(allocator) {};
-    constexpr void operator()(Value* value)
+
+    constexpr void destroy(Value* value)
     {
         value->~Value();
         m_allocator.free(value);
+    };
+    Allocator& allocator()
+    {
+        return m_allocator;
     };
 
 private:
@@ -24,36 +30,37 @@ private:
  * pointer. Thus, Owner<> is never null unless moved.
  */
 template <class Value, class Allocator, class Destructor = DefaultDestructor<Value, Allocator>>
-class Owner {
+class Owner : private Destructor {
 public:
     using ValueOwner = Owner<Value, Allocator, Destructor>;
 
-    Owner(enable_if<is_move_constructible<Value>, Value>& value)
-        : m_ptr(&value) {};
+    Owner(Allocator& allocator, enable_if<is_move_constructible<Value>, Value>& value)
+        : Destructor(allocator)
+        , m_ptr(&value) {};
     ~Owner()
     {
         if (m_ptr) {
-            Destructor d {};
-            d(m_ptr);
+            Destructor::destroy(m_ptr);
         }
     }
 
     template <class... Args>
-    static Maybe<ValueOwner> try_create(Args&&... args)
+    static Maybe<ValueOwner> try_create(Allocator& allocator, Args&&... args)
     {
-        auto [ptr, _] = Allocator::allocator().allocate(sizeof(Value));
+        auto [ptr, _] = allocator.allocate(sizeof(Value));
         if (!ptr)
             return {};
 
         auto* value = new (ptr) Value(forward<Args>(args)...);
-        return { *value };
+        return { ValueOwner(allocator, *value) };
     }
 
     Owner(const Owner&) = delete;
     Owner& operator=(const Owner&) = delete;
 
     Owner(Owner&& other)
-        : m_ptr(exchange(other.m_ptr, nullptr)) {};
+        : Destructor(other.allocator())
+        , m_ptr(exchange(other.m_ptr, nullptr)) {};
     Owner& operator=(Owner&& other)
     {
         Owner owner { move(other) };

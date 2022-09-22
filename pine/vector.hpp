@@ -12,12 +12,13 @@
 
 namespace pine {
 
-template <typename Value, typename Allocator>
-class Vector {
+template <typename Value, typename Allocator, typename Destructor = DefaultDestructor<Value, Allocator>>
+class Vector : private Destructor {
 public:
-    Vector() = default;
-    Vector(std::initializer_list<Value> values)
-        : Vector()
+    Vector(Allocator& allocator)
+        : Destructor(allocator) {};
+    Vector(Allocator& allocator, std::initializer_list<Value> values)
+        : Vector(allocator)
     {
         if (!ensure(values.size()))
             return;
@@ -28,10 +29,11 @@ public:
     ~Vector()
     {
         if (m_contents)
-            Allocator::allocator().free(m_contents);
+            Destructor::destroy(m_contents);
     }
     Vector(const Vector& other)
-        : m_count()
+        : Destructor(other.allocator())
+        , m_count()
         , m_capacity()
         , m_contents()
     {
@@ -42,7 +44,8 @@ public:
             emplace_unensured(value);
     }
     Vector(Vector&& other)
-        : m_count(exchange(other.m_count, 0u))
+        : Destructor(other.allocator())
+        , m_count(exchange(other.m_count, 0u))
         , m_capacity(exchange(other.m_capacity, 0u))
         , m_contents(exchange(other.m_contents, nullptr)) {}
 
@@ -109,7 +112,7 @@ public:
 
         size_t new_capacity = align_capacity(m_count);
 
-        auto& alloc = Allocator::allocator();
+        auto& alloc = Destructor::allocator();
         auto [ptr, new_size] = alloc.allocate(new_capacity * sizeof(Value));
         auto new_contents = static_cast<Value*>(ptr);
         if (!new_contents)
@@ -132,7 +135,7 @@ public:
         auto old_contents = m_contents;
         m_contents = new_contents;
         if (old_contents) {
-            auto& alloc = Allocator::allocator();
+            auto& alloc = Destructor::allocator();
             alloc.free(old_contents);
         }
 
@@ -148,11 +151,11 @@ public:
         return m_contents[index];
     }
 
-    using Iter = RandomAccessIter<Vector<Value, Allocator>, Value>;
+    using Iter = RandomAccessIter<Vector<Value, Allocator, Destructor>, Value>;
     Iter begin() { return Iter::begin(*this); }
     Iter end() { return Iter::end(*this); }
 
-    using ConstIter = RandomAccessIter<const Vector<Value, Allocator>, const Value>;
+    using ConstIter = RandomAccessIter<const Vector<Value, Allocator, Destructor>, const Value>;
     ConstIter begin() const { return ConstIter::begin(*this); }
     ConstIter end() const { return ConstIter::end(*this); }
 
@@ -192,7 +195,7 @@ private:
     {
         size_t new_capacity = align_capacity(amount);
 
-        auto& alloc = Allocator::allocator();
+        auto& alloc = Destructor::allocator();
         auto [ptr, new_size] = alloc.allocate(new_capacity * sizeof(Value));
         auto new_contents = static_cast<Value*>(ptr);
         if (!new_contents)

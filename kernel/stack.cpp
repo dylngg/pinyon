@@ -7,7 +7,7 @@ pine::Maybe<Stack> Stack::try_create(size_t size)
     if (!stack_ptr)
         return {};
 
-    return Stack { *stack_ptr, allocated_size };
+    return Stack { KOwner<u32>(kernel_allocator(), *stack_ptr), allocated_size };
 }
 
 u32 Stack::sp() const
