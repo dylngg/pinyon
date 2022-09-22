@@ -20,31 +20,30 @@ public:
         auto* ptr = std::malloc(requested_size);
         return { ptr, ptr ? requested_size : 0 };
     }
-    void free(void* ptr) { std::free(ptr); }
-    bool in_bounds(void*) const { return true; }
+    void free(pine::Allocation alloc) { std::free(alloc.ptr); }
 };
 
-inline void* malloc(size_t requested_size)
+inline pine::Allocation malloc(size_t requested_size)
 {
-    auto [ptr, alloc_size] = Allocator::allocator().allocate(requested_size);
-    return ptr;
+    return Allocator::allocator().allocate(requested_size);
 }
 
 template <typename Value>
 inline Value* malloc()
 {
-    return static_cast<Value*>(malloc(sizeof(Value)));
+    auto [ptr, size] = malloc(sizeof(Value));
+    return static_cast<Value*>(ptr);
 }
 
-inline void free(void* ptr)
+inline void free(pine::Allocation alloc)
 {
-    Allocator::allocator().free(ptr);
+    Allocator::allocator().free(alloc);
 }
 
 template <typename Value>
 inline void free(Value* ptr)
 {
-    free(ptr);
+    free(pine::Allocation(ptr, sizeof(Value)));
 }
 
 }

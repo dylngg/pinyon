@@ -11,9 +11,9 @@ using KernelMemoryAllocator = pine::MemoryAllocator<pine::FixedAllocation, pine:
 
 KernelMemoryAllocator& kernel_allocator();
 
-void kfree(void*);
+void kfree(pine::Allocation);
 
-void* kmalloc(size_t) __attribute__((malloc));
+pine::Allocation kmalloc(size_t);
 
 template <class Value>
 using KOwner = pine::Owner<Value, KernelMemoryAllocator>;

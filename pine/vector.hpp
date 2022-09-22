@@ -131,12 +131,13 @@ public:
             to++;
         }
 
+        auto old_capacity = m_capacity;
         m_capacity = new_size;
         auto old_contents = m_contents;
         m_contents = new_contents;
         if (old_contents) {
             auto& alloc = Destructor::allocator();
-            alloc.free(old_contents);
+            alloc.free(pine::Allocation { old_contents, old_capacity });
         }
 
         return true;
@@ -204,11 +205,12 @@ private:
         for (size_t i = 0; i < m_count; i++)
             new (new_contents + i) Value(move(*(m_contents + i)));
 
+        auto old_capacity = m_capacity;
         m_capacity = new_size;
         auto old_contents = m_contents;
         m_contents = new_contents;
         if (old_contents)
-            alloc.free(old_contents);
+            alloc.free(pine::Allocation { old_contents, old_capacity });
 
         return true;
     }

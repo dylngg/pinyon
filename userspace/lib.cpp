@@ -42,10 +42,11 @@ int printf(const char* fmt, ...)
     va_list args;
     va_start(args, fmt);
     size_t bufsize = strlen(fmt) * 2;
-    char* print_buf = static_cast<char*>(malloc(bufsize));
-    if (!print_buf)
+    auto print_alloc = malloc(bufsize);
+    if (!print_alloc)
         return 0;
 
+    char* print_buf = static_cast<char*>(print_alloc.ptr);
     size_t print_buf_pos = 0;
 
     const auto& try_add_wrapper = [&](const char* message) -> bool {
@@ -53,9 +54,11 @@ int printf(const char* fmt, ...)
         if (print_buf_pos + message_size >= bufsize) {
             // realloc buffer size (hack)
             // FIXME: Implement realloc
-            free(print_buf);
+            free(print_alloc);
             bufsize = bufsize + message_size + 64;
-            print_buf = static_cast<char*>(malloc(bufsize));
+            print_alloc = malloc(bufsize);
+            if (!print_alloc)
+                return false;
         }
 
         strcopy(print_buf + print_buf_pos, message);
@@ -65,7 +68,7 @@ int printf(const char* fmt, ...)
 
     vfnprintf(try_add_wrapper, fmt, args);
     write(print_buf, print_buf_pos);
-    free(print_buf);
+    free(print_alloc);
     return 0;
 }
 
@@ -93,20 +96,20 @@ TaskMemoryAllocator& mem_allocator()
     return g_task_allocator;
 }
 
-void* malloc(size_t requested_size)
+pine::Allocation malloc(size_t requested_size)
 {
-    auto [ptr, alloc_size] = mem_allocator().allocate(requested_size);
-    if (!ptr)
+    auto alloc = mem_allocator().allocate(requested_size);
+    if (!alloc)
         printf("malloc:\tNo free space available?!\n");
 
-    g_malloc_stats.used_size += alloc_size;
+    g_malloc_stats.used_size += alloc.size;
     ++g_malloc_stats.num_mallocs;
-    return ptr;
+    return alloc;
 }
 
-void free(void* ptr)
+void free(pine::Allocation alloc)
 {
-    g_malloc_stats.used_size -= mem_allocator().free(ptr);
+    g_malloc_stats.used_size -= mem_allocator().free(alloc);
     ++g_malloc_stats.num_frees;
 }
 

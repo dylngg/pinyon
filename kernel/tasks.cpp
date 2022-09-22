@@ -54,11 +54,11 @@ pine::Maybe<Task> Task::try_create(const char* name, u32 pc, CreateFlags flags)
     }
 
     size_t heap_size = 4 * MiB;
-    auto* heap_ptr = kmalloc(heap_size);
-    if (!heap_ptr)
+    auto heap_alloc = kmalloc(heap_size);
+    if (!heap_alloc)
         return {};
 
-    auto heap_ptr_data = reinterpret_cast<PtrData>(heap_ptr);
+    auto heap_ptr_data = reinterpret_cast<PtrData>(heap_alloc.ptr);
     Heap heap = Heap::construct(heap_ptr_data, heap_ptr_data + heap_size);
 
     return Task {

@@ -3,10 +3,11 @@
 pine::Maybe<Stack> Stack::try_create(size_t size)
 {
     size_t allocated_size = pine::align_up_two(size, PageSize);
-    u32* stack_ptr = static_cast<u32*>(kmalloc(allocated_size));
-    if (!stack_ptr)
+    auto stack_alloc = kmalloc(allocated_size);
+    if (!stack_alloc)
         return {};
 
+    u32* stack_ptr = static_cast<u32*>(stack_alloc.ptr);
     return Stack { KOwner<u32>(kernel_allocator(), *stack_ptr), allocated_size };
 }
 

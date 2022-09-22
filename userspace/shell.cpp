@@ -33,12 +33,13 @@ extern "C" {
 
 void shell()
 {
-    char* buf = static_cast<char*>(malloc(1024));
-    if (!buf) {
+    auto alloc = malloc(1024);
+    if (!alloc) {
         printf("Could not allocate memory for buf!!\n");
-        asm volatile("b halt");
+        exit(1);
     }
 
+    char* buf = static_cast<char*>(alloc.ptr);
     for (;;) {
         printf("# ");
         read(buf, 1024);
@@ -84,7 +85,7 @@ void shell()
         printf("Unknown command '%s'. Use 'help'.\n", buf);
     }
 
-    free(buf);
+    free(alloc);
 
     printf("goodbye.\n");
     exit(0);

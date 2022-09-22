@@ -9,13 +9,12 @@ KernelMemoryAllocator& kernel_allocator()
     return g_kernel_memory_allocator;
 }
 
-void* kmalloc(size_t requested_size)
+pine::Allocation kmalloc(size_t requested_size)
 {
-    auto [ptr, _] = kernel_allocator().allocate(requested_size);
-    return ptr;
+    return kernel_allocator().allocate(requested_size);
 }
 
-void kfree(void* ptr)
+void kfree(pine::Allocation alloc)
 {
-    kernel_allocator().free(ptr);
+    kernel_allocator().free(alloc);
 }

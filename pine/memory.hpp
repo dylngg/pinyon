@@ -14,7 +14,7 @@ protected:
     constexpr void destroy(Value* value)
     {
         value->~Value();
-        m_allocator.free(value);
+        m_allocator.free(pine::Allocation{ value, sizeof(Value) });
     };
     Allocator& allocator()
     {

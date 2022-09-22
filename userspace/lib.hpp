@@ -39,9 +39,10 @@ using TaskMemoryAllocator = pine::MemoryAllocator<HeapExtender, pine::FreeList>;
 
 TaskMemoryAllocator& mem_allocator();
 
-void free(void*);
+void free(pine::Allocation);
 
-void* malloc(size_t) __attribute__((malloc));
+pine::Allocation malloc(size_t);
+pine::Allocation malloc(size_t);
 
 struct MallocStats {
     size_t heap_size = 0;

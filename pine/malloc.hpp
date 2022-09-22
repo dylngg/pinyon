@@ -109,12 +109,12 @@ public:
         return { allocation.ptr, allocation.size };
     }
 
-    size_t free(void* ptr)
+    size_t free(Allocation alloc)
     {
-        if (!ptr || !m_allocator->in_bounds(ptr))
+        if (!alloc)
             return 0; // FIXME: assert?!
 
-        size_t size_freed = m_manager.release(ptr);
+        size_t size_freed = m_manager.release(alloc.ptr);
         return size_freed;
     }
 
