@@ -1,4 +1,5 @@
 #pragma once
+#include "array.hpp"
 #include "c_builtins.hpp"
 #include "linked_list.hpp"
 #include "maybe.hpp"
@@ -229,7 +230,7 @@ private:
     void insert_node(unsigned depth, Node* node);
 
     IntrusiveFreeList m_node_allocator {};  // FIXME: Replace with a more space-efficient bitfield based allocator (slab)
-    ManualLinkedList<PageRegion> m_free_lists[max_depth] {};  // 0 is PageSize
+    Array<ManualLinkedList<PageRegion>, max_depth> m_free_lists {};  // 0 is PageSize
 };
 
 /*
