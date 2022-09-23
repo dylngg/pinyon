@@ -245,22 +245,57 @@ private:
 class PageBroker {
 public:
     PageBroker() = default;
-    void init(PageRegion allocating_range, PageRegion scratch_pages);
+    void init(PageRegion allocating_range, PageRegion scratch_pages)
+    {
+        m_curr_runway = scratch_pages.size() - PageAllocatorBackend::initial_cost();
+        m_page_allocator.init(allocating_range, scratch_pages);
+    }
 
-    [[nodiscard]] Allocation reserve_region(PageRegion region);
-    [[nodiscard]] Allocation allocate_huge_page(unsigned num_huge_pages);
-    [[nodiscard]] Allocation allocate(unsigned num_pages, PageAlignmentLevel page_alignment = PageAlignmentLevel::Page);
-    void free(Allocation);
+    template <typename... Args>
+    Allocation allocate(Args... args)
+    {
+        if (m_curr_runway < c_required_runway && !allocate_required_runway())
+            return {};
+
+        auto broker_allocation = m_page_allocator.allocate(pine::forward<Args>(args)...);
+        m_curr_runway -= broker_allocation.overhead_used;
+        return broker_allocation.as_allocation();
+    }
+    template <typename... Args>
+    Allocation reserve_region(Args... args)
+    {
+        if (m_curr_runway < c_required_runway && !allocate_required_runway())
+            return {};
+
+        auto broker_allocation = m_page_allocator.reserve_region(pine::forward<Args>(args)...);
+        m_curr_runway -= broker_allocation.overhead_used;
+        return broker_allocation.as_allocation();
+    }
+    void free(Allocation alloc)
+    {
+        m_page_allocator.free(alloc);
+    }
 
     friend void print_with(Printer&, const PageBroker& page_broker);
 
 private:
-    [[nodiscard]] bool allocate_required_runway();
+    [[nodiscard]] bool allocate_required_runway()
+    {
+        static_assert(c_required_runway < PageSize, "Cannot handle runway greater than a page in size");
+
+        BrokeredAllocation brokered_alloc = m_page_allocator.allocate(1, PageAlignmentLevel::Page);
+        if (!brokered_alloc)
+            return false;
+
+        m_curr_runway += brokered_alloc.size;
+        m_curr_runway -= brokered_alloc.overhead_used;
+        return true;
+    }
 
     static constexpr size_t c_required_runway = align_up_to_power(PageAllocatorBackend::max_overhead());
 
-    size_t m_curr_runway;
-    PageAllocatorBackend m_page_allocator;
+    size_t m_curr_runway = 0;
+    PageAllocatorBackend m_page_allocator {};
 };
 
 using PageAllocator = PageBroker;

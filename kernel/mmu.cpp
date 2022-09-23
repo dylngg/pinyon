@@ -177,7 +177,7 @@ bool reserve_identity_huge_page(L1Table& l1_table, HugePageRegion region)
 
 bool reserve_backed_huge_page(L1Table& l1_table, HugePageRegion region)
 {
-    auto phys_alloc = physical_page_allocator().allocate_huge_page(region.length);
+    auto phys_alloc = physical_page_allocator().allocate(region.length, pine::PageAlignmentLevel::HugePage);
     if (!phys_alloc)
         return false;
 
