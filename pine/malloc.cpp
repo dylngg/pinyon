@@ -5,18 +5,18 @@
 
 namespace pine {
 
-void* FreeList::to_user_ptr(HeaderNode* node_ptr, size_t offset)
+void* IntrusiveFreeList::to_user_ptr(HeaderNode* node_ptr, size_t offset)
 {
     return reinterpret_cast<u8*>(node_ptr + 1) + offset;
 }
 
-FreeList::HeaderNode* FreeList::construct_node(size_t region_size, void* node_location)
+IntrusiveFreeList::HeaderNode* IntrusiveFreeList::construct_node(size_t region_size, void* node_location)
 {
     auto header = Header{region_size - sizeof(HeaderNode), 0};
     return new (node_location) HeaderNode(header);
 }
 
-Allocation FreeList::try_reserve(size_t requested_size)
+Allocation IntrusiveFreeList::try_reserve(size_t requested_size)
 {
     auto it = find_if(m_free_list.begin(), m_free_list.end(), [&](const auto* node) {
         return node->contents().size >= requested_size;
@@ -42,18 +42,18 @@ Allocation FreeList::try_reserve(size_t requested_size)
     return { to_user_ptr(node_ptr), alloc_size };
 }
 
-void FreeList::add(void* new_location, size_t new_size)
+void IntrusiveFreeList::add(void* new_location, size_t new_size)
 {
     auto* new_node_ptr = construct_node(new_size, new_location);
     m_free_list.append(*new_node_ptr);
 }
 
-FreeList::HeaderNode* FreeList::to_node_ptr(void* addr)
+IntrusiveFreeList::HeaderNode* IntrusiveFreeList::to_node_ptr(void* addr)
 {
     return static_cast<HeaderNode*>(addr) - 1;
 }
 
-Pair<FreeList::HeaderNode*, FreeList::HeaderNode*> FreeList::try_find_neighboring_memory_nodes(HeaderNode* node_ptr)
+Pair<IntrusiveFreeList::HeaderNode*, IntrusiveFreeList::HeaderNode*> IntrusiveFreeList::try_find_neighboring_memory_nodes(HeaderNode* node_ptr)
 {
     auto are_nodes_are_contiguous = [](HeaderNode* left, HeaderNode* right) {
         return reinterpret_cast<u8*>(to_user_ptr(left, left->contents().size)) == reinterpret_cast<u8*>(right);
@@ -74,13 +74,13 @@ Pair<FreeList::HeaderNode*, FreeList::HeaderNode*> FreeList::try_find_neighborin
     return { left_node_ptr, right_node_ptr };
 }
 
-void FreeList::adopt_right_node_size(HeaderNode* left_node_ptr, HeaderNode* right_node_ptr)
+void IntrusiveFreeList::adopt_right_node_size(HeaderNode* left_node_ptr, HeaderNode* right_node_ptr)
 {
     auto& left_size = left_node_ptr->contents().size;
     left_size += right_node_ptr->contents().size;
 }
 
-size_t FreeList::release(void* ptr)
+size_t IntrusiveFreeList::release(void* ptr)
 {
     // FIXME: We should assert that the pointer belongs to us and is aligned:
     auto* node_ptr = to_node_ptr(ptr);
@@ -185,7 +185,7 @@ AllocationCost PageAllocatorBackend::free_region(PageRegion region)
         return 0;  // ASSERT false? this should be guaranteed by the broker
 
     insert_node(depth, node);
-    return FreeList::overhead();
+    return IntrusiveFreeList::overhead();
 }
 
 void PageAllocatorBackend::free(Allocation allocation)
@@ -246,7 +246,7 @@ Pair<PageRegion, AllocationCost> PageAllocatorBackend::trim_aligned_region(PageR
         curr_region = reserved_region;
     }
 
-    return { curr_region, (end_depth - curr_depth) * FreeList::overhead() };
+    return { curr_region, (end_depth - curr_depth) * IntrusiveFreeList::overhead() };
 }
 
 Pair<PageRegion, AllocationCost> PageAllocatorBackend::remove_and_trim_pages(ManualLinkedList<PageRegion>::Node* node, unsigned min_pages)

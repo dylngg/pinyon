@@ -30,7 +30,7 @@ struct Allocation {
     operator bool() const { return size != 0; }
 };
 
-class FreeList {
+class IntrusiveFreeList {
     // Use padding in struct to ensure alignment.
     // e.g. ManualLinkedList<size_t>::Node on ARM32 is 12 bytes, which is not 8
     //      byte aligned
@@ -43,7 +43,7 @@ class FreeList {
     static_assert(sizeof(Header) % Alignment == 0);
 
 public:
-    FreeList() = default;
+    IntrusiveFreeList() = default;
 
     static size_t preferred_size(size_t requested_size)
     {
@@ -195,11 +195,11 @@ public:
 
     static constexpr size_t max_overhead()
     {
-        return FreeList::overhead() * max_depth;
+        return IntrusiveFreeList::overhead() * max_depth;
     }
     static constexpr size_t initial_cost()
     {
-        return FreeList::overhead();
+        return IntrusiveFreeList::overhead();
     }
 
     friend void print_with(Printer&, const PageAllocatorBackend&);
@@ -228,7 +228,7 @@ private:
     void remove_node(unsigned depth, Node* node);
     void insert_node(unsigned depth, Node* node);
 
-    FreeList m_node_allocator {};  // FIXME: Replace with a more space-efficient bitfield based allocator (slab)
+    IntrusiveFreeList m_node_allocator {};  // FIXME: Replace with a more space-efficient bitfield based allocator (slab)
     ManualLinkedList<PageRegion> m_free_lists[max_depth] {};  // 0 is PageSize
 };
 
