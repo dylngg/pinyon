@@ -58,7 +58,27 @@ public:
     }
 
 private:
-    Value m_contents[Size];
+    Value m_contents[Size] {};
+};
+
+template <size_t NumBits>
+class BitMap {
+public:
+    BitMap() = default;
+    [[nodiscard]] bool bit(size_t index) const
+    {
+        return word(index) & ((size_t)1 << index);
+    }
+    void set_bit(size_t index, bool value)
+    {
+        word(index) = (word(index) & ~((size_t)value << index)) | ((size_t)value << index);
+    }
+    size_t& word(size_t index) & { return m_bitmap[index / NumBits]; }
+    const size_t& word(size_t index) const & { return m_bitmap[index / NumBits]; }
+
+private:
+    static constexpr size_t c_word_size = (sizeof(size_t)*CHAR_BIT);  // I know, I know... close enough
+    Array<size_t, divide_up(NumBits, c_word_size)> m_bitmap;
 };
 
 }
