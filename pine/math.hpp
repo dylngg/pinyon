@@ -3,6 +3,12 @@
 
 namespace pine {
 
+template <typename Int, enable_if<is_integer<Int>, Int>* = nullptr>
+constexpr Int divide_up(Int divisor, Int dividend)
+{
+    return (divisor + (dividend - 1)) / dividend;
+}
+
 template <typename Int, enable_if<is_signed<Int>, Int>* = nullptr>
 constexpr Int abs(Int num)
 {
