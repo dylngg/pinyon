@@ -190,7 +190,7 @@ public:
     void init(PageRegion allocating_range, PageRegion scratch_pages);
 
     [[nodiscard]] BrokeredAllocation reserve_region(PageRegion region);
-    [[nodiscard]] BrokeredAllocation allocate(unsigned num_pages, PageAlignmentLevel page_alignment = PageAlignmentLevel::Page);
+    [[nodiscard]] BrokeredAllocation allocate(size_t num_pages, PageAlignmentLevel page_alignment = PageAlignmentLevel::Page);
     void add(PageRegion);
     void free(Allocation);
 
@@ -206,22 +206,22 @@ public:
     friend void print_with(Printer&, const PageAllocatorBackend&);
 
 private:
-    static unsigned depth_from_page_length(unsigned num_pages)
+    static unsigned depth_from_page_length(size_t num_pages)
     {
         if (num_pages == 0)
             return 0;
 
         static_assert(bit_width(1u) == 1);
-        return bit_width(num_pages) - 1;
+        return static_cast<unsigned>(bit_width(num_pages) - 1);
     }
 
     using Node = ManualLinkedList<PageRegion>::Node;
 
     static constexpr unsigned max_depth = (sizeof(size_t) * CHAR_BIT) - bit_width(PageSize) + 2;
 
-    Node* find_free_pages(unsigned num_pages, PageAlignmentLevel page_alignment);
+    Node* find_free_pages(size_t num_pages, PageAlignmentLevel page_alignment);
     Node* find_free_region(PageRegion);
-    Pair<PageRegion, AllocationCost> remove_and_trim_pages(Node* node, unsigned min_pages);
+    Pair<PageRegion, AllocationCost> remove_and_trim_pages(Node* node, size_t min_pages);
     Pair<PageRegion, AllocationCost> remove_and_trim_region(Node* node, PageRegion min_region);
     Pair<PageRegion, AllocationCost> trim_aligned_region(PageRegion curr_region, unsigned curr_depth, unsigned end_depth);
     AllocationCost free_region(PageRegion);

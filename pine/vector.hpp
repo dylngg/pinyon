@@ -9,6 +9,7 @@
 #include <pine/types.hpp>
 #include <pine/units.hpp>
 #include <pine/utility.hpp>
+#include <pine/memory.hpp>
 
 namespace pine {
 

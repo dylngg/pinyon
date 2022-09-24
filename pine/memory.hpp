@@ -9,20 +9,20 @@ template <class Value, class Allocator>
 class DefaultDestructor {
 protected:
     constexpr explicit DefaultDestructor(Allocator& allocator)
-        : m_allocator(allocator) {};
+        : m_allocator(&allocator) {};
 
     constexpr void destroy(Value* value)
     {
         value->~Value();
-        m_allocator.free(pine::Allocation{ value, sizeof(Value) });
+        m_allocator->free(pine::Allocation{ value, sizeof(Value) });
     };
-    Allocator& allocator()
+    Allocator& allocator() const
     {
-        return m_allocator;
+        return *m_allocator;
     };
 
 private:
-    Allocator& m_allocator;
+    mutable Allocator* m_allocator;
 };
 
 /*

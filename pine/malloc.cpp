@@ -147,7 +147,7 @@ void HighWatermarkManager::add(void* ptr, size_t size)
     m_end = m_start + size;
 }
 
-BrokeredAllocation PageAllocatorBackend::allocate(unsigned num_pages, PageAlignmentLevel page_alignment)
+BrokeredAllocation PageAllocatorBackend::allocate(size_t num_pages, PageAlignmentLevel page_alignment)
 {
     auto* node = find_free_pages(num_pages, page_alignment);
     if (!node)
@@ -194,7 +194,7 @@ void PageAllocatorBackend::free(Allocation allocation)
     free_region(region);
 }
 
-ManualLinkedList<PageRegion>::Node* PageAllocatorBackend::find_free_pages(unsigned num_pages, PageAlignmentLevel page_alignment)
+ManualLinkedList<PageRegion>::Node* PageAllocatorBackend::find_free_pages(size_t num_pages, PageAlignmentLevel page_alignment)
 {
     unsigned depth = depth_from_page_length(num_pages);
 
@@ -249,7 +249,7 @@ Pair<PageRegion, AllocationCost> PageAllocatorBackend::trim_aligned_region(PageR
     return { curr_region, (end_depth - curr_depth) * IntrusiveFreeList::overhead() };
 }
 
-Pair<PageRegion, AllocationCost> PageAllocatorBackend::remove_and_trim_pages(ManualLinkedList<PageRegion>::Node* node, unsigned min_pages)
+Pair<PageRegion, AllocationCost> PageAllocatorBackend::remove_and_trim_pages(ManualLinkedList<PageRegion>::Node* node, size_t min_pages)
 {
     auto curr_region = node->contents();
     auto curr_depth = depth_from_page_length(curr_region.length);

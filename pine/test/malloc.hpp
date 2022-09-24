@@ -40,7 +40,7 @@ static void free_scratch_page(void* ptr, size_t size)
 
 void free_list_re_add()
 {
-    FreeList free_list;
+    IntrusiveFreeList free_list;
     auto [ptr, _] = allocate_scratch_page();
     free_list.add(ptr, host_page_size);
 
@@ -114,9 +114,9 @@ void page_allocator_backend_create()
             allocator.init(PageRegion { 0, 1u << max_page_bit_width },  PageRegion::from_ptr(ptr, size));
 
             unsigned num_pages = 1 << i;
-            auto allocation = allocator.allocate(num_pages);
-            assert(allocation.region.length != 0);
-            assert(allocation.region.length == num_pages);
+            auto region = allocator.allocate(num_pages);
+            assert(region.size != 0);
+            assert(region.size == num_pages * PageSize);
         }
         free_scratch_page(ptr, size);
     }
@@ -130,14 +130,14 @@ void page_allocator_backend_create()
         allocator.init(PageRegion { 0, 1 },  PageRegion::from_ptr(ptr, size));
 
         auto allocation = allocator.allocate(1);
-        assert(allocation.region.offset == 0);
-        assert(allocation.region.length != 0);
-        assert(allocation.region.length == 1);
+        assert(allocation.ptr == nullptr);
+        assert(allocation.size != 0);
+        assert(allocation.size == PageSize);
 
         for (unsigned i = 0; i < max_page_bit_width; i++) {
             unsigned num_pages = 1 << i;
             allocation = allocator.allocate(num_pages);
-            assert(allocation.region.length == 0);
+            assert(allocation.size == 0);
         }
     }
     free_scratch_page(ptr, size);
@@ -153,7 +153,7 @@ void page_allocator_backend_create()
         for (unsigned i = 1; i < max_page_bit_width; i++) {
             unsigned num_pages = 1 << i;
             auto allocation = allocator.allocate(num_pages);
-            assert(allocation.region.length == 0);
+            assert(allocation.size == 0);
         }
     }
     free_scratch_page(ptr, size);

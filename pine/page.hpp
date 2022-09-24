@@ -2,19 +2,19 @@
 #include "units.hpp"
 #include "print.hpp"
 
-constexpr unsigned PageSize = 4u * KiB;
-constexpr unsigned HugePageSize = 1u * MiB;
+constexpr size_t PageSize = 4u * KiB;
+constexpr size_t HugePageSize = 1u * MiB;
 
-template <unsigned Magnitude>
+template <size_t Magnitude>
 struct Region {
-    unsigned offset;
-    unsigned length;
+    size_t offset;
+    size_t length;
 
     [[nodiscard]] static Region from_ptr(void* ptr, size_t size_in_bytes)
     {
         return {
-            static_cast<unsigned int>(reinterpret_cast<PtrData>(ptr) / Magnitude),
-            static_cast<unsigned int>(size_in_bytes / Magnitude)
+            reinterpret_cast<PtrData>(ptr) / Magnitude,
+            size_in_bytes / Magnitude
         };
     }
     [[nodiscard]] void* ptr() const
@@ -25,15 +25,15 @@ struct Region {
     {
         return static_cast<size_t>(length) * Magnitude;
     }
-    [[nodiscard]] bool fits(unsigned other_length) const
+    [[nodiscard]] bool fits(size_t other_length) const
     {
         return length >= other_length;
     }
-    [[nodiscard]] bool aligned_to(unsigned alignment) const
+    [[nodiscard]] bool aligned_to(size_t alignment) const
     {
         return offset % alignment == 0;
     }
-    [[nodiscard]] unsigned end_offset() const
+    [[nodiscard]] size_t end_offset() const
     {
         return offset + length;
     }
@@ -49,7 +49,7 @@ struct Region {
             { offset + halved_length, halved_length }
         };
     }
-    [[nodiscard]] Pair<Region, Region> split_left(unsigned num_pages) const
+    [[nodiscard]] Pair<Region, Region> split_left(size_t num_pages) const
     {
         return {
             { offset, num_pages },
@@ -81,12 +81,12 @@ struct Region {
     {
         return { start / Magnitude, (end - start) / Magnitude };
     }
-    template <unsigned NewMagnitude>
+    template <size_t NewMagnitude>
     static Region<NewMagnitude> convert_to(Region<Magnitude> region)
     {
         static_assert(Magnitude % NewMagnitude == 0);
         static_assert(Magnitude >= NewMagnitude);
-        constexpr unsigned factor = Magnitude / NewMagnitude;
+        constexpr size_t factor = Magnitude / NewMagnitude;
         return { region.offset * factor, region.length * factor };
     }
 
