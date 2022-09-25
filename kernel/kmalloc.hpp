@@ -7,7 +7,7 @@
 #include <pine/units.hpp>
 #include <pine/vector.hpp>
 
-using KernelMemoryAllocator = pine::FallbackAllocator<pine::FixedAllocation, pine::IntrusiveFreeList>;
+using KernelMemoryAllocator = pine::FallbackAllocatorBinder<pine::FixedAllocation, pine::IntrusiveFreeList>;
 
 KernelMemoryAllocator& kernel_allocator();
 

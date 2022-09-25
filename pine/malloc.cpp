@@ -108,6 +108,14 @@ size_t IntrusiveFreeList::free(Allocation alloc)
     return size_freed;
 }
 
+size_t IntrusiveFreeList::min_allocation_size(size_t requested_size)
+{
+    size_t alloc_size = align_up_two(requested_size, Alignment) + max_overhead_per_allocation();
+    static_assert(is_aligned_two(sizeof(HeaderNode), Alignment), "Free list header size is not aligned!");
+    return alloc_size;
+}
+
+
 Allocation FixedAllocation::allocate(size_t amount)
 {
     if (!m_has_memory || amount > m_size)

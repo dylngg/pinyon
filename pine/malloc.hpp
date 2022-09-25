@@ -47,12 +47,7 @@ public:
     size_t free(Allocation);
 
 private:
-    constexpr static size_t min_allocation_size(size_t requested_size)
-    {
-        size_t alloc_size = align_up_two(requested_size, Alignment) + max_overhead_per_allocation();
-        static_assert(is_aligned_two(sizeof(HeaderNode), Alignment), "Free list header size is not aligned!");
-        return alloc_size;
-    }
+    static size_t min_allocation_size(size_t requested_size);
     Pair<HeaderNode*, HeaderNode*> try_find_neighboring_memory_nodes(HeaderNode* node_ptr);
 
     static void* to_user_ptr(HeaderNode* node_ptr, size_t offset = 0);
@@ -64,50 +59,50 @@ private:
 };
 
 /*
- * Allocates memory from the SubMemoryAllocator and manages it with the
- * MemoryManager.
+ * Allocates memory from the FallbackAllocator and manages it with the
+ * Allocator.
  */
-template <class SubMemoryAllocator, class MemoryManager>
-class FallbackAllocator {
+template <class FallbackAllocator, class Allocator>
+class FallbackAllocatorBinder {
 public:
-    FallbackAllocator(SubMemoryAllocator* mem_allocator)
-        : m_allocator(mem_allocator)
-        , m_manager() {};
+    FallbackAllocatorBinder(FallbackAllocator* mem_allocator)
+        : m_fallback_allocator(mem_allocator)
+        , m_allocator() {};
 
     template <class... Args>
-    static FallbackAllocator construct(Args&&... args)
+    static FallbackAllocatorBinder construct(Args&&... args)
     {
-        static auto sub_allocator = SubMemoryAllocator::construct(forward<Args>(args)...);
-        return FallbackAllocator<SubMemoryAllocator, MemoryManager> {&sub_allocator };
+        static auto sub_allocator = FallbackAllocator::construct(forward<Args>(args)...);
+        return FallbackAllocatorBinder<FallbackAllocator, Allocator> {&sub_allocator };
     }
 
     Allocation allocate(size_t requested_size)
     {
-        auto allocation = m_manager.allocate(requested_size);
+        auto allocation = m_allocator.allocate(requested_size);
         if (!allocation.ptr) {
-            auto preferred_size = MemoryManager::preferred_size(requested_size);
-            auto [allocated_ptr, allocated_size] = m_allocator->allocate(preferred_size);
+            auto preferred_size = Allocator::preferred_size(requested_size);
+            auto [allocated_ptr, allocated_size] = m_fallback_allocator->allocate(preferred_size);
             if (!allocated_ptr)
                 return { nullptr, 0 };
 
-            m_manager.add(allocated_ptr, allocated_size);
-            allocation = m_manager.allocate(requested_size);
+            m_allocator.add(allocated_ptr, allocated_size);
+            allocation = m_allocator.allocate(requested_size);
         }
 
         return { allocation.ptr, allocation.size };
     }
     void add(void* ptr, size_t size)
     {
-        m_manager.add(ptr, size);
+        m_allocator.add(ptr, size);
     }
     size_t free(Allocation alloc)
     {
-        return m_manager.free(alloc);
+        return m_allocator.free(alloc);
     }
 
 private:
-    SubMemoryAllocator* m_allocator;
-    MemoryManager m_manager;
+    FallbackAllocator* m_fallback_allocator;
+    Allocator m_allocator;
 };
 
 class HighWatermarkAllocator {
@@ -285,7 +280,7 @@ private:
     IntrusiveFreeList m_free_pages {};
 };
 
-using FixedHeapAllocator = FallbackAllocator<FixedAllocation, HighWatermarkAllocator>;
+using FixedHeapAllocator = FallbackAllocatorBinder<FixedAllocation, HighWatermarkAllocator>;
 
 struct BrokeredAllocation {
     void* ptr;
