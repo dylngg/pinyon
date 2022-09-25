@@ -162,6 +162,149 @@ private:
     bool m_has_memory;
 };
 
+template <typename Value>
+struct SlabAllocator {
+    static constexpr unsigned c_bits_per_bitmap = (PageSize * CHAR_BIT) - (PageSize % sizeof(Value));
+    static constexpr unsigned c_slabs_per_page = PageSize / sizeof(Value);
+
+public:
+    static size_t preferred_size(size_t requested_size)
+    {
+        return align_up_two(requested_size, PageSize) + PageSize;
+    }
+
+    pine::Allocation try_reserve(size_t size = sizeof(Value))
+    {
+        if (size != sizeof(Value))  // ASSERT?
+            return {};
+
+        auto [found, bitmap_page_index, index_in_bitmap_page] = try_find_free_bit();
+        if (!found)
+            return {};
+
+        auto& bitmap = (*next(m_bitmaps.begin(), bitmap_page_index))->contents();
+        bitmap.set_bit(index_in_bitmap_page, true);  // FIXME: Create mark_bit method
+
+        auto [slab_page_index, index_in_slab_page] = calculate_slab_indexes(bitmap_page_index, index_in_bitmap_page);
+        auto slab_page = (*next(m_slab_pages.begin(), slab_page_index))->contents();
+
+        auto* slab_page_ptr = reinterpret_cast<Value*>(slab_page);
+        return { slab_page_ptr + index_in_slab_page, sizeof(Value) };
+    }
+    void add(void* ptr, size_t size)
+    {
+        constexpr unsigned c_chunk_size = max(align_up_two(sizeof(BitMapNode), PageSize), align_up_two(sizeof(SlabNode), PageSize));
+
+        auto remove_page_from_variables = [&](void*& _ptr, size_t& _size) {
+            _size -= c_chunk_size;
+            _ptr = reinterpret_cast<void*>(reinterpret_cast<PtrData>(ptr) + c_chunk_size);
+        };
+
+        while (size >= c_chunk_size) {
+            if (m_bitmaps.length() * c_bits_per_bitmap - num_slabs() < c_slabs_per_page) {
+                auto bitmap_node_alloc = m_free_pages.try_reserve(sizeof(BitMapNode));
+                if (!bitmap_node_alloc) {
+                    m_free_pages.add(ptr, c_chunk_size);
+                    remove_page_from_variables(ptr, size);
+                    bitmap_node_alloc = m_free_pages.try_reserve(sizeof(BitMapNode));
+                    if (!bitmap_node_alloc)  // FIXME: ASSERT bitmap_node_alloc
+                        break;
+                }
+                auto bitmap_node = new (bitmap_node_alloc.ptr) BitMapNode();
+                m_bitmaps.append(*bitmap_node);
+            }
+
+            if (size < c_chunk_size)
+                break;
+
+            auto slab_node_alloc = m_free_pages.try_reserve(sizeof(SlabNode));
+            if (!slab_node_alloc) {
+                m_free_pages.add(ptr, c_chunk_size);
+                remove_page_from_variables(ptr, size);
+                slab_node_alloc = m_free_pages.try_reserve(sizeof(SlabNode));
+                if (!slab_node_alloc)  // FIXME: ASSERT slab_node_alloc
+                    break;
+            }
+            auto slab_node = new (slab_node_alloc.ptr) SlabNode(reinterpret_cast<PtrData>(ptr));
+            remove_page_from_variables(ptr, size);
+            m_slab_pages.append(*slab_node);
+        }
+
+    }
+    size_t release(void* ptr)
+    {
+        PtrData slab_ptr_data = reinterpret_cast<PtrData>(ptr);
+
+        auto [slab_page_index, index_in_slab_page] = find_associated_slab_page(slab_ptr_data);
+        auto [bitmap_page_index, index_in_bitmap_page] = calculate_bitmap_indexes(slab_page_index, index_in_slab_page);
+
+        auto& bitmap = (*next(m_bitmaps.begin(), bitmap_page_index))->contents();
+        bitmap.set_bit(index_in_bitmap_page, true);
+        return sizeof(Value);
+    }
+
+private:
+    size_t num_slabs() const { return m_slab_pages.length() * c_slabs_per_page; }
+    Triple<bool, size_t, size_t> try_find_free_bit()
+    {
+       size_t page_index = 0;
+        for (auto& bitmap_node : m_bitmaps) {
+            SlabBitMap &bitmap = bitmap_node->contents();
+
+            size_t i = 0;
+            for (; i < c_bits_per_bitmap && calculate_index_from_bitmap_indexes(page_index, i) < num_slabs(); i++)
+                if (!bitmap.bit(i))
+                    return {true, page_index, i };
+
+            // Try next bitmap
+            ++page_index;
+        }
+        return { false, 0, 0 };
+    }
+    Pair<size_t, size_t> find_associated_slab_page(PtrData slab)
+    {
+        auto slab_page = align_down_two(slab, PageSize);
+
+        size_t slab_page_index = 0;
+        for (auto& slab_page_node : m_slab_pages) {
+            if (slab_page_node->contents() == slab_page)
+                break;
+
+            ++slab_page_index;
+        }
+
+        return { slab_page_index, (slab - slab_page) / sizeof(Value) };
+    }
+    size_t calculate_index_from_bitmap_indexes(size_t bitmap_page_index, size_t index_in_bitmap_page) const
+    {
+        return (bitmap_page_index * c_bits_per_bitmap) + index_in_bitmap_page;
+    }
+    size_t calculate_index_from_slab_indexes(size_t slab_page_index, size_t index_in_slab_page) const
+    {
+        return (slab_page_index * c_slabs_per_page) + index_in_slab_page;
+    }
+    Pair<size_t, size_t> calculate_slab_indexes(size_t bitmap_page_index, size_t index_in_bitmap_page) const
+    {
+        size_t index = calculate_index_from_bitmap_indexes(bitmap_page_index, index_in_bitmap_page);
+        return { index / c_slabs_per_page, index % c_slabs_per_page };
+    }
+    Pair<size_t, size_t> calculate_bitmap_indexes(size_t slab_page_index, size_t index_in_slab_page) const
+    {
+        size_t index = calculate_index_from_slab_indexes(slab_page_index, index_in_slab_page);
+        return { index / c_bits_per_bitmap, index % c_bits_per_bitmap };
+    }
+
+    static_assert(PageSize >= sizeof(Value));
+
+    using SlabBitMap = BitMap<c_bits_per_bitmap>;
+    using BitMapNode = typename ManualLinkedList<SlabBitMap>::Node;
+    using SlabNode = typename ManualLinkedList<PtrData>::Node;
+
+    ManualLinkedList<SlabBitMap> m_bitmaps {};
+    ManualLinkedList<PtrData> m_slab_pages {};
+    IntrusiveFreeList m_free_pages {};
+};
+
 using FixedHeapAllocator = MemoryAllocator<FixedAllocation, HighWatermarkManager>;
 
 struct BrokeredAllocation {
@@ -229,7 +372,7 @@ private:
     void remove_node(unsigned depth, Node* node);
     void insert_node(unsigned depth, Node* node);
 
-    IntrusiveFreeList m_node_allocator {};  // FIXME: Replace with a more space-efficient bitfield based allocator (slab)
+    SlabAllocator<Node> m_node_allocator {};
     Array<ManualLinkedList<PageRegion>, max_depth> m_free_lists {};  // 0 is PageSize
 };
 

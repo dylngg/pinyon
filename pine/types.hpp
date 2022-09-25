@@ -26,3 +26,10 @@ struct Pair {
     First first;
     Second second;
 };
+
+template <class First, class Second, class Third>
+struct Triple {
+    First first;
+    Second second;
+    Third third;
+};

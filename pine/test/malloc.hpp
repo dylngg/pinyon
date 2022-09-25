@@ -108,7 +108,7 @@ void page_allocator_backend_create()
     // Try allocate differing sizes; typically 12-20 for 32-bit machine
     unsigned max_page_bit_width = 31;
     for (unsigned i = 0; i < max_page_bit_width; i++) {
-        auto [ptr, size] = allocate_scratch_page();
+        auto [ptr, size] = allocate_scratch_page(4);
         {  // Make sure allocator is destructed before we free the scratch page!
             PageAllocatorBackend allocator;
             allocator.init(PageRegion { 0, 1u << max_page_bit_width },  PageRegion::from_ptr(ptr, size));
@@ -122,7 +122,7 @@ void page_allocator_backend_create()
     }
 
     // Try allocating successfully then allocating again (failing)
-    auto ptr_and_size = allocate_scratch_page();
+    auto ptr_and_size = allocate_scratch_page(4);
     auto ptr = ptr_and_size.first;
     auto size = ptr_and_size.second;
     {  // Make sure allocator is destructed before we free the scratch page!
@@ -143,7 +143,7 @@ void page_allocator_backend_create()
     free_scratch_page(ptr, size);
 
     // Try allocating sizes larger than given
-    ptr_and_size = allocate_scratch_page();
+    ptr_and_size = allocate_scratch_page(4);
     ptr = ptr_and_size.first;
     size = ptr_and_size.second;
     {  // Make sure allocator is destructed before we free the scratch page!
