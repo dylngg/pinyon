@@ -282,9 +282,7 @@ public:
 private:
     [[nodiscard]] bool allocate_required_runway()
     {
-        static_assert(c_required_runway < PageSize, "Cannot handle runway greater than a page in size");
-
-        BrokeredAllocation brokered_alloc = m_page_allocator.allocate(1, PageAlignmentLevel::Page);
+        BrokeredAllocation brokered_alloc = m_page_allocator.allocate(c_required_runway_in_pages, PageAlignmentLevel::Page);
         if (!brokered_alloc)
             return false;
 
@@ -294,6 +292,7 @@ private:
     }
 
     static constexpr size_t c_required_runway = align_up_to_power(PageAllocatorBackend::max_overhead());
+    static constexpr size_t c_required_runway_in_pages = align_up_two(c_required_runway, PageSize);
 
     size_t m_curr_runway = 0;
     PageAllocatorBackend m_page_allocator {};
