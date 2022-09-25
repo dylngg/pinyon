@@ -16,7 +16,7 @@ IntrusiveFreeList::HeaderNode* IntrusiveFreeList::construct_node(size_t region_s
     return new (node_location) HeaderNode(header);
 }
 
-Allocation IntrusiveFreeList::try_reserve(size_t requested_size)
+Allocation IntrusiveFreeList::allocate(size_t requested_size)
 {
     auto it = find_if(m_free_list.begin(), m_free_list.end(), [&](const auto* node) {
         return node->contents().size >= requested_size;
@@ -80,10 +80,10 @@ void IntrusiveFreeList::adopt_right_node_size(HeaderNode* left_node_ptr, HeaderN
     left_size += right_node_ptr->contents().size;
 }
 
-size_t IntrusiveFreeList::release(void* ptr)
+size_t IntrusiveFreeList::free(Allocation alloc)
 {
     // FIXME: We should assert that the pointer belongs to us and is aligned:
-    auto* node_ptr = to_node_ptr(ptr);
+    auto* node_ptr = to_node_ptr(alloc.ptr);
     size_t size_freed = node_ptr->contents().size;
 
     bool was_adopted = false;
@@ -117,19 +117,13 @@ Allocation FixedAllocation::allocate(size_t amount)
     return { reinterpret_cast<void*>(m_start), m_size };
 }
 
-size_t FixedAllocation::free(void*)
+size_t FixedAllocation::free(Allocation)
 {
     m_has_memory = true;
     return m_size;
 }
 
-bool FixedAllocation::in_bounds(void* ptr) const
-{
-    auto ptr_data = reinterpret_cast<PtrData>(ptr);
-    return ptr_data >= m_start && ptr_data <= m_start + m_size;
-}
-
-Allocation HighWatermarkManager::try_reserve(size_t requested_size)
+Allocation HighWatermarkAllocator::allocate(size_t requested_size)
 {
     requested_size = align_up_two(requested_size, Alignment);
     if (m_watermark + requested_size > m_end)
@@ -140,7 +134,7 @@ Allocation HighWatermarkManager::try_reserve(size_t requested_size)
     return { ptr, requested_size };
 }
 
-void HighWatermarkManager::add(void* ptr, size_t size)
+void HighWatermarkAllocator::add(void* ptr, size_t size)
 {
     m_start = reinterpret_cast<u8*>(ptr);
     m_watermark = m_start;
@@ -185,7 +179,7 @@ AllocationCost PageAllocatorBackend::free_region(PageRegion region)
         return 0;  // ASSERT false? this should be guaranteed by the broker
 
     insert_node(depth, node);
-    return IntrusiveFreeList::overhead();
+    return IntrusiveFreeList::max_overhead_per_allocation();
 }
 
 void PageAllocatorBackend::free(Allocation allocation)
@@ -246,7 +240,7 @@ Pair<PageRegion, AllocationCost> PageAllocatorBackend::trim_aligned_region(PageR
         curr_region = reserved_region;
     }
 
-    return { curr_region, (end_depth - curr_depth) * IntrusiveFreeList::overhead() };
+    return { curr_region, (end_depth - curr_depth) * IntrusiveFreeList::max_overhead_per_allocation() };
 }
 
 Pair<PageRegion, AllocationCost> PageAllocatorBackend::remove_and_trim_pages(ManualLinkedList<PageRegion>::Node* node, size_t min_pages)
@@ -286,7 +280,7 @@ Pair<PageRegion, AllocationCost> PageAllocatorBackend::remove_and_trim_region(Ma
 
 Pair<unsigned, PageAllocatorBackend::Node*> PageAllocatorBackend::create_node(PageRegion region)
 {
-    auto allocation = m_node_allocator.try_reserve(sizeof(Node));
+    auto allocation = m_node_allocator.allocate(sizeof(Node));
     if (!allocation.ptr)
         return { 0, nullptr };
 
@@ -297,7 +291,7 @@ Pair<unsigned, PageAllocatorBackend::Node*> PageAllocatorBackend::create_node(Pa
 void PageAllocatorBackend::remove_node(unsigned depth, ManualLinkedList<PageRegion>::Node* node)
 {
     m_free_lists[depth].remove(node);
-    m_node_allocator.release(static_cast<void*>(node));
+    m_node_allocator.free(Allocation { static_cast<void*>(node), sizeof(Node) });
 }
 
 void PageAllocatorBackend::insert_node(unsigned depth, Node* node)

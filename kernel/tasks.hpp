@@ -75,7 +75,7 @@ void task_switch(Registers* to_save_registers, bool is_kernel_task_save, const R
 }
 
 class Task {
-    using Heap = pine::MemoryAllocator<pine::FixedAllocation, pine::HighWatermarkManager>;
+    using Heap = pine::FallbackAllocator<pine::FixedAllocation, pine::HighWatermarkAllocator>;
 
 public:
     enum class State : int {

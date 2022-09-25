@@ -11,19 +11,6 @@
 
 namespace pine {
 
-/*
- * Memory allocation here is done in a generic templated manner, allowing for
- * reuse between userspace and the kernel. Allocation is controlled with the
- * MemoryAllocator class, which is another memory allocator that returns memory
- * that this allocator can subdivide. The particular memory management system
- * to use (e.g. free list, buddy allocation, etc) is controlled with the
- * MemoryManager class.
- *
- * This clever subdivision allocation scheme is based off of a talk by Andrei
- * Alexandrescu at CppCon:
- * https://www.youtube.com/watch?v=LIb3L4vKZ7U
- */
-
 struct Allocation {
     void* ptr = nullptr;
     size_t size = 0;
@@ -50,19 +37,19 @@ public:
     {
         return align_up_two(min_allocation_size(requested_size), PageSize);
     }
-    static constexpr size_t overhead()
+    static constexpr size_t max_overhead_per_allocation()
     {
         return sizeof(HeaderNode);
     }
 
-    Allocation try_reserve(size_t);
+    Allocation allocate(size_t);
     void add(void*, size_t);
-    size_t release(void*);
+    size_t free(Allocation);
 
 private:
     constexpr static size_t min_allocation_size(size_t requested_size)
     {
-        size_t alloc_size = align_up_two(requested_size, Alignment) + overhead();
+        size_t alloc_size = align_up_two(requested_size, Alignment) + max_overhead_per_allocation();
         static_assert(is_aligned_two(sizeof(HeaderNode), Alignment), "Free list header size is not aligned!");
         return alloc_size;
     }
@@ -81,22 +68,22 @@ private:
  * MemoryManager.
  */
 template <class SubMemoryAllocator, class MemoryManager>
-class MemoryAllocator {
+class FallbackAllocator {
 public:
-    MemoryAllocator(SubMemoryAllocator* mem_allocator)
+    FallbackAllocator(SubMemoryAllocator* mem_allocator)
         : m_allocator(mem_allocator)
         , m_manager() {};
 
     template <class... Args>
-    static MemoryAllocator construct(Args&&... args)
+    static FallbackAllocator construct(Args&&... args)
     {
         static auto sub_allocator = SubMemoryAllocator::construct(forward<Args>(args)...);
-        return MemoryAllocator<SubMemoryAllocator, MemoryManager> { &sub_allocator };
+        return FallbackAllocator<SubMemoryAllocator, MemoryManager> {&sub_allocator };
     }
 
     Allocation allocate(size_t requested_size)
     {
-        auto allocation = m_manager.try_reserve(requested_size);
+        auto allocation = m_manager.allocate(requested_size);
         if (!allocation.ptr) {
             auto preferred_size = MemoryManager::preferred_size(requested_size);
             auto [allocated_ptr, allocated_size] = m_allocator->allocate(preferred_size);
@@ -104,24 +91,18 @@ public:
                 return { nullptr, 0 };
 
             m_manager.add(allocated_ptr, allocated_size);
-            allocation = m_manager.try_reserve(requested_size);
+            allocation = m_manager.allocate(requested_size);
         }
 
         return { allocation.ptr, allocation.size };
     }
-
+    void add(void* ptr, size_t size)
+    {
+        m_manager.add(ptr, size);
+    }
     size_t free(Allocation alloc)
     {
-        if (!alloc)
-            return 0; // FIXME: assert?!
-
-        size_t size_freed = m_manager.release(alloc.ptr);
-        return size_freed;
-    }
-
-    bool in_bounds(void* ptr) const
-    {
-        return m_allocator->in_bounds(ptr);
+        return m_manager.free(alloc);
     }
 
 private:
@@ -129,13 +110,13 @@ private:
     MemoryManager m_manager;
 };
 
-class HighWatermarkManager {
+class HighWatermarkAllocator {
 public:
     static size_t preferred_size(size_t requested_size) { return requested_size; }
 
-    Allocation try_reserve(size_t requested_size);
+    Allocation allocate(size_t requested_size);
     void add(void* ptr, size_t size);
-    size_t release(void*) { return 0; }
+    size_t free(Allocation) { return 0; }
 
 private:
     u8* m_start = 0;
@@ -153,8 +134,7 @@ public:
     static FixedAllocation construct(PtrData start, size_t size) { return { start, size }; }
 
     Allocation allocate(size_t requested_size);
-    size_t free(void*);
-    bool in_bounds(void* ptr) const;
+    size_t free(Allocation);
 
 private:
     PtrData m_start;
@@ -173,7 +153,7 @@ public:
         return align_up_two(requested_size, PageSize) + PageSize;
     }
 
-    pine::Allocation try_reserve(size_t size = sizeof(Value))
+    pine::Allocation allocate(size_t size = sizeof(Value))
     {
         if (size != sizeof(Value))  // ASSERT?
             return {};
@@ -202,11 +182,11 @@ public:
 
         while (size >= c_chunk_size) {
             if (m_bitmaps.length() * c_bits_per_bitmap - num_slabs() < c_slabs_per_page) {
-                auto bitmap_node_alloc = m_free_pages.try_reserve(sizeof(BitMapNode));
+                auto bitmap_node_alloc = m_free_pages.allocate(sizeof(BitMapNode));
                 if (!bitmap_node_alloc) {
                     m_free_pages.add(ptr, c_chunk_size);
                     remove_page_from_variables(ptr, size);
-                    bitmap_node_alloc = m_free_pages.try_reserve(sizeof(BitMapNode));
+                    bitmap_node_alloc = m_free_pages.allocate(sizeof(BitMapNode));
                     if (!bitmap_node_alloc)  // FIXME: ASSERT bitmap_node_alloc
                         break;
                 }
@@ -217,11 +197,11 @@ public:
             if (size < c_chunk_size)
                 break;
 
-            auto slab_node_alloc = m_free_pages.try_reserve(sizeof(SlabNode));
+            auto slab_node_alloc = m_free_pages.allocate(sizeof(SlabNode));
             if (!slab_node_alloc) {
                 m_free_pages.add(ptr, c_chunk_size);
                 remove_page_from_variables(ptr, size);
-                slab_node_alloc = m_free_pages.try_reserve(sizeof(SlabNode));
+                slab_node_alloc = m_free_pages.allocate(sizeof(SlabNode));
                 if (!slab_node_alloc)  // FIXME: ASSERT slab_node_alloc
                     break;
             }
@@ -231,9 +211,9 @@ public:
         }
 
     }
-    size_t release(void* ptr)
+    size_t free(Allocation alloc)
     {
-        PtrData slab_ptr_data = reinterpret_cast<PtrData>(ptr);
+        PtrData slab_ptr_data = reinterpret_cast<PtrData>(alloc.ptr);
 
         auto [slab_page_index, index_in_slab_page] = find_associated_slab_page(slab_ptr_data);
         auto [bitmap_page_index, index_in_bitmap_page] = calculate_bitmap_indexes(slab_page_index, index_in_slab_page);
@@ -305,7 +285,7 @@ private:
     IntrusiveFreeList m_free_pages {};
 };
 
-using FixedHeapAllocator = MemoryAllocator<FixedAllocation, HighWatermarkManager>;
+using FixedHeapAllocator = FallbackAllocator<FixedAllocation, HighWatermarkAllocator>;
 
 struct BrokeredAllocation {
     void* ptr;
@@ -339,11 +319,11 @@ public:
 
     static constexpr size_t max_overhead()
     {
-        return IntrusiveFreeList::overhead() * max_depth;
+        return IntrusiveFreeList::max_overhead_per_allocation() * max_depth;
     }
     static constexpr size_t initial_cost()
     {
-        return IntrusiveFreeList::overhead();
+        return IntrusiveFreeList::max_overhead_per_allocation();
     }
 
     friend void print_with(Printer&, const PageAllocatorBackend&);

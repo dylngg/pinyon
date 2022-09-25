@@ -47,7 +47,7 @@ void free_list_re_add()
     int i = 0;
     void* alloc_ptr = nullptr;
     do {
-        auto allocation = free_list.try_reserve((size_t)16);
+        auto allocation = free_list.allocate((size_t)16);
         alloc_ptr = allocation.ptr;
         ++i;
 
@@ -60,15 +60,15 @@ void free_list_re_add()
     while (alloc_ptr != nullptr);
     assert(i > 8);  // bare minimum
 
-    auto allocation = free_list.try_reserve(0);
+    auto allocation = free_list.allocate(0);
     alloc_ptr = allocation.ptr;
     assert(alloc_ptr == nullptr);
 
-    allocation = free_list.try_reserve(1);
+    allocation = free_list.allocate(1);
     alloc_ptr = allocation.ptr;
     assert(alloc_ptr == nullptr);
 
-    allocation = free_list.try_reserve(16);
+    allocation = free_list.allocate(16);
     alloc_ptr = allocation.ptr;
     assert(alloc_ptr == nullptr);
 
@@ -77,7 +77,7 @@ void free_list_re_add()
 
     i = 0;
     do {
-        allocation = free_list.try_reserve(15);
+        allocation = free_list.allocate(15);
         alloc_ptr = allocation.ptr;
         ++i;
 
@@ -90,15 +90,15 @@ void free_list_re_add()
     while (alloc_ptr != nullptr);
     assert(i > 8);  // bare minimum
 
-    allocation = free_list.try_reserve(0);
+    allocation = free_list.allocate(0);
     alloc_ptr = allocation.ptr;
     assert(alloc_ptr == nullptr);
 
-    allocation = free_list.try_reserve(1);
+    allocation = free_list.allocate(1);
     alloc_ptr = allocation.ptr;
     assert(alloc_ptr == nullptr);
 
-    allocation = free_list.try_reserve(16);
+    allocation = free_list.allocate(16);
     alloc_ptr = allocation.ptr;
     assert(alloc_ptr == nullptr);
 }

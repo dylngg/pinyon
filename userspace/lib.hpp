@@ -32,10 +32,9 @@ struct HeapExtender {
 
     Pair<void*, size_t> allocate(size_t);
     void free(void*);
-    bool in_bounds(void*) { return true; };
 };
 
-using TaskMemoryAllocator = pine::MemoryAllocator<HeapExtender, pine::IntrusiveFreeList>;
+using TaskMemoryAllocator = pine::FallbackAllocator<HeapExtender, pine::IntrusiveFreeList>;
 
 TaskMemoryAllocator& mem_allocator();
 
