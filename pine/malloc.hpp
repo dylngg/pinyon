@@ -183,7 +183,7 @@ public:
             return {};
 
         auto& bitmap = (*next(m_bitmaps.begin(), bitmap_page_index))->contents();
-        bitmap.set_bit(index_in_bitmap_page, true);  // FIXME: Create mark_bit method
+        bitmap.set_bit(index_in_bitmap_page);
 
         auto [slab_page_index, index_in_slab_page] = calculate_slab_indexes(bitmap_page_index, index_in_bitmap_page);
         auto slab_page = (*next(m_slab_pages.begin(), slab_page_index))->contents();
@@ -239,7 +239,7 @@ public:
         auto [bitmap_page_index, index_in_bitmap_page] = calculate_bitmap_indexes(slab_page_index, index_in_slab_page);
 
         auto& bitmap = (*next(m_bitmaps.begin(), bitmap_page_index))->contents();
-        bitmap.set_bit(index_in_bitmap_page, true);
+        bitmap.clear_bit(index_in_bitmap_page);
         return sizeof(Value);
     }
 

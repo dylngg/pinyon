@@ -69,9 +69,17 @@ public:
     {
         return word(index) & ((size_t)1 << index);
     }
-    void set_bit(size_t index, bool value)
+    void mark_bit(size_t index, bool value)
     {
         word(index) = (word(index) & ~((size_t)value << index)) | ((size_t)value << index);
+    }
+    void set_bit(size_t index)
+    {
+        word(index) = word(index) ^ ((size_t)1 << index);
+    }
+    void clear_bit(size_t index)
+    {
+        word(index) = word(index) & ~((size_t)1 << index);
     }
     size_t& word(size_t index) & { return m_bitmap[index / NumBits]; }
     const size_t& word(size_t index) const & { return m_bitmap[index / NumBits]; }
