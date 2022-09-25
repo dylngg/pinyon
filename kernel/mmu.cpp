@@ -167,7 +167,7 @@ bool reserve_identity_huge_page(L1Table& l1_table, HugePageRegion region)
     if (!phys_alloc)
         return false;
 
-    auto virt_alloc = physical_page_allocator().reserve_region(as_page_region(region));
+    auto virt_alloc = virtual_page_allocator().reserve_region(as_page_region(region));
     if (!virt_alloc)
         return false;
 
