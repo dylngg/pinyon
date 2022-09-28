@@ -17,9 +17,9 @@ struct Region {
             size_in_bytes / Magnitude
         };
     }
-    [[nodiscard]] void* ptr() const
+    [[nodiscard]] void* ptr(size_t left_offset = 0) const
     {
-        return reinterpret_cast<void*>(static_cast<PtrData>(offset) * Magnitude);
+        return reinterpret_cast<void*>((static_cast<PtrData>(offset) + left_offset) * Magnitude);
     }
     [[nodiscard]] size_t size() const
     {
@@ -69,6 +69,13 @@ struct Region {
             || (offset == other.offset && length > other.length)
         );
     }
+    bool operator>=(const Region& other) const
+    {
+        return (
+            offset >= other.offset
+            || (offset == other.offset && length >= other.length)
+        );
+    }
     bool operator<(const Region& other) const
     {
         return (
@@ -76,10 +83,17 @@ struct Region {
             || (offset == other.offset && length < other.length)
         );
     }
+    bool operator<=(const Region& other) const
+    {
+        return (
+            offset <= other.offset
+            || (offset == other.offset && length <= other.length)
+        );
+    }
 
     static Region<Magnitude> from_range(PtrData start, PtrData end)
     {
-        return { start / Magnitude, (end - start) / Magnitude };
+        return { start / Magnitude, pine::divide_up(end - start, Magnitude) };
     }
     template <size_t NewMagnitude>
     static Region<NewMagnitude> convert_to(Region<Magnitude> region)

@@ -224,7 +224,7 @@ ManualLinkedList<PageRegion>::Node* PageAllocatorBackend::find_free_region(PageR
         auto begin = m_free_lists[depth].begin();
         auto end = m_free_lists[depth].end();
         // FIXME: Use lower_bound, but bail if not less than
-        auto it = find_if(begin, end, [&](const auto& node) { return node->contents() < region; });
+        auto it = find_if(begin, end, [&](const auto& node) { return node->contents() <= region; });
         if (it != end)
             return *it;
 
@@ -272,8 +272,9 @@ Pair<PageRegion, AllocationCost> PageAllocatorBackend::remove_and_trim_region(Ma
     remove_node(curr_depth, node);
 
     // min.ptr >= curr.ptr, curr.end_ptr <= min.end_ptr
-    //     |  min  |
-    // |     curr    |
+    //        |  min  |
+    // |        curr          |
+    // | left |       | right |
     auto left_trim = PageRegion {curr_region.offset, min_region.offset - curr_region.offset };
     auto right_trim = PageRegion {min_region.end_offset(), curr_region.end_offset() - min_region.end_offset() };
 
@@ -283,7 +284,7 @@ Pair<PageRegion, AllocationCost> PageAllocatorBackend::remove_and_trim_region(Ma
     if (right_trim)
         total_distance += free_region(right_trim);
 
-    return {PageRegion {left_trim.end_offset(), right_trim.offset }, total_distance };
+    return { PageRegion { left_trim.end_offset(), right_trim.offset - left_trim.end_offset() }, total_distance };
 }
 
 Pair<unsigned, PageAllocatorBackend::Node*> PageAllocatorBackend::create_node(PageRegion region)
