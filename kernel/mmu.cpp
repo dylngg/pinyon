@@ -119,7 +119,8 @@ void print_with(pine::Printer& printer, const L1Table& table)
             print_with(printer, "fault");
             break;
         case L1Type::L2Ptr:
-            print_with(printer, entry.as_ptr.l2_table());
+            print_with(printer, "\n");
+            print_with(printer, *entry.as_ptr.l2_table());
             break;
         case L1Type::HugePage:
             print_with(printer, entry.as_huge_page);
@@ -135,8 +136,9 @@ void print_with(pine::Printer& printer, const L1Table& table)
 
 void print_with(pine::Printer& printer, const L2Table& table)
 {
-    print_with(printer, "Physical|Entry Addr|Entry\n");
+    print_with(printer, "\tPhysical|Entry Addr|Entry\n");
     for (unsigned i = 0; i < mmu::L2Table::num_entries; i++) {
+        print_with(printer, "\t");
         print_with(printer, VirtualAddress::from_l2_index(i).ptr());
         print_with(printer, "|");
 
