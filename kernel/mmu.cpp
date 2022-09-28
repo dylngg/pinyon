@@ -26,8 +26,10 @@ void init_page_tables(PtrData code_end)
 
     PageRegion vm_region            { 0,                        MEMORY_END_PAGES };
     HugePageRegion l1_region        { code_region.end_offset(), 1 };
-    HugePageRegion scratch_region   { l1_region.end_offset(), 1 };  // 2 each; *PageAllocator requires 2
-    auto [pv_scratch_region, page_scratch_region] = as_page_region(scratch_region).halve();
+    // Experimental trials suggests 16 is the min here; at least 4 pages are required for the
+    // physical and virtual page allocators
+    PageRegion scratch_region       { as_page_region(l1_region).end_offset(), 16 };
+    auto [pv_scratch_region, page_scratch_region] = scratch_region.halve();
     auto [phys_scratch_region, virt_scratch_region] = pv_scratch_region.halve();
     auto device_region = HugePageRegion::from_range(DEVICES_START, DEVICES_END);
     auto heap_region = HugePageRegion ::from_range(HEAP_START, HEAP_END);
@@ -42,7 +44,7 @@ void init_page_tables(PtrData code_end)
     g_page_allocator.reserve_huge_page_region(code_region, PageAllocator::Backing::Identity);
     g_page_allocator.reserve_huge_page_region(l1_region, PageAllocator::Backing::Identity);
 
-    g_page_allocator.reserve_huge_page_region(scratch_region);
+    g_page_allocator.reserve_region(scratch_region);
 
     // Map devices in upper address space to themselves
     g_page_allocator.reserve_huge_page_region(device_region, PageAllocator::Backing::Identity);
@@ -324,17 +326,18 @@ bool PageAllocator::try_record_huge_page_in_l1(HugePageRegion phys_region, HugeP
 
 bool PageAllocator::try_record_page_in_l1(PageRegion phys_region, PageRegion virt_region, void* l2_backing)
 {
-    unsigned num_l2_tables_to_walk = pine::divide_up(virt_region.length, static_cast<unsigned>(L2Table::num_entries));
-    unsigned num_l2_tables_per_l1 = L2Table::num_entries;
+    unsigned num_l1_entries_to_walk = pine::divide_up(virt_region.size(), L1Entry::vm_size);
+    constexpr unsigned num_l2_tables = L2Table::num_entries;
 
-    for (unsigned l1_offset = 0; l1_offset < num_l2_tables_to_walk; l1_offset++) {
-        auto& l1_entry = m_l1_table->retrieve_entry(virt_region.ptr(l1_offset*num_l2_tables_per_l1));
+    for (unsigned l1_offset = 0; l1_offset < num_l1_entries_to_walk; l1_offset++) {
+        auto* virt_ptr = virt_region.ptr(l1_offset * num_l2_tables);
+        auto& l1_entry = m_l1_table->retrieve_entry(virt_ptr);
 
         auto* maybe_l2_table = static_cast<L2Table*>(l2_backing);  // could be nullptr
         switch (l1_entry.type()) {
         case L1Type::HugePage:
         case L1Type::SuperSection:
-            panic("Tried to record huge page that was already recorded:", virt_region.ptr(l1_offset), *m_physical_page_allocator, "\n", *m_virtual_page_allocator, "\n", *m_l1_table);
+            panic("Tried to record huge page that was already recorded:", virt_ptr, *m_physical_page_allocator, "\n", *m_virtual_page_allocator, "\n", *m_l1_table);
             return false;
 
         case L1Type::L2Ptr:
@@ -356,9 +359,9 @@ bool PageAllocator::try_record_page_in_l1(PageRegion phys_region, PageRegion vir
         }
         }
 
-        for (unsigned l2_offset = 0; l2_offset < num_l2_tables_per_l1 && l1_offset*num_l2_tables_to_walk + l2_offset < virt_region.length; l2_offset++) {
-            auto virt_ptr = virt_region.ptr(l1_offset * num_l2_tables_to_walk + l2_offset);
-            auto phys_ptr = phys_region.ptr(l1_offset * num_l2_tables_to_walk + l2_offset);
+        for (unsigned l2_offset = 0; l2_offset < num_l2_tables && l1_offset * num_l2_tables + l2_offset < virt_region.length; l2_offset++) {
+            auto* virt_ptr = virt_region.ptr(l1_offset * num_l2_tables + l2_offset);
+            auto* phys_ptr = phys_region.ptr(l1_offset * num_l2_tables + l2_offset);
 
             auto& l2_entry = maybe_l2_table->retrieve_entry(virt_ptr);
             switch (l2_entry.type()) {
@@ -366,7 +369,7 @@ bool PageAllocator::try_record_page_in_l1(PageRegion phys_region, PageRegion vir
                 l2_entry = Page(PhysicalAddress(phys_ptr));
                 break;
             default:
-                panic("Tried to record page that was already recorded:", virt_region.ptr(), *m_physical_page_allocator, "\n", *m_virtual_page_allocator, "\n", *m_l1_table);
+                panic("Tried to record page that was already recorded:", virt_ptr, *m_physical_page_allocator, "\n", *m_virtual_page_allocator, "\n", *m_l1_table);
                 return false;
             }
         }
