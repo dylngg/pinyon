@@ -18,7 +18,7 @@ void undefined_instruction_handler(PtrData old_cpsr_as_u32, PtrData old_pc, PtrD
 {
     auto old_cpsr = CPSR::from_data(old_cpsr_as_u32);
     panic("\033[31mUndefined instruction! halting.\033[0m\n\n"
-          "old cpsr:", old_cpsr, "\told pc: ", reinterpret_cast<void*>(old_pc), "\told lr: ", reinterpret_cast<void*>(old_lr));
+          "old cpsr:", old_cpsr, "\told pc:", reinterpret_cast<void*>(old_pc), "\told lr: ", reinterpret_cast<void*>(old_lr));
 }
 
 u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2)
@@ -74,9 +74,11 @@ void prefetch_abort_handler(void)
     panic("interrupt:\t\033[31mPrefetch abort! halting.\033[0m");
 }
 
-void data_abort_handler(void)
+void data_abort_handler(PtrData old_cpsr_as_u32, PtrData old_pc, PtrData addr)
 {
-    panic("interrupt:\t\033[31mData abort! halting.\033[0m");
+    auto old_cpsr = CPSR::from_data(old_cpsr_as_u32);
+    panic("interrupt:\t\033[31mData abort! halting.\033[0m\n\n"
+          "old cpsr:", old_cpsr, "\told pc:", reinterpret_cast<void*>(old_pc), "\taddr:", reinterpret_cast<void*>(addr));
 }
 
 void fast_irq_handler(void)

@@ -78,9 +78,17 @@ reset_offset:                   .word halt
 undefined_instruction_offset:   .word undefined_instruction_wrap
 swi_offset:                     .word swi_wrap
 prefetch_abort_offset:          .word prefetch_abort_handler
-data_abort_offset:              .word data_abort_handler
+data_abort_offset:              .word data_abort_wrap
 irq_offset:                     .word irq_wrap
 fiq_offset:                     .word fast_irq_handler
+
+data_abort_wrap:
+    mrs r0, spsr                /* arg1 (SPR) */
+    mov r1, lr                  /* arg2 (old PC + 8) */
+    sub lr, #8
+    mrc p15, 0, r2, c6, c0, 0   /* arg3 (DFAR; address of fault) */
+    bl data_abort_handler
+    b halt
 
 undefined_instruction_wrap:
     /*
@@ -94,6 +102,7 @@ undefined_instruction_wrap:
     bic r3, r0, #0x7fffffe0 /* shadow mode */
     msr cpsr, r3
     mov r2, lr              /* arg3 (old LR) */
+    sub lr, #4
     cps #0x1b               /* undefined mode */
     bl undefined_instruction_handler
     b halt

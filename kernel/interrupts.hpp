@@ -75,7 +75,7 @@ u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2);
 
 void prefetch_abort_handler(void) __attribute__((interrupt("ABORT")));
 
-void data_abort_handler(void) __attribute__((interrupt("ABORT")));
+void data_abort_handler(PtrData old_cpsr, PtrData old_pc, PtrData addr);
 
 void fast_irq_handler(void) __attribute__((interrupt("FIQ")));
 
