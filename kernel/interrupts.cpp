@@ -78,7 +78,8 @@ void data_abort_handler(PtrData old_cpsr_as_u32, PtrData old_pc, PtrData addr)
 {
     auto old_cpsr = CPSR::from_data(old_cpsr_as_u32);
     panic("interrupt:\t\033[31mData abort! halting.\033[0m\n\n"
-          "old cpsr:", old_cpsr, "\told pc:", reinterpret_cast<void*>(old_pc), "\taddr:", reinterpret_cast<void*>(addr));
+          "old cpsr:", old_cpsr, "\told pc:", reinterpret_cast<void*>(old_pc), "\taddr:", reinterpret_cast<void*>(addr), "\n",
+          mmu::l1_table());
 }
 
 void fast_irq_handler(void)
