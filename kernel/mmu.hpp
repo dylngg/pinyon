@@ -114,7 +114,7 @@ namespace mmu {
 enum class L1Type : u32 {
     Fault = 0,
     L2Ptr = 1,
-    HugePage = 2,
+    Section = 2,
     SuperSection = 3,
 };
 
@@ -128,7 +128,7 @@ inline L1Type l1_type_from_bits(u32 bits)
 
 enum class L2Type : u32 {
     Fault = 0,
-    LargePage = 1,
+    HugePage = 1,
     Page = 2,
 };
 
@@ -149,7 +149,7 @@ struct L2Fault {
     u32 _ : 30;
 };
 
-struct LargePage {
+struct HugePage {
     PhysicalAddress physical_address() const { return PhysicalAddress::from_l2_base_addr(base_addr); }
 
     L2Type type : 2;
@@ -198,9 +198,9 @@ union L2Entry {
 
     L2Type type() const { return l2_type_from_bits(static_cast<u32>(_.type)); }
 
-    L2Entry& operator=(const LargePage& large_page)
+    L2Entry& operator=(const HugePage& huge_page)
     {
-        as_large_page = large_page;
+        as_huge_page = huge_page;
         return *this;
     }
     L2Entry& operator=(const Page& page)
@@ -210,7 +210,7 @@ union L2Entry {
     }
 
     L2Fault _;
-    LargePage as_large_page;
+    HugePage as_huge_page;
     Page as_page;
 };
 
@@ -262,9 +262,9 @@ struct L1Fault {
 
 
 
-struct HugePage {
-    HugePage(PhysicalAddress addr)
-        : type(L1Type::HugePage)
+struct Section {
+    Section(PhysicalAddress addr)
+        : type(L1Type::Section)
         , b(0)
         , c(0)
         , xn(0)
@@ -296,7 +296,7 @@ struct HugePage {
     u32 sbz : 1;
     PtrData base_addr : 10;
 
-    friend void print_with(pine::Printer&, const HugePage&);
+    friend void print_with(pine::Printer&, const Section&);
 };
 
 struct SuperSection {
@@ -331,14 +331,14 @@ union L1Entry {
         as_ptr = ptr;
         return *this;
     }
-    L1Entry& operator=(const HugePage& huge_page)
+    L1Entry& operator=(const Section& section)
     {
-        as_huge_page = huge_page;
+        as_section = section;
         return *this;
     }
-    L1Entry& operator=(const SuperSection& super_huge_page)
+    L1Entry& operator=(const SuperSection& super_section)
     {
-        as_super_huge_page = super_huge_page;
+        as_super_section = super_section;
         return *this;
     }
 
@@ -346,8 +346,8 @@ union L1Entry {
 
     L1Fault _;
     L2Ptr as_ptr;
-    HugePage as_huge_page;
-    SuperSection as_super_huge_page;
+    Section as_section;
+    SuperSection as_super_section;
 };
 
 struct L1Table {
@@ -391,7 +391,7 @@ public:
 
     pine::Allocation allocate(size_t);
     Pair<PageRegion, PageRegion> reserve_region(PageRegion, Backing = Backing::Mixed);
-    Pair<HugePageRegion, HugePageRegion> reserve_huge_page_region(HugePageRegion , Backing = Backing::Mixed);
+    Pair<SectionRegion, SectionRegion> reserve_section_region(SectionRegion , Backing = Backing::Mixed);
     Pair<PageRegion, PageRegion> allocate_pages(unsigned num_pages, pine::PageAlignmentLevel = pine::PageAlignmentLevel::Page, Backing = Backing::Mixed);
     void free(pine::Allocation);
 
@@ -399,7 +399,7 @@ private:
     Pair<pine::Allocation, pine::Allocation> try_reserve_page_unrecorded(unsigned num_pages, pine::PageAlignmentLevel, Backing);
     Pair<pine::Allocation, pine::Allocation> try_reserve_region_unrecorded(PageRegion, Backing);
     bool try_record_page_in_l1(PageRegion phys_region, PageRegion virt_region, void* l2_backing = nullptr);
-    bool try_record_huge_page_in_l1(HugePageRegion phys_region, HugePageRegion virt_region);
+    bool try_record_section_in_l1(SectionRegion phys_region, SectionRegion virt_region);
     pine::Allocation try_reserve_l2_table_entry();
 
     friend void init_page_tables(PtrData);

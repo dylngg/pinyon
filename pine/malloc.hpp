@@ -300,7 +300,7 @@ using AllocationCost = PtrData;
 
 enum class PageAlignmentLevel : unsigned {
     Page = 1,
-    HugePage = HugePageSize / PageSize,
+    Section = SectionSize / PageSize,
 };
 
 

@@ -6,7 +6,7 @@
 #include <pine/page.hpp>
 
 static_assert(PageSize == mmu::L2Entry::vm_size);
-static_assert(HugePageSize == mmu::L1Entry::vm_size);
+static_assert(SectionSize == mmu::L1Entry::vm_size);
 
 namespace mmu {
 
@@ -22,20 +22,20 @@ extern "C" {
 
 void init_page_tables(PtrData code_end)
 {
-    auto code_huge_page_end = pine::align_up_two(code_end, HugePageSize);
+    auto code_section_end = pine::align_up_two(code_end, SectionSize);
 
     // FIXME: We are wasting a lot of space with 1MiB alignment for code and
     //        especially for 16KiB L1Table
-    auto code_region = HugePageRegion::from_range(0, code_huge_page_end);
+    auto code_region = SectionRegion::from_range(0, code_section_end);
 
-    PageRegion vm_region            { 0,                        MEMORY_END_PAGES };
-    HugePageRegion l1_region        { code_region.end_offset(), 1 };
+    PageRegion vm_region         { 0,                        MEMORY_END_PAGES };
+    SectionRegion l1_region      { code_region.end_offset(), 1 };
     // Experimental trials suggests 16 is the min here; at least 4 pages are required for the
     // physical and virtual page allocators
-    HugePageRegion scratch_region   { l1_region.end_offset(), 1 };
+    SectionRegion scratch_region { l1_region.end_offset(), 1 };
     auto [pv_scratch_region, page_scratch_region] = as_page_region(scratch_region).halve();
     auto [phys_scratch_region, virt_scratch_region] = pv_scratch_region.halve();
-    auto device_region = HugePageRegion::from_range(DEVICES_START, DEVICES_END);
+    auto device_region = SectionRegion::from_range(DEVICES_START, DEVICES_END);
 
     g_physical_page_allocator.init(vm_region, phys_scratch_region);
     g_virtual_page_allocator.init(vm_region, virt_scratch_region);
@@ -44,13 +44,13 @@ void init_page_tables(PtrData code_end)
     auto& l1 = *new(static_cast<L1Table*>(l1_region.ptr())) L1Table();
     g_page_allocator.init(l1, g_physical_page_allocator, g_virtual_page_allocator, page_scratch_region);
 
-    g_page_allocator.reserve_huge_page_region(code_region, PageAllocator::Backing::Identity);
-    g_page_allocator.reserve_huge_page_region(l1_region, PageAllocator::Backing::Identity);
+    g_page_allocator.reserve_section_region(code_region, PageAllocator::Backing::Identity);
+    g_page_allocator.reserve_section_region(l1_region, PageAllocator::Backing::Identity);
 
-    g_page_allocator.reserve_huge_page_region(scratch_region);
+    g_page_allocator.reserve_section_region(scratch_region);
 
     // Map devices in upper address space to themselves
-    g_page_allocator.reserve_huge_page_region(device_region, PageAllocator::Backing::Identity);
+    g_page_allocator.reserve_section_region(device_region, PageAllocator::Backing::Identity);
 
     set_l1_table(l1);
 }
@@ -68,11 +68,11 @@ void print_with(pine::Printer& printer, const L2Ptr& l2_ptr)
     print_with(printer, buf);
 }
 
-void print_with(pine::Printer& printer, const HugePage& s)
+void print_with(pine::Printer& printer, const Section& s)
 {
     constexpr auto bufsize = 128;
     char buf[bufsize];
-    pine::sbufprintf(buf, bufsize, "HugePage(bc:%d%d, xn:%d, domain:%d%d%d%d, pap:%d%d%d, tex:%d%d%d, apx:%d, s:%d, nG:%d, sbz:%d, addr:%x)",
+    pine::sbufprintf(buf, bufsize, "Section(bc:%d%d, xn:%d, domain:%d%d%d%d, pap:%d%d%d, tex:%d%d%d, apx:%d, s:%d, nG:%d, sbz:%d, addr:%x)",
                      s.b, s.c,
                      s.xn,
                      (s.domain & 1), (s.domain & (1 << 2)), (s.domain & (1 << 3)), (s.domain & (1 << 4)),
@@ -130,20 +130,20 @@ void print_with(pine::Printer& printer, const L1Table& table)
             print_with(printer, *entry.as_ptr.l2_table());
             break;
 
-        case L1Type::HugePage:
-            print_with(printer, entry.as_huge_page.physical_address().ptr());
+        case L1Type::Section:
+            print_with(printer, entry.as_section.physical_address().ptr());
             print_with(printer, "|");
             print_with(printer, &entry);
             print_with(printer, "|");
-            print_with(printer, entry.as_huge_page);
+            print_with(printer, entry.as_section);
             break;
 
         case L1Type::SuperSection:
-            print_with(printer, entry.as_super_huge_page.physical_address().ptr());
+            print_with(printer, entry.as_super_section.physical_address().ptr());
             print_with(printer, "|");
             print_with(printer, &entry);
             print_with(printer, "|");
-            print_with(printer, entry.as_super_huge_page);
+            print_with(printer, entry.as_super_section);
             break;
         }
 
@@ -176,12 +176,12 @@ void print_with(pine::Printer& printer, const L2Table& table)
             print_with(printer, "|");
             print_with(printer, "page");
             break;
-        case L2Type::LargePage:
-            print_with(printer, entry.as_large_page.physical_address().ptr());
+        case L2Type::HugePage:
+            print_with(printer, entry.as_huge_page.physical_address().ptr());
             print_with(printer, "|");
             print_with(printer, &entry);
             print_with(printer, "|");
-            print_with(printer, "large_page");
+            print_with(printer, "huge_page");
             break;
         }
 
@@ -250,16 +250,16 @@ Pair<PageRegion, PageRegion> PageAllocator::reserve_region(PageRegion region, Pa
     return { phys_region, virt_region };
 }
 
-Pair<HugePageRegion, HugePageRegion> PageAllocator::reserve_huge_page_region(HugePageRegion region, PageAllocator::Backing backing)
+Pair<SectionRegion, SectionRegion> PageAllocator::reserve_section_region(SectionRegion region, PageAllocator::Backing backing)
 {
     auto [phys_alloc, virt_alloc] = try_reserve_region_unrecorded(as_page_region(region), backing);
     if (!phys_alloc)
         return {};
 
-    auto phys_region = HugePageRegion::from_ptr(phys_alloc.ptr, phys_alloc.size);
-    auto virt_region = HugePageRegion::from_ptr(virt_alloc.ptr, virt_alloc.size);
+    auto phys_region = SectionRegion::from_ptr(phys_alloc.ptr, phys_alloc.size);
+    auto virt_region = SectionRegion::from_ptr(virt_alloc.ptr, virt_alloc.size);
 
-    if (!try_record_huge_page_in_l1(phys_region, virt_region)) {
+    if (!try_record_section_in_l1(phys_region, virt_region)) {
         m_physical_page_allocator->free(phys_alloc);
         m_virtual_page_allocator->free(phys_alloc);
     }
@@ -338,7 +338,7 @@ Pair<pine::Allocation, pine::Allocation> PageAllocator::try_reserve_region_unrec
     return { phys_alloc, virt_alloc };
 }
 
-bool PageAllocator::try_record_huge_page_in_l1(HugePageRegion phys_region, HugePageRegion virt_region)
+bool PageAllocator::try_record_section_in_l1(SectionRegion phys_region, SectionRegion virt_region)
 {
     if (phys_region.length != virt_region.length)
         return false;  // FIXME: Assert?
@@ -349,14 +349,14 @@ bool PageAllocator::try_record_huge_page_in_l1(HugePageRegion phys_region, HugeP
 
         auto &l1_entry = m_l1_table->retrieve_entry(virt_ptr);
         switch (l1_entry.type()) {
-        case L1Type::HugePage:
+        case L1Type::Section:
         case L1Type::SuperSection:
         case L1Type::L2Ptr:
             panic("Tried to record huge page that was already recorded:", virt_region.ptr(), *m_physical_page_allocator,
                   "\n", *m_virtual_page_allocator, "\n", *m_l1_table);
             return false;
         case L1Type::Fault:
-            l1_entry = HugePage(PhysicalAddress(phys_ptr));
+            l1_entry = Section(PhysicalAddress(phys_ptr));
             break;
         }
     }
@@ -374,7 +374,7 @@ bool PageAllocator::try_record_page_in_l1(PageRegion phys_region, PageRegion vir
 
         auto* maybe_l2_table = static_cast<L2Table*>(l2_backing);  // could be nullptr
         switch (l1_entry.type()) {
-        case L1Type::HugePage:
+        case L1Type::Section:
         case L1Type::SuperSection:
             panic("Tried to record huge page that was already recorded:", virt_ptr, *m_physical_page_allocator, "\n", *m_virtual_page_allocator, "\n", *m_l1_table);
             return false;

@@ -3,7 +3,7 @@
 #include "print.hpp"
 
 constexpr size_t PageSize = 4u * KiB;
-constexpr size_t HugePageSize = 1u * MiB;
+constexpr size_t SectionSize = 1u * MiB;
 
 template <size_t Magnitude>
 struct Region {
@@ -118,9 +118,9 @@ struct Region {
 };
 
 using PageRegion = Region<PageSize>;
-using HugePageRegion = Region<HugePageSize>;
+using SectionRegion = Region<SectionSize>;
 
-inline PageRegion as_page_region(HugePageRegion huge_page_region)
+inline PageRegion as_page_region(SectionRegion section_region)
 {
-    return HugePageRegion::convert_to<PageSize>(huge_page_region);
+    return SectionRegion::convert_to<PageSize>(section_region);
 }
