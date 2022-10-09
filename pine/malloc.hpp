@@ -33,7 +33,7 @@ class IntrusiveFreeList {
 public:
     IntrusiveFreeList() = default;
 
-    static size_t preferred_size(size_t requested_size)
+    static constexpr size_t preferred_size(size_t requested_size)
     {
         return align_up_two(min_allocation_size(requested_size), PageSize);
     }
@@ -47,7 +47,12 @@ public:
     size_t free(Allocation);
 
 private:
-    static size_t min_allocation_size(size_t requested_size);
+    static constexpr size_t min_allocation_size(size_t requested_size)
+    {
+        size_t alloc_size = align_up_two(requested_size, Alignment) + max_overhead_per_allocation();
+        static_assert(is_aligned_two(sizeof(HeaderNode), Alignment), "Free list header size is not aligned!");
+        return alloc_size;
+    }
     Pair<HeaderNode*, HeaderNode*> try_find_neighboring_memory_nodes(HeaderNode* node_ptr);
 
     static void* to_user_ptr(HeaderNode* node_ptr, size_t offset = 0);
@@ -69,17 +74,11 @@ public:
         : m_fallback_allocator(mem_allocator)
         , m_allocator() {};
 
-    template <class... Args>
-    static FallbackAllocatorBinder construct(Args&&... args)
-    {
-        static auto sub_allocator = FallbackAllocator::construct(forward<Args>(args)...);
-        return FallbackAllocatorBinder<FallbackAllocator, Allocator> {&sub_allocator };
-    }
-
     Allocation allocate(size_t requested_size)
     {
         auto allocation = m_allocator.allocate(requested_size);
         if (!allocation.ptr) {
+            static_assert(Allocator::preferred_size(Alignment) % FallbackAllocator::preferred_size(Alignment) == 0);
             auto preferred_size = Allocator::preferred_size(requested_size);
             auto [allocated_ptr, allocated_size] = m_fallback_allocator->allocate(preferred_size);
             if (!allocated_ptr)
@@ -107,7 +106,7 @@ private:
 
 class HighWatermarkAllocator {
 public:
-    static size_t preferred_size(size_t requested_size) { return requested_size; }
+    static constexpr size_t preferred_size(size_t requested_size) { return requested_size; }
 
     Allocation allocate(size_t requested_size);
     void add(void* ptr, size_t size);
@@ -126,7 +125,10 @@ public:
         , m_size(size)
         , m_has_memory(true) {};
 
-    static FixedAllocation construct(PtrData start, size_t size) { return { start, size }; }
+    static constexpr size_t preferred_size(size_t requested_size)
+    {
+        return requested_size;
+    }
 
     Allocation allocate(size_t requested_size);
     size_t free(Allocation);
@@ -143,7 +145,7 @@ struct SlabAllocator {
     static constexpr unsigned c_slabs_per_page = PageSize / sizeof(Value);
 
 public:
-    static size_t preferred_size(size_t requested_size)
+    static constexpr size_t preferred_size(size_t requested_size)
     {
         return align_up_two(requested_size, PageSize) + PageSize;
     }
@@ -331,6 +333,10 @@ private:
 
         static_assert(bit_width(1u) == 1);
         return static_cast<unsigned>(bit_width(num_pages) - 1);
+    }
+    static size_t page_length_from_depth(unsigned depth)
+    {
+        return (size_t)1u << (depth + 1);
     }
 
     using Node = ManualLinkedList<PageRegion>::Node;

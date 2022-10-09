@@ -5,7 +5,7 @@
 
 KernelMemoryAllocator& kernel_allocator()
 {
-    static auto g_kernel_memory_allocator = KernelMemoryAllocator::construct(HEAP_START, HEAP_END);
+    static auto g_kernel_memory_allocator = KernelMemoryAllocator(&mmu::page_allocator());
     return g_kernel_memory_allocator;
 }
 

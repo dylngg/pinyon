@@ -3,6 +3,7 @@
 #include <pine/array.hpp>
 #include <pine/malloc.hpp>
 #include <pine/print.hpp>
+#include <pine/twomath.hpp>
 #include <pine/types.hpp>
 #include <pine/units.hpp>
 
@@ -76,6 +77,7 @@ struct PhysicalAddress {
     }
 
     PtrData ptr_data() const { return reinterpret_cast<PtrData>(m_ptr); }
+    void* ptr() const { return reinterpret_cast<void*>(ptr_data()); }
     PtrData l1_base_addr() const { return m_as_l1.base_addr; }
     PtrData l2_base_addr() const { return m_as_l2.base_addr; }
 
@@ -95,8 +97,8 @@ private:
         PtrData base_addr : 12;
     };
     struct AsL2 {
-        u32 _ : 12;
-        PtrData base_addr : 20;
+        u32 _ : 10;
+        PtrData base_addr : 22;
     };
     union {
         AsL1 m_as_l1;
@@ -148,6 +150,8 @@ struct L2Fault {
 };
 
 struct LargePage {
+    PhysicalAddress physical_address() const { return PhysicalAddress::from_l2_base_addr(base_addr); }
+
     L2Type type : 2;
     u32 b : 1;
     u32 c : 1;
@@ -171,7 +175,9 @@ struct Page {
         , apx(0)
         , s(0)
         , nG(0)
-        , base_addr(addr.l1_base_addr()) {};
+        , base_addr(addr.l2_base_addr()) {};
+
+    PhysicalAddress physical_address() const { return PhysicalAddress::from_l2_base_addr(base_addr); }
 
     L2Type type : 2;
     u32 b : 1;
@@ -347,7 +353,7 @@ union L1Entry {
 struct L1Table {
     L1Table() = default;
 
-    static constexpr auto num_entries = 4096;
+    static constexpr auto num_entries = 1024;
 
     L1Entry& retrieve_entry(VirtualAddress virt_addr) { return m_entries[virt_addr.l1_index()]; };
 
@@ -368,9 +374,6 @@ L1Table& l1_table();
 using PhysicalPageAllocator = pine::PageAllocator;
 using VirtualPageAllocator = pine::PageAllocator;
 
-PhysicalPageAllocator& physical_page_allocator();
-VirtualPageAllocator& virtual_page_allocator();
-
 class PageAllocator {
 public:
     PageAllocator() = default;
@@ -381,6 +384,12 @@ public:
         Identity = 1,
     };
 
+    static constexpr size_t preferred_size(size_t requested_size)
+    {
+        return pine::align_up_two(requested_size, PageSize);
+    }
+
+    pine::Allocation allocate(size_t);
     Pair<PageRegion, PageRegion> reserve_region(PageRegion, Backing = Backing::Mixed);
     Pair<HugePageRegion, HugePageRegion> reserve_huge_page_region(HugePageRegion , Backing = Backing::Mixed);
     Pair<PageRegion, PageRegion> allocate_pages(unsigned num_pages, pine::PageAlignmentLevel = pine::PageAlignmentLevel::Page, Backing = Backing::Mixed);
@@ -401,5 +410,7 @@ private:
     pine::SlabAllocator<L2Table> m_l2_table_allocator;
     void* m_spare_free_l2_page;
 };
+
+PageAllocator& page_allocator();
 
 }

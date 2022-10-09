@@ -14,6 +14,10 @@ static PhysicalPageAllocator g_physical_page_allocator;  // dummy; ctor not call
 static VirtualPageAllocator g_virtual_page_allocator;  // dummy; ctor not called
 static PageAllocator g_page_allocator;  // dummy; ctor not called
 
+PageAllocator& page_allocator()
+{
+    return g_page_allocator;
+}
 extern "C" {
 
 void init_page_tables(PtrData code_end)
@@ -28,11 +32,10 @@ void init_page_tables(PtrData code_end)
     HugePageRegion l1_region        { code_region.end_offset(), 1 };
     // Experimental trials suggests 16 is the min here; at least 4 pages are required for the
     // physical and virtual page allocators
-    PageRegion scratch_region       { as_page_region(l1_region).end_offset(), 16 };
-    auto [pv_scratch_region, page_scratch_region] = scratch_region.halve();
+    HugePageRegion scratch_region   { l1_region.end_offset(), 1 };
+    auto [pv_scratch_region, page_scratch_region] = as_page_region(scratch_region).halve();
     auto [phys_scratch_region, virt_scratch_region] = pv_scratch_region.halve();
     auto device_region = HugePageRegion::from_range(DEVICES_START, DEVICES_END);
-    auto heap_region = HugePageRegion ::from_range(HEAP_START, HEAP_END);
 
     g_physical_page_allocator.init(vm_region, phys_scratch_region);
     g_virtual_page_allocator.init(vm_region, virt_scratch_region);
@@ -44,13 +47,10 @@ void init_page_tables(PtrData code_end)
     g_page_allocator.reserve_huge_page_region(code_region, PageAllocator::Backing::Identity);
     g_page_allocator.reserve_huge_page_region(l1_region, PageAllocator::Backing::Identity);
 
-    g_page_allocator.reserve_region(scratch_region);
+    g_page_allocator.reserve_huge_page_region(scratch_region);
 
     // Map devices in upper address space to themselves
     g_page_allocator.reserve_huge_page_region(device_region, PageAllocator::Backing::Identity);
-
-    // FIXME: This is a waste... we should manage this memory somehow...
-    g_page_allocator.reserve_huge_page_region(heap_region, PageAllocator::Backing::Identity);
 
     set_l1_table(l1);
 }
@@ -107,27 +107,42 @@ void print_with(pine::Printer& printer, const SuperSection& ss)
 
 void print_with(pine::Printer& printer, const L1Table& table)
 {
-    print_with(printer, "Physical|Entry Addr|Entry\n");
+    print_with(printer, "Virtual|Physical|Entry Addr|Entry\n");
     for (unsigned i = 0; i < mmu::L1Table::num_entries; i++) {
         print_with(printer, VirtualAddress::from_l1_index(i).ptr());
         print_with(printer, "|");
 
         auto& entry = table.m_entries[i];
-        print_with(printer, &entry);
-        print_with(printer, "|");
-
         switch(entry.type()) {
         case L1Type::Fault:
             print_with(printer, "fault");
+            print_with(printer, "|");
+            print_with(printer, &entry);
+            print_with(printer, "|");
+            print_with(printer, "fault");
             break;
+
         case L1Type::L2Ptr:
+            print_with(printer, entry.as_ptr.physical_address().ptr());
+            print_with(printer, "|");
+            print_with(printer, &entry);
             print_with(printer, "\n");
             print_with(printer, *entry.as_ptr.l2_table());
             break;
+
         case L1Type::HugePage:
+            print_with(printer, entry.as_huge_page.physical_address().ptr());
+            print_with(printer, "|");
+            print_with(printer, &entry);
+            print_with(printer, "|");
             print_with(printer, entry.as_huge_page);
             break;
+
         case L1Type::SuperSection:
+            print_with(printer, entry.as_super_huge_page.physical_address().ptr());
+            print_with(printer, "|");
+            print_with(printer, &entry);
+            print_with(printer, "|");
             print_with(printer, entry.as_super_huge_page);
             break;
         }
@@ -138,24 +153,34 @@ void print_with(pine::Printer& printer, const L1Table& table)
 
 void print_with(pine::Printer& printer, const L2Table& table)
 {
-    print_with(printer, "\tPhysical|Entry Addr|Entry\n");
+    print_with(printer, "\tVirtual Offset|Physical|Entry Addr|Entry\n");
     for (unsigned i = 0; i < mmu::L2Table::num_entries; i++) {
         print_with(printer, "\t");
         print_with(printer, VirtualAddress::from_l2_index(i).ptr());
         print_with(printer, "|");
 
         auto& entry = table.m_entries[i];
-        print_with(printer, &entry);
-        print_with(printer, "|");
 
         switch(entry.type()) {
         case L2Type::Fault:
             print_with(printer, "fault");
+            print_with(printer, "|");
+            print_with(printer, &entry);
+            print_with(printer, "|");
+            print_with(printer, "fault");
             break;
         case L2Type::Page:
+            print_with(printer, entry.as_page.physical_address().ptr());
+            print_with(printer, "|");
+            print_with(printer, &entry);
+            print_with(printer, "|");
             print_with(printer, "page");
             break;
         case L2Type::LargePage:
+            print_with(printer, entry.as_large_page.physical_address().ptr());
+            print_with(printer, "|");
+            print_with(printer, &entry);
+            print_with(printer, "|");
             print_with(printer, "large_page");
             break;
         }
@@ -194,6 +219,19 @@ void PageAllocator::init(L1Table& l1_table, PhysicalPageAllocator& physical_page
     m_l2_table_allocator.add(scratch_pages.ptr(), scratch_pages.size());
 }
 
+pine::Allocation PageAllocator::allocate(size_t size)
+{
+    auto num_pages = pine::align_up_two(size, PageSize) / PageSize;
+    auto [_, virt_region] = allocate_pages(num_pages);
+    return { virt_region.ptr(), virt_region.size() };
+}
+
+void PageAllocator::free(pine::Allocation alloc)
+{
+    // FIXME: Todo!
+    panic("Tried to free memory given by the PageAllocator!");
+}
+
 Pair<PageRegion, PageRegion> PageAllocator::reserve_region(PageRegion region, PageAllocator::Backing backing)
 {
     auto [phys_alloc, virt_alloc] = try_reserve_region_unrecorded(region, backing);
@@ -202,6 +240,7 @@ Pair<PageRegion, PageRegion> PageAllocator::reserve_region(PageRegion region, Pa
 
     auto phys_region = PageRegion::from_ptr(phys_alloc.ptr, phys_alloc.size);
     auto virt_region = PageRegion::from_ptr(virt_alloc.ptr, virt_alloc.size);
+    PANIC_IF(virt_region.length != phys_region.length);
 
     if (!try_record_page_in_l1(phys_region, virt_region)) {
         m_physical_page_allocator->free(phys_alloc);
@@ -275,24 +314,24 @@ Pair<pine::Allocation, pine::Allocation> PageAllocator::try_reserve_page_unrecor
 
 Pair<pine::Allocation, pine::Allocation> PageAllocator::try_reserve_region_unrecorded(PageRegion region, Backing backing)
 {
-    auto phys_alloc = m_physical_page_allocator->reserve_region(region);
-    if (!phys_alloc)
+    auto virt_alloc = m_virtual_page_allocator->reserve_region(region);
+    if (!virt_alloc)
         return {};
 
-    auto phys_region = PageRegion::from_ptr(phys_alloc.ptr, phys_alloc.size);
+    auto virt_region = PageRegion::from_ptr(virt_alloc.ptr, virt_alloc.size);
 
-    pine::Allocation virt_alloc;
+    pine::Allocation phys_alloc;
     switch (backing) {
     case Backing::Mixed:
-        virt_alloc = m_virtual_page_allocator->allocate(region.length);
+        phys_alloc = m_physical_page_allocator->allocate(region.length);
         break;
     case Backing::Identity:
-        virt_alloc = m_virtual_page_allocator->reserve_region(phys_region);
+        phys_alloc = m_physical_page_allocator->reserve_region(virt_region);
         break;
     }
 
-    if (!virt_alloc) {
-        m_physical_page_allocator->free(phys_alloc);
+    if (!phys_alloc) {
+        m_virtual_page_allocator->free(virt_alloc);
         return {};
     }
 

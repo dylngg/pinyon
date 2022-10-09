@@ -74,9 +74,18 @@ extern "C" {
 void task_switch(Registers* to_save_registers, bool is_kernel_task_save, const Registers* new_registers, bool is_kernel_task_new);
 }
 
-class Task {
-    using Heap = pine::FallbackAllocatorBinder<pine::FixedAllocation, pine::HighWatermarkAllocator>;
+class Heap : public pine::FallbackAllocatorBinder<pine::FixedAllocation, pine::HighWatermarkAllocator> {
+public:
+    Heap(PtrData start, size_t size)
+        : pine::FallbackAllocatorBinder<pine::FixedAllocation, pine::HighWatermarkAllocator>(&m_allocation)
+        , m_allocation(start, size)
+        , m_high_watermark_allocator() {};
 
+    pine::FixedAllocation m_allocation;
+    pine::HighWatermarkAllocator m_high_watermark_allocator;
+};
+
+class Task {
 public:
     enum class State : int {
         New = 0,

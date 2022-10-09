@@ -59,7 +59,7 @@ pine::Maybe<Task> Task::try_create(const char* name, u32 pc, CreateFlags flags)
         return {};
 
     auto heap_ptr_data = reinterpret_cast<PtrData>(heap_alloc.ptr);
-    Heap heap = Heap::construct(heap_ptr_data, heap_ptr_data + heap_size);
+    Heap heap(heap_ptr_data, heap_ptr_data + heap_size);
 
     return Task {
         name,

@@ -29,6 +29,10 @@ struct Region {
     {
         return length >= other_length;
     }
+    [[nodiscard]] bool contains(const Region& other) const
+    {
+        return offset <= other.offset && end_offset() >= other.end_offset();
+    }
     [[nodiscard]] bool aligned_to(size_t alignment) const
     {
         return offset % alignment == 0;
@@ -43,10 +47,11 @@ struct Region {
     }
     [[nodiscard]] Pair<Region<Magnitude>, Region<Magnitude>> halve() const
     {
+        auto remainder = length % 2;
         auto halved_length = length / 2;
         return {
             { offset, halved_length },
-            { offset + halved_length, halved_length }
+            { offset + halved_length, halved_length + remainder }
         };
     }
     [[nodiscard]] Pair<Region, Region> split_left(size_t num_pages) const

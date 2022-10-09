@@ -92,7 +92,8 @@ Pair<void*, size_t> HeapExtender::allocate(size_t requested_size)
 
 TaskMemoryAllocator& mem_allocator()
 {
-    static TaskMemoryAllocator g_task_allocator = TaskMemoryAllocator::construct();
+    static HeapExtender g_heap_extender {};
+    static TaskMemoryAllocator g_task_allocator = TaskMemoryAllocator(&g_heap_extender);
     return g_task_allocator;
 }
 

@@ -30,6 +30,11 @@ int printf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 struct HeapExtender {
     static HeapExtender construct() { return {}; }
 
+    static constexpr size_t preferred_size(size_t requested_size)
+    {
+        return pine::align_up_two(requested_size, PageSize);
+    }
+
     Pair<void*, size_t> allocate(size_t);
     void free(void*);
 };
