@@ -182,6 +182,9 @@ void PageAllocatorBackend::add(PageRegion pages)
 
 AllocationCost PageAllocatorBackend::free_region(PageRegion region)
 {
+    if (!region)
+        return 0;
+
     auto [depth, node] = create_node(region);
     if (!node)
         return 0;  // ASSERT false? this should be guaranteed by the broker
@@ -223,8 +226,7 @@ ManualLinkedList<PageRegion>::Node* PageAllocatorBackend::find_free_region(PageR
     while (depth != max_depth) {
         auto begin = m_free_lists[depth].begin();
         auto end = m_free_lists[depth].end();
-        // FIXME: Use lower_bound, but bail if not less than
-        auto it = find_if(begin, end, [&](const auto& node) { return node->contents() <= region; });
+        auto it = find_if(begin, end, [&](const auto& node) { return node->contents().contains(region); });
         if (it != end)
             return *it;
 
@@ -271,20 +273,26 @@ Pair<PageRegion, AllocationCost> PageAllocatorBackend::remove_and_trim_region(Ma
 
     remove_node(curr_depth, node);
 
-    // min.ptr >= curr.ptr, curr.end_ptr <= min.end_ptr
-    //        |  min  |
-    // |        curr          |
-    // | left |       | right |
-    auto left_trim = PageRegion {curr_region.offset, min_region.offset - curr_region.offset };
-    auto right_trim = PageRegion {min_region.end_offset(), curr_region.end_offset() - min_region.end_offset() };
+    auto end_depth = depth_from_page_length(min_region.length);
+    while (curr_depth != end_depth) {
+        auto [reserved_region, remainder_region] = curr_region.halve();
+        if (!reserved_region.contains(min_region)) {
+            if (!remainder_region.contains(min_region))
+                break;
 
-    AllocationCost total_distance = 0;
-    if (left_trim)
-        total_distance += free_region(left_trim);
-    if (right_trim)
-        total_distance += free_region(right_trim);
+            pine::swap(remainder_region, reserved_region);
+        }
 
-    return { PageRegion { left_trim.end_offset(), right_trim.offset - left_trim.end_offset() }, total_distance };
+        --curr_depth;
+        auto [_, node] = create_node(remainder_region);
+        if (!node)
+            break;
+
+        insert_node(curr_depth, node);
+        curr_region = reserved_region;
+    }
+
+    return { curr_region, (end_depth - curr_depth) * IntrusiveFreeList::max_overhead_per_allocation() };
 }
 
 Pair<unsigned, PageAllocatorBackend::Node*> PageAllocatorBackend::create_node(PageRegion region)

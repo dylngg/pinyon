@@ -71,7 +71,7 @@ template <typename UInt>
 constexpr bool is_aligned_two_power(UInt value)
 {
     static_assert(is_unsigned<UInt>);
-    return value & (value - 1);
+    return !(value & (value - 1));
 }
 
 template <typename UInt, typename UInt2>
