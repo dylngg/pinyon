@@ -90,6 +90,10 @@ test_pine: pine_host $(TESTS) $(TESTFILE)
 compile_commands.json: clean
 	$(COMPILEDB) make
 
+.PHONY:
+tags:
+	find pine/ kernel/ userspace/ -type f -name '*.hpp' -o -name '*.cpp' -print0 | xargs -0 ctags
+
 .PHONY: clean
 clean:
 	rm -rf obj/ pinyon.elf pinyon.out
