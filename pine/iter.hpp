@@ -156,12 +156,6 @@ public:
         m_pos++;
         return *this;
     }
-    RandomAccessIter operator++(int) // postfix increment
-    {
-        auto prev = *this;
-        m_pos++;
-        return prev;
-    }
     RandomAccessIter& operator+=(size_t offset)
     {
         m_pos += offset;
@@ -183,12 +177,6 @@ public:
     {
         m_pos--;
         return *this;
-    }
-    RandomAccessIter operator--(int) // postfix increment
-    {
-        auto prev = *this;
-        m_pos--;
-        return prev;
     }
     RandomAccessIter& operator-=(size_t offset)
     {
@@ -261,12 +249,6 @@ public:
 
         return *this;
     }
-    PtrIter operator++(int) // postfix increment
-    {
-        auto iter = *this;
-        ++(*this);
-        return iter;
-    }
     PtrIter& operator--() // prefix increment
     {
         if (m_at_end)
@@ -275,12 +257,6 @@ public:
             m_ptr = m_ptr->prev();
 
         return *this;
-    }
-    PtrIter operator--(int) // postfix increment
-    {
-        auto iter = *this;
-        --(*this);
-        return iter;
     }
     constexpr Ptr& operator*() { return m_ptr; };
     constexpr const Ptr& operator*() const { return m_ptr; };

@@ -94,7 +94,7 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
     char chstr[2] = " ";
 
     auto fmt_view = StringView(fmt);
-    for (auto iter = fmt_view.begin(); !iter.at_end(); iter++) {
+    for (auto iter = fmt_view.begin(); !iter.at_end(); ++iter) {
         auto ch = *iter;
         chstr[0] = ch;
 
@@ -106,16 +106,16 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
 
         // Format specifier: %s
 
-        iter++; // consume '%'
+        ++iter; // consume '%'
         mod = ArgModifiers::None;
 
         char type_or_mod_ch = *iter;
         if (type_or_mod_ch == 'l') {
             mod = ArgModifiers::Long;
-            iter++; // consume 'l'
+            ++iter; // consume 'l'
         } else if (type_or_mod_ch == 'z') {
             mod = ArgModifiers::SizeT;
-            iter++; // consume 'z'
+            ++iter; // consume 'z'
         }
 
         // Sorry, but we have to have large switch cases:
