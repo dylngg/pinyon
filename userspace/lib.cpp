@@ -1,6 +1,6 @@
 #include "lib.hpp"
 
-#include <pine/string.hpp>
+#include <pine/c_string.hpp>
 #include <pine/units.hpp>
 
 using namespace pine;

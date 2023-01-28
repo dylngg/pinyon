@@ -1,7 +1,7 @@
 #pragma once
 #include "iter.hpp"
 #include "metaprogramming.hpp"
-#include "string.hpp"
+#include "c_string.hpp"
 #include "types.hpp"
 
 namespace pine {
