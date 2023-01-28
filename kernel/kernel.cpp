@@ -5,8 +5,6 @@
 #include "tasks.hpp"
 #include "timer.hpp"
 
-#include <pine/string.hpp>
-
 extern "C" void init();
 
 /*

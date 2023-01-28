@@ -4,7 +4,6 @@
 #include "panic.hpp"
 #include "timer.hpp"
 
-#include <pine/string.hpp>
 #include <pine/units.hpp>
 
 Registers construct_user_task_registers(const Stack& stack, const Stack& kernel_stack, PtrData pc)

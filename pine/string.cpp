@@ -3,7 +3,6 @@
 // Note: this magic header comes from GCC's builtin functions
 //       https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#Other-Builtins
 #include <cstdarg>
-#include <pine/print.hpp>
 #include <pine/math.hpp>
 #include <pine/types.hpp>
 
@@ -59,47 +58,6 @@ int strcmp(const char* first, const char* second)
         offset++;
     }
     return first[offset] != second[offset];
-}
-
-size_t sbufprintf(char* buf, size_t bufsize, const char* fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    return vsbufprintf(buf, bufsize, fmt, args);
-}
-
-size_t vsbufprintf(char* buf, size_t bufsize, const char* fmt, va_list args)
-{
-    size_t buf_pos = 0;
-    if (bufsize == 0)
-        return 0;
-
-    const auto& try_add_wrapper = [&](const char* message) -> bool {
-        size_t message_size = strlen(message);
-        size_t copied = strbufcopy(buf + buf_pos, bufsize - buf_pos, message);
-        buf_pos += copied;
-        return copied == message_size;
-    };
-
-    vfnprintf(try_add_wrapper, fmt, args);
-    return buf_pos;
-}
-
-bool StringView::operator==(const StringView& other) const
-{
-    if (m_length != other.m_length)
-        return false;
-    return strcmp(m_chars, other.m_chars) == 0;
-}
-
-const char& StringView::operator[](size_t pos) const
-{
-    static char dummy = '\0';
-    // FIXME: I'd rather have an assert here than this wackyness; this will just
-    //        hide bugs
-    if (pos >= m_length)
-        return dummy;
-    return m_chars[pos];
 }
 
 }

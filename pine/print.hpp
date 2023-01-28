@@ -6,7 +6,7 @@
 #include "iter.hpp"
 #include "limits.hpp"
 #include "math.hpp"
-#include "string.hpp"
+#include "string_view.hpp"
 
 /*
  * This header defines simple conatenation based printing of arguments to some
@@ -64,7 +64,7 @@ void print_with(Printer& printer, Int num)
     print_with(printer, buf);
 }
 
-template <typename Ptr, enable_if<is_pointer<Ptr> && !is_implicitly_convertible<Ptr, pine::StringView>, Ptr>* = nullptr>
+template <typename Ptr, enable_if<is_pointer<Ptr> && !is_implicitly_convertible<Ptr, StringView>, Ptr>* = nullptr>
 void print_with(Printer& printer, Ptr ptr)
 {
     constexpr int bufsize = limits<uintptr_t>::characters + 3; // + 0x + '\0'
@@ -85,6 +85,9 @@ enum class ArgModifiers {
     Long,
     SizeT,
 };
+
+size_t vsbufprintf(char* buf, size_t bufsize, const char* fmt, va_list args);
+size_t sbufprintf(char* buf, size_t bufsize, const char* fmt, ...);
 
 template <typename TryAddStringFunc>
 size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest)

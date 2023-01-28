@@ -2,9 +2,6 @@
 #include "uart.hpp"
 
 #include <pine/barrier.hpp>
-#include <pine/print.hpp>
-#include <pine/string.hpp>
-#include <pine/types.hpp>
 
 void UARTPrinter::print(pine::StringView message)
 {

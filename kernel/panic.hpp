@@ -4,7 +4,6 @@
 #include "console.hpp"
 
 #include <pine/print.hpp>
-#include <pine/string.hpp>
 #include <pine/utility.hpp>
 
 template <typename... Args>
