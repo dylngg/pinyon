@@ -18,8 +18,8 @@ Registers construct_kernel_task_registers(const Stack& kernel_stack, PtrData pc)
     return registers;
 }
 
-Task::Task(const char* name, Heap heap, Stack kernel_stack, pine::Maybe<Stack> user_stack, Registers registers)
-    : m_name(name)
+Task::Task(KString name, Heap heap, Stack kernel_stack, pine::Maybe<Stack> user_stack, Registers registers)
+    : m_name(pine::move(name))
     , m_state(State::New)
     , m_user_stack(pine::move(user_stack))
     , m_kernel_stack(pine::move(kernel_stack))
@@ -60,8 +60,12 @@ pine::Maybe<Task> Task::try_create(const char* name, u32 pc, CreateFlags flags)
     auto heap_ptr_data = reinterpret_cast<PtrData>(heap_alloc.ptr);
     Heap heap(heap_ptr_data, heap_ptr_data + heap_size);
 
+    auto maybe_name = KString::try_create(kernel_allocator(), name);
+    if (!maybe_name)
+        return {};
+
     return Task {
-        name,
+        pine::move(*maybe_name),
         heap,
         pine::move(*maybe_stack),
         pine::move(*maybe_kernel_stack),

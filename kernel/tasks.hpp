@@ -6,6 +6,7 @@
 
 #include <pine/maybe.hpp>
 #include <pine/memory.hpp>
+#include <pine/string.hpp>
 #include <pine/types.hpp>
 #include <pine/vector.hpp>
 
@@ -103,7 +104,7 @@ public:
     Task(Task&& other) = default;
     Task& operator=(Task&& other) = default;
 
-    const char* name() const { return m_name; }
+    const KString& name() const { return m_name; }
     void sleep(u32 secs);
     size_t read(char* buf, size_t at_most_bytes);
     void write(char* buf, size_t bytes);
@@ -113,7 +114,7 @@ public:
     bool is_kernel_task() const { return m_registers.is_kernel_registers(); }
 
 private:
-    Task(const char* name, Heap heap, Stack kernel_stack, pine::Maybe<Stack> user_stack, Registers registers);
+    Task(KString name, Heap heap, Stack kernel_stack, pine::Maybe<Stack> user_stack, Registers registers);
     void update_state();
     void start(Registers*, bool is_kernel_task_to_save, InterruptsDisabledTag);
     void switch_to(Task&, InterruptsDisabledTag);
@@ -129,7 +130,7 @@ private:
     // enable interrupts in every syscall.
     static void reschedule();
 
-    const char* m_name; // must be static pointer!
+    KString m_name;
     State m_state;
     pine::Maybe<Stack> m_user_stack;
     Stack m_kernel_stack;

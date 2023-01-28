@@ -13,6 +13,11 @@ public:
         , m_length(strlen(string))
     {
     }
+    StringView(const char* string, size_t length)
+        : m_chars(string)
+        , m_length(length)
+    {
+    }
 
     bool operator==(const StringView& other) const
     {
