@@ -5,6 +5,7 @@
 #include <pine/print.hpp>
 #include <pine/types.hpp>
 #include <pine/syscall.hpp>
+#include <pine/vector.hpp>
 
 // See syscall.S
 extern "C" {
@@ -61,3 +62,6 @@ void exit(int code);
 
 // We don't use this in any capacity, but compilers will insert calls to it
 inline int atexit(void (*)()) { return 0; };
+
+template <typename Value>
+using TVector = pine::Vector<Value, TaskMemoryAllocator>;

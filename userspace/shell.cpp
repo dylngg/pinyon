@@ -33,41 +33,40 @@ extern "C" {
 
 void shell()
 {
-    auto alloc = malloc(1024);
-    if (!alloc) {
+    TVector<char> buf(mem_allocator());
+    if (!buf.ensure(1024)) {
         printf("Could not allocate memory for buf!!\n");
         exit(1);
     }
 
-    char* buf = static_cast<char*>(alloc.ptr);
     for (;;) {
         printf("# ");
-        read(buf, 1024);
+        read(&buf[0], 1024);
 
-        if (strcmp(buf, "exit") == 0)
+        if (strcmp(&buf[0], "exit") == 0)
             break;
-        if (strcmp(buf, "memstat") == 0) {
+        if (strcmp(&buf[0], "memstat") == 0) {
             builtin_memstat();
             continue;
         }
-        if (strcmp(buf, "uptime") == 0) {
+        if (strcmp(&buf[0], "uptime") == 0) {
             builtin_uptime();
             continue;
         }
-        if (strcmp(buf, "yield") == 0) {
+        if (strcmp(&buf[0], "yield") == 0) {
             yield();
             continue;
         }
-        if (strcmp(buf, "spin") == 0) {
+        if (strcmp(&buf[0], "spin") == 0) {
             for (volatile int i = 0; i < 10'0000'000; i++) { };
             continue;
         }
-        if (strcmp(buf, "sleep") == 0) {
+        if (strcmp(&buf[0], "sleep") == 0) {
             printf("Sleeping for 2 seconds.\n");
             sleep(2);
             continue;
         }
-        if (strcmp(buf, "help") == 0) {
+        if (strcmp(&buf[0], "help") == 0) {
             printf("The following commands are available to you:\n");
             printf("  - memstat\tProvides statistics on the amount of memory used by this task.\n");
             printf("  - uptime\tProvides statistics on the time since boot in seconds, as well as the CPU time used by this task.\n");
@@ -82,10 +81,8 @@ void shell()
             printf("  - Time slowly drifts away from real time.\n");
             continue;
         }
-        printf("Unknown command '%s'. Use 'help'.\n", buf);
+        printf("Unknown command '%s'. Use 'help'.\n", &buf[0]);
     }
-
-    free(alloc);
 
     printf("goodbye.\n");
     exit(0);
