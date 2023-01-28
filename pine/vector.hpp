@@ -32,18 +32,7 @@ public:
         if (m_contents)
             Destructor::destroy(m_contents);
     }
-    Vector(const Vector& other)
-        : Destructor(other.allocator())
-        , m_count()
-        , m_capacity()
-        , m_contents()
-    {
-        if (!ensure(other.length()))
-            return;
-
-        for (auto value : other)
-            emplace_unensured(value);
-    }
+    Vector(const Vector& other) = delete;
     Vector(Vector&& other)
         : Destructor(other.allocator())
         , m_count(exchange(other.m_count, 0u))
