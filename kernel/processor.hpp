@@ -1,6 +1,7 @@
 #pragma once
 #include <pine/types.hpp>
 #include <pine/print.hpp>
+#include <pine/bit.hpp>
 
 enum class ProcessorMode : u32 {
     User = 0b10000,
@@ -38,10 +39,7 @@ struct CPSR {
     static CPSR from_data(PtrData cpsr_as_u32)
     {
         // For some reason reinterpret_cast doesn't
-        CPSR cpsr;
-        static_assert(sizeof(cpsr) == sizeof(cpsr_as_u32));
-        memcpy (&cpsr, &cpsr_as_u32, sizeof(cpsr));
-        return cpsr;
+        return pine::bit_cast<CPSR>(cpsr_as_u32);
     }
     static CPSR cpsr()
     {
@@ -101,4 +99,7 @@ struct CPSR {
 
 private:
     explicit CPSR() = default;  // used by static methods to avoid proper initialization
+
+    template <typename To, typename From>
+    friend constexpr To pine::bit_cast(From);
 };

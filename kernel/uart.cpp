@@ -5,6 +5,7 @@
 
 #include <pine/math.hpp>
 #include <pine/barrier.hpp>
+#include <pine/bit.hpp>
 #include <pine/twomath.hpp>
 
 #include <new>

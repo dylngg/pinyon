@@ -6,6 +6,7 @@
 #include <pine/twomath.hpp>
 #include <pine/types.hpp>
 #include <pine/units.hpp>
+#include <pine/bit.hpp>
 
 #define DEVICES_START 0x3F000000
 #define DEVICES_END 0x40000000
@@ -118,27 +119,11 @@ enum class L1Type : u32 {
     SuperSection = 3,
 };
 
-inline L1Type l1_type_from_bits(u32 bits)
-{
-    L1Type type;
-    static_assert(sizeof(type) == sizeof(bits));
-    memcpy (&type, &bits, sizeof(type));
-    return type;
-}
-
 enum class L2Type : u32 {
     Fault = 0,
     HugePage = 1,
     Page = 2,
 };
-
-inline L2Type l2_type_from_bits(u32 bits)
-{
-    L2Type type;
-    static_assert(sizeof(type) == sizeof(bits));
-    memcpy (&type, &bits, sizeof(type));
-    return type;
-}
 
 struct L2Fault {
     L2Fault()
@@ -196,7 +181,7 @@ union L2Entry {
 
     static constexpr auto vm_size = 4 * KiB;
 
-    L2Type type() const { return l2_type_from_bits(static_cast<u32>(_.type)); }
+    L2Type type() const { return pine::bit_cast<L2Type>(_.type); }
 
     L2Entry& operator=(const HugePage& huge_page)
     {
@@ -342,7 +327,7 @@ union L1Entry {
         return *this;
     }
 
-    L1Type type() const { return l1_type_from_bits(static_cast<u32>(_.type)); }
+    L1Type type() const { return pine::bit_cast<L1Type>(_.type); }
 
     L1Fault _;
     L2Ptr as_ptr;
