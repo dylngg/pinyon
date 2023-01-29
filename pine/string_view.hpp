@@ -19,7 +19,7 @@ public:
     {
     }
 
-    bool operator==(const StringView& other) const
+    bool operator==(StringView other) const
     {
         if (m_length != other.m_length)
             return false;

@@ -59,6 +59,10 @@ public:
     {
         return m_string[index];
     }
+    bool operator==(StringView other) const
+    {
+        return strcmp(m_string, other.data()) == 0;
+    }
 
     operator StringView() const
     {
