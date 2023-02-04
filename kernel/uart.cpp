@@ -2,13 +2,12 @@
 #include "interrupts.hpp"
 #include "kmalloc.hpp"
 #include "panic.hpp"
+#include "wait.hpp"
 
 #include <pine/math.hpp>
 #include <pine/barrier.hpp>
 #include <pine/bit.hpp>
-#include <pine/twomath.hpp>
-
-#include <new>
+#include <pine/types.hpp>
 
 void UARTRegisters::poll_write(const char* message)
 {
@@ -202,74 +201,109 @@ void uart_init()
     interrupt_registers().enable_uart();
 }
 
-static UARTResource* g_uart_resource = nullptr;
-
-UARTResource::UARTResource(char* buf, size_t size, Options options)
-    : m_buf(buf)
-    , m_size(0)
-    , m_capacity(size)
-    , m_options(options)
+UARTRequest& uart_request()
 {
-    auto& uart = uart_registers();
-    if (is_write_request())
-        uart.set_write_irq(amount_left());
-    else
-        uart.set_read_irq(amount_left());
+    static UARTRequest g_uart_request;
+    return g_uart_request;
 }
 
-UARTResource::~UARTResource()
+void reschedule_while_waiting_for(const Waitable&);
+
+size_t UARTFile::read(char *buf, size_t at_most_bytes)
 {
-    PANIC_MESSAGE_IF(this != g_uart_resource, "UART Resource completed is not the same as given!")
-    g_uart_resource = nullptr;
+    PANIC_MESSAGE_IF(!uart_request().is_finished(), "UART request already under operation!");
+
+    auto& request = uart_request();
+    request = UARTRequest(buf, at_most_bytes, false);
+
+    // Enable after creation, rather than in constructor, because we use the
+    // g_uart_resource handle in our static handle_irq() function; this is not
+    // set until after construction and enabling may cause an IRQ to be raised
+    request.enable_irq();
+
+    if (!request.is_finished())
+        reschedule_while_waiting_for(request);
+
+    PANIC_IF(!request.is_finished());
+    return request.size_read_or_written();
 }
 
-void UARTResource::enable_irq() const
+size_t UARTFile::write(char *buf, size_t size)
+{
+    PANIC_MESSAGE_IF(!uart_request().is_finished(), "UART request already under operation!");
+
+    auto& request = uart_request();
+    request = UARTRequest(buf, size, true);
+
+    // Enable after creation, rather than in constructor, because we use the
+    // g_uart_resource handle in our static handle_irq() function; this is not
+    // set until after construction and enabling may cause an IRQ to be raised
+    request.enable_irq();
+
+    if (!request.is_finished())
+        reschedule_while_waiting_for(request);
+
+    PANIC_IF(!request.is_finished());
+    return request.size_read_or_written();
+}
+
+void UARTRequest::enable_irq()
 {
     auto& uart = uart_registers();
     // It is possible at this point for data to be ready; by setting the IRQ,
     // we may end up handling that in an IRQ before this call ends
-    if (is_write_request())
+    if (m_is_write_request)
         uart.enable_write_irq();
     else
         uart.enable_read_irq();
 }
 
-void UARTResource::fill_from_uart()
+UARTRequest::UARTRequest(char *buf, size_t size, bool is_write_request)
+    : m_buf(buf)
+    , m_size(0)
+    , m_capacity(size)
+    , m_is_write_request(is_write_request)
+{
+    auto& uart = uart_registers();
+    if (m_is_write_request)
+        uart.set_write_irq(m_capacity - m_size);
+    else
+        uart.set_read_irq(m_capacity - m_size);
+}
+
+void UARTRequest::fill_from_uart()
 {
     auto& uart = uart_registers();
     size_t amount_originally_left = m_capacity - m_size;
 
-    if (is_write_request()) {
+    if (m_is_write_request) {
         m_size += uart.try_write(m_buf + m_size, amount_originally_left);
     } else {
         auto amount_and_did_stop = uart.try_read(m_buf + m_size, amount_originally_left);
         m_size += amount_and_did_stop.first;
         if (amount_and_did_stop.second)
-            g_uart_resource->mark_as_finished();
+            m_capacity = m_size;
     }
 }
 
-void UARTResource::handle_irq(InterruptsDisabledTag)
+void UARTRequest::handle_irq(InterruptsDisabledTag)
 {
     // We assume interrupts are disabled here, because we don't want nesting
     // of reads/writes to occur.
 
-    PANIC_MESSAGE_IF(!g_uart_resource, "Tried to handle IRQ for UART when there is no current request!");
-    PANIC_MESSAGE_IF(g_uart_resource->is_finished(), "Tried to handle IRQ after UART resource finished!");
-
     auto& uart = uart_registers();
-    if (g_uart_resource->is_write_request())
+    if (m_is_write_request)
         uart.clear_write_irq();
     else
         uart.clear_read_irq();
 
-    g_uart_resource->fill_from_uart();
+    fill_from_uart();
 
-    if (g_uart_resource->is_finished()) {
+    if (m_size == m_capacity) {
         // Disable it now, instead of in destructor, because we don't want any
         // more IRQs (after returning from this IRQ) being raised that simply
         // return when we handle it
-        if (g_uart_resource->is_write_request())
+        if (m_is_write_request)
             uart.disable_write_irq();
         else
             uart.disable_read_irq();
@@ -277,26 +311,8 @@ void UARTResource::handle_irq(InterruptsDisabledTag)
         return;
     }
 
-    if (g_uart_resource->is_write_request())
-        uart.set_write_irq(g_uart_resource->amount_left());
+    if (m_is_write_request)
+        uart.set_write_irq(m_capacity - m_size);
     else
-        uart.set_read_irq(g_uart_resource->amount_left());
-}
-
-pine::Maybe<KOwner<UARTResource>> UARTResource::try_request(char* buf, size_t bufsize, Options options)
-{
-    if (g_uart_resource) // Can only handle one request at a time
-        panic("UART resource has already been acquired!");
-
-    auto maybe_resource = KOwner<UARTResource>::try_create(kernel_allocator(), buf, bufsize, options);
-    if (!maybe_resource) // FIXME: Indicate out of memory!
-        return {};
-
-    g_uart_resource = maybe_resource.value().get();
-
-    // Enable after creation, rather than in constructor, because we use the
-    // g_uart_resource handle in our static handle_irq() function; this is not
-    // set until after construction and enabling may cause an IRQ to be raised
-    maybe_resource->enable_irq();
-    return maybe_resource;
+        uart.set_read_irq(m_capacity - m_size);
 }

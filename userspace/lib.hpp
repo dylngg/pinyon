@@ -6,17 +6,30 @@
 #include <pine/types.hpp>
 #include <pine/syscall.hpp>
 #include <pine/vector.hpp>
+#include <pine/string_view.hpp>
+
+#define assert(cond) do { if (!(cond)) { printf("Assertion failed: " #cond); exit(1); } } while(0);
 
 // See syscall.S
 extern "C" {
 u32 syscall0(Syscall call);
 u32 syscall1(Syscall call, u32 arg1);
 u32 syscall2(Syscall call, u32 arg1, u32 arg2);
+u32 syscall3(Syscall call, u32 arg1, u32 arg2, u32 arg3);
 }
 
-size_t read(char* buf, size_t bytes);
+constexpr int stdin = 0;
+constexpr int stdout = 1;
 
-void write(char* buf, size_t bytes);
+int open(pine::StringView path, FileMode mode);
+
+ssize_t read(int fd, char* buf, size_t bytes);
+
+ssize_t write(int fd, char* buf, size_t bytes);
+
+int close(int fd);
+
+int dup(int fd);
 
 void yield();
 

@@ -1,6 +1,8 @@
 #pragma once
 #include "interrupts.hpp"
 #include "kmalloc.hpp"
+#include "file.hpp"
+#include "wait.hpp"
 
 #include <pine/maybe.hpp>
 #include <pine/types.hpp>
@@ -37,39 +39,39 @@
 #define GPPUD 0x3F200094
 #define GPPUDCLK0 0x3F200098
 
-class UARTResource {
+class UARTRequest : public Waitable {
 public:
-    struct Options {
-        bool is_write = false;
-        bool local_echo_on_read = !is_write;
-    };
-
-    ~UARTResource();
-
-    /*
-     * Returns the resource for async reading if an existing request is not in
-     * progress.
-     */
-    static pine::Maybe<KOwner<UARTResource>> try_request(char*, size_t, Options);
-    static void handle_irq(InterruptsDisabledTag);
-
-    size_t size() const { return m_size; }
-    size_t amount_left() const { return m_capacity - m_size; }
-    bool is_finished() const { return amount_left() == 0; }
-    bool is_write_request() const { return m_options.is_write; }
-    void enable_irq() const;
+    ~UARTRequest() override = default;
+    bool is_finished() const override { return m_size == m_capacity; };
 
 private:
-    UARTResource(char* buf, size_t size, Options options);
-    friend KOwner<UARTResource>;
+    UARTRequest() = default;
+    UARTRequest(char* buf, size_t size, bool is_write_request);
 
-    void mark_as_finished() { m_capacity = m_size; }
+    friend class UARTFile;
+    friend void irq_handler();
+    friend UARTRequest& uart_request();
+
+    void handle_irq(InterruptsDisabledTag disabled_tag);
     void fill_from_uart();
+    void enable_irq();
+    size_t size_read_or_written() const { return m_size; };
 
-    char* m_buf;
-    size_t m_size;
-    size_t m_capacity;
-    Options m_options;
+    char* m_buf = nullptr;
+    size_t m_size = 0;
+    size_t m_capacity = 0;
+    bool m_is_write_request = false;
+};
+
+UARTRequest& uart_request();
+
+class UARTFile : public File {
+public:
+    ~UARTFile() override = default;
+    size_t read(char* buf, size_t at_most_bytes) override;
+    size_t write(char* buf, size_t bytes) override;
+
+private:
 };
 
 class UARTRegisters;

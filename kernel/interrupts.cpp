@@ -6,6 +6,7 @@
 #include "uart.hpp"
 
 #include <pine/barrier.hpp>
+#include <pine/bit.hpp>
 
 extern "C" {
 
@@ -21,7 +22,7 @@ void undefined_instruction_handler(PtrData old_cpsr_as_u32, PtrData old_pc, PtrD
           "old cpsr:", old_cpsr, "\told pc:", reinterpret_cast<void*>(old_pc), "\told lr: ", reinterpret_cast<void*>(old_lr));
 }
 
-u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2)
+u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2, u32 arg3)
 {
     auto& task_mgr = task_manager();
     auto& task = task_mgr.running_task();
@@ -46,15 +47,23 @@ u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2)
         task.sleep(arg1);
         break;
 
+    case Syscall::Open:
+        return pine::bit_cast<u32>(task.open(reinterpret_cast<const char*>(arg1), pine::bit_cast<FileMode>(arg2)));
+
     case Syscall::Read:
-        return task.read(reinterpret_cast<char*>(arg1), static_cast<size_t>(arg2));
+        return pine::bit_cast<ssize_t>(task.read(pine::bit_cast<int>(arg1), reinterpret_cast<char*>(arg2), pine::bit_cast<size_t>(arg3)));
 
     case Syscall::Write:
-        task.write(reinterpret_cast<char*>(arg1), static_cast<size_t>(arg2));
-        break;
+        return pine::bit_cast<ssize_t>(task.write(pine::bit_cast<int>(arg1), reinterpret_cast<char*>(arg2), pine::bit_cast<size_t>(arg3)));
+
+    case Syscall::Close:
+        return pine::bit_cast<ssize_t>(task.close(pine::bit_cast<int>(arg1)));
+
+    case Syscall::Dup:
+        return pine::bit_cast<u32>(task.dup(pine::bit_cast<int>(arg1)));
 
     case Syscall::Sbrk:
-        return reinterpret_cast<u32>(task.sbrk(static_cast<size_t>(arg1)));
+        return reinterpret_cast<u32>(task.sbrk(pine::bit_cast<size_t>(arg1)));
 
     case Syscall::Uptime:
         return jiffies();
@@ -103,7 +112,7 @@ void irq_handler(void)
         should_reschedule = true;
     }
     if (irq.uart_pending())
-        UARTResource::handle_irq(disabled_tag);
+        uart_request().handle_irq(disabled_tag);
 
     if (should_reschedule)
         task_manager().schedule(disabled_tag);

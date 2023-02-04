@@ -20,6 +20,7 @@ using i8 = int8_t;
 // We do necessary pointer arithmetic that we cannot do with void* unless
 // we're ok with the compiler constantly screaming at us.
 using PtrData = uintptr_t;
+using ssize_t = intptr_t;
 
 template <class First, class Second>
 struct Pair {

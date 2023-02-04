@@ -7,6 +7,12 @@ namespace pine {
 
 template <class Value, class Allocator>
 class DefaultDestructor {
+public:
+    Allocator& allocator() const
+    {
+        return *m_allocator;
+    };
+
 protected:
     constexpr explicit DefaultDestructor(Allocator& allocator)
         : m_allocator(&allocator) {};
@@ -15,10 +21,6 @@ protected:
     {
         value->~Value();
         m_allocator->free(pine::Allocation{ value, sizeof(Value) });
-    };
-    Allocator& allocator() const
-    {
-        return *m_allocator;
     };
 
 private:
@@ -30,11 +32,11 @@ private:
  * pointer. Thus, Owner<> is never null unless moved.
  */
 template <class Value, class Allocator, class Destructor = DefaultDestructor<Value, Allocator>>
-class Owner : private Destructor {
+class Owner : public Destructor {
 public:
     using ValueOwner = Owner<Value, Allocator, Destructor>;
 
-    Owner(Allocator& allocator, enable_if<is_move_constructible<Value>, Value>& value)
+    Owner(Allocator& allocator, Value& value)
         : Destructor(allocator)
         , m_ptr(&value) {};
     ~Owner()
@@ -60,7 +62,13 @@ public:
 
     Owner(Owner&& other)
         : Destructor(other.allocator())
-        , m_ptr(exchange(other.m_ptr, nullptr)) {};
+        , m_ptr(exchange(other.m_ptr, nullptr)) {}
+
+    template <typename Other, typename OtherDestructor>
+    Owner(Owner<Other, Allocator, OtherDestructor>&& other)
+        : Destructor(other.allocator())
+        , m_ptr(other.release()) {}
+
     Owner& operator=(Owner&& other)
     {
         Owner owner { move(other) };
@@ -70,6 +78,8 @@ public:
 
     Value* get() { return m_ptr; }
     const Value* get() const { return m_ptr; }
+
+    Value* release() { return exchange(m_ptr, nullptr); }
 
     Value* operator->() { return get(); }
     const Value* operator->() const { return get(); }

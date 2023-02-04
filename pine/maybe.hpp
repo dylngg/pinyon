@@ -70,6 +70,14 @@ struct Maybe : private ConditionallyCopyable<Value>, private ConditionallyMovabl
             new (&m_value_space) Value(other_maybe.release_value());
     }
 
+    // rvalue ctor: e.g. Maybe<Value> maybe { Maybe<ConstructibleValue> {} };
+    template<class Other, enable_if<is_constructible<Value, Other&&>>* = nullptr>
+    constexpr Maybe(Maybe<Other>&& other_maybe)
+    {
+        if ((m_has_value = other_maybe.has_value()))
+            new (&m_value_space) Value(other_maybe.release_value());
+    }
+
     // copy assignment: e.g. Maybe<Value> other; Maybe<Value> maybe = other;
     constexpr Maybe& operator=(const Maybe& other_maybe)
     {

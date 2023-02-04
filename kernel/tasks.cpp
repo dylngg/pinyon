@@ -1,10 +1,10 @@
 #include "tasks.hpp"
-#include "interrupts.hpp"
-#include "kmalloc.hpp"
 #include "panic.hpp"
 #include "timer.hpp"
 
+#include <pine/limits.hpp>
 #include <pine/units.hpp>
+#include <pine/errno.hpp>
 
 Registers construct_user_task_registers(const Stack& stack, const Stack& kernel_stack, PtrData pc)
 {
@@ -18,17 +18,17 @@ Registers construct_kernel_task_registers(const Stack& kernel_stack, PtrData pc)
     return registers;
 }
 
-Task::Task(KString name, Heap heap, Stack kernel_stack, pine::Maybe<Stack> user_stack, Registers registers)
+Task::Task(KString name, Heap heap, Stack kernel_stack, pine::Maybe<Stack> user_stack, Registers registers, FileDescriptorTable fd_table)
     : m_name(pine::move(name))
     , m_state(State::New)
     , m_user_stack(pine::move(user_stack))
     , m_kernel_stack(pine::move(kernel_stack))
     , m_registers(registers)
     , m_heap(heap)
-    , m_sleep_end_time(0)
     , m_jiffies_when_scheduled(0)
     , m_cpu_jiffies(0)
-    , m_maybe_uart_resource()
+    , m_waiting_for()
+    , m_fd_table(pine::move(fd_table))
 {
 }
 
@@ -64,12 +64,22 @@ pine::Maybe<Task> Task::try_create(const char* name, u32 pc, CreateFlags flags)
     if (!maybe_name)
         return {};
 
+    FileDescriptorTable fd_table {};
+    int stdin_fd = fd_table.open("/dev/uart0", FileMode::Read);  // stdin
+    if (stdin_fd == -1)
+        return {};
+
+    int stdout_fd = fd_table.open("/dev/uart0", FileMode::Write); // stdout
+    if (stdout_fd == -1)
+        return {};
+
     return Task {
         pine::move(*maybe_name),
         heap,
         pine::move(*maybe_stack),
         pine::move(*maybe_kernel_stack),
         *registers,
+        pine::move(fd_table),
     };
 }
 
@@ -87,52 +97,70 @@ void Task::start(Registers* to_save_registers, bool is_kernel_task_to_save, Inte
     task_switch(to_save_registers, is_kernel_task_to_save, &m_registers, is_kernel_task());
 }
 
+Task::SleepWaitable::SleepWaitable(u32 secs)
+    : m_sleep_end_time(jiffies() + secs * SYS_HZ)
+{
+}
+
+bool Task::SleepWaitable::is_finished() const
+{
+    return m_sleep_end_time <= jiffies();
+}
+
 void Task::sleep(u32 secs)
 {
-    m_state = State::Sleeping;
-    m_sleep_end_time = jiffies() + secs * SYS_HZ;
-
-    reschedule();
-
-    m_sleep_end_time = 0;
+    reschedule_while_waiting_for(SleepWaitable(secs));
 }
 
-size_t Task::make_uart_request(char* buf, size_t bytes, UARTResource::Options options)
+int Task::open(pine::StringView path, FileMode mode)
 {
-    auto maybe_resource = UARTResource::try_request(buf, bytes, options);
-    PANIC_MESSAGE_IF(!maybe_resource, "UART request failed!");
-
-    if (maybe_resource->is_finished()) // If could be fulfilled without an IRQ
-        return maybe_resource->size();
-
-    // update_state(), called in pick_next_task() is what checks for whether
-    // the resource is finished; it needs the resource
-    m_maybe_uart_resource = pine::move(maybe_resource);
-
-    m_state = State::Waiting;
-    reschedule();
-
-    PANIC_IF(!m_maybe_uart_resource->is_finished());
-    maybe_resource = pine::move(m_maybe_uart_resource);
-    return maybe_resource->size();
+    return m_fd_table.open(path, mode);
 }
 
-size_t Task::read(char* buf, size_t at_most_bytes)
+int Task::userspace_buffer_is_valid(const char* buf, size_t bytes)
 {
-    UARTResource::Options options {
-        false,
-        true,
-    };
-    return make_uart_request(buf, at_most_bytes, options);
+    if (bytes > pine::limits<ssize_t>::max)
+        return -EFBIG;
+
+    return 0;
 }
 
-void Task::write(char* buf, size_t bytes)
+ssize_t Task::read(int fd, char* buf, size_t at_most_bytes)
 {
-    UARTResource::Options options {
-        true,
-        false,
-    };
-    make_uart_request(buf, bytes, options);
+    int ret = userspace_buffer_is_valid(buf, at_most_bytes);
+    if (ret < 0) {
+        return ret;
+    }
+
+    auto* maybe_descriptor = m_fd_table.try_get(fd);
+    if (!maybe_descriptor)
+        return -EBADF;
+
+    return maybe_descriptor->read(buf, at_most_bytes);
+}
+
+ssize_t Task::write(int fd, char* buf, size_t bytes)
+{
+    int ret = userspace_buffer_is_valid(buf, bytes);
+    if (ret < 0) {
+        return ret;
+    }
+
+    auto* maybe_descriptor = m_fd_table.try_get(fd);
+    if (!maybe_descriptor)
+        return -EBADF;
+
+    return maybe_descriptor->write(buf, bytes);
+}
+
+int Task::close(int fd)
+{
+    return m_fd_table.close(fd);
+}
+
+int Task::dup(int fd)
+{
+    return m_fd_table.dup(fd);
 }
 
 void* Task::sbrk(size_t increase)
@@ -143,10 +171,7 @@ void* Task::sbrk(size_t increase)
 
 void Task::update_state()
 {
-    if (m_state == State::Sleeping && m_sleep_end_time <= jiffies()) {
-        m_state = State::Runnable;
-    }
-    if (m_state == State::Waiting && m_maybe_uart_resource && m_maybe_uart_resource->is_finished()) {
+    if (m_state == State::Waiting && m_waiting_for && m_waiting_for->is_finished()) {
         m_state = State::Runnable;
     }
 }
@@ -159,8 +184,15 @@ u32 Task::cputime()
     return m_cpu_jiffies;
 }
 
-void Task::reschedule()
+void reschedule_while_waiting_for(const Waitable& wait_for)
 {
+    task_manager().running_task().reschedule_while_waiting_for(wait_for);
+}
+
+void Task::reschedule_while_waiting_for(const Waitable& wait_for)
+{
+    m_state = State::Waiting;
+    m_waiting_for = &wait_for;
     InterruptDisabler disabler {};
     task_manager().schedule(disabler);
 }

@@ -2,19 +2,36 @@
 
 #include <pine/c_string.hpp>
 #include <pine/units.hpp>
+#include <pine/bit.hpp>
 
 using namespace pine;
 
-size_t read(char* buf, size_t at_most_bytes)
+int open(StringView path, FileMode mode)
 {
-    u32 bytes_read = syscall2(Syscall::Read, reinterpret_cast<u32>(buf), at_most_bytes - 1);
+    auto result = syscall2(Syscall::Open, reinterpret_cast<u32>(path.data()), pine::bit_cast<u32>(mode));
+    return pine::bit_cast<int>(result);
+}
+
+ssize_t read(int fd, char* buf, size_t at_most_bytes)
+{
+    ssize_t bytes_read = pine::bit_cast<ssize_t>(syscall3(Syscall::Read, pine::bit_cast<u32>(fd), reinterpret_cast<u32>(buf), at_most_bytes - 1));
     buf[bytes_read] = '\0';
     return bytes_read;
 }
 
-void write(char* buf, size_t bytes)
+ssize_t write(int fd, char* buf, size_t bytes)
 {
-    syscall2(Syscall::Write, reinterpret_cast<u32>(buf), bytes);
+    return pine::bit_cast<ssize_t>(syscall3(Syscall::Write, pine::bit_cast<u32>(fd), reinterpret_cast<u32>(buf), bytes));
+}
+
+int close(int fd)
+{
+    return pine::bit_cast<int>(syscall1(Syscall::Close, pine::bit_cast<u32>(fd)));
+}
+
+int dup(int fd)
+{
+    return pine::bit_cast<int>(syscall1(Syscall::Dup, pine::bit_cast<u32>(fd)));
 }
 
 void yield()
@@ -67,7 +84,7 @@ int printf(const char* fmt, ...)
     };
 
     vfnprintf(try_add_wrapper, fmt, args);
-    write(print_buf, print_buf_pos);
+    write(stdout, print_buf, print_buf_pos);  // 1: stdout
     free(print_alloc);
     return 0;
 }

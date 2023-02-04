@@ -29,10 +29,25 @@ static void builtin_uptime()
     printf("up %lds, usage: %lu%% (%lu / %lu jiffies)\n", uptime_seconds, cpu_usage, cputime_jiffies, uptime_jiffies);
 }
 
+static void setup_uart_as_stdio()
+{
+    int uart_read_fd = open("/dev/uart0", FileMode::Read);
+    assert(uart_read_fd > 0);
+    int uart_write_fd = open("/dev/uart0", FileMode::Write);
+    assert(uart_write_fd > 0);
+
+    assert(close(stdin) >= 0);
+    assert(dup(uart_read_fd) >= 0);
+    assert(close(stdout) >= 0);
+    assert(dup(uart_write_fd) >= 0);
+}
+
 extern "C" {
 
 void shell()
 {
+    setup_uart_as_stdio();  // Make /dev/uart0 stdin and stdout
+
     TVector<char> buf(mem_allocator());
     if (!buf.ensure(1024)) {
         printf("Could not allocate memory for buf!!\n");
@@ -41,7 +56,7 @@ void shell()
 
     for (;;) {
         printf("# ");
-        read(&buf[0], 1024);
+        read(stdin, &buf[0], 1024);
 
         if (strcmp(&buf[0], "exit") == 0)
             break;

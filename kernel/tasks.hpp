@@ -3,10 +3,15 @@
 #include "uart.hpp"
 #include "processor.hpp"
 #include "stack.hpp"
+#include "file.hpp"
+#include "kmalloc.hpp"
+#include "wait.hpp"
 
 #include <pine/maybe.hpp>
 #include <pine/memory.hpp>
 #include <pine/string.hpp>
+#include <pine/string_view.hpp>
+#include <pine/syscall.hpp>
 #include <pine/types.hpp>
 #include <pine/vector.hpp>
 
@@ -91,7 +96,6 @@ public:
     enum class State : int {
         New = 0,
         Runnable,
-        Sleeping,
         Waiting,
     };
     enum CreateFlags {
@@ -106,15 +110,20 @@ public:
 
     const KString& name() const { return m_name; }
     void sleep(u32 secs);
-    size_t read(char* buf, size_t at_most_bytes);
-    void write(char* buf, size_t bytes);
+    int open(pine::StringView path, FileMode mode);
+    ssize_t read(int fd, char* buf, size_t at_most_bytes);
+    ssize_t write(int fd, char* buf, size_t bytes);
+    int close(int fd);
+    int dup(int fd);
     u32 cputime();
     void* sbrk(size_t increase);
+
+    void reschedule_while_waiting_for(const Waitable&);
 
     bool is_kernel_task() const { return m_registers.is_kernel_registers(); }
 
 private:
-    Task(KString name, Heap heap, Stack kernel_stack, pine::Maybe<Stack> user_stack, Registers registers);
+    Task(KString name, Heap heap, Stack kernel_stack, pine::Maybe<Stack> user_stack, Registers registers, FileDescriptorTable fd_table);
     void update_state();
     void start(Registers*, bool is_kernel_task_to_save, InterruptsDisabledTag);
     void switch_to(Task&, InterruptsDisabledTag);
@@ -122,13 +131,16 @@ private:
 
     bool can_run() const { return m_state == State::New || m_state == State::Runnable; };
 
-    size_t make_uart_request(char* buf, size_t bytes, UARTResource::Options);
+    class SleepWaitable : public Waitable {
+    public:
+        SleepWaitable(u32 secs);
+        bool is_finished() const override;
 
-    // When tasks ask to schedule themselves, it means that they have received
-    // an async request from a SWI handler, which does not disable interrupts.
-    // So create a nice wrapper around schedule() for Task so we don't have to
-    // enable interrupts in every syscall.
-    static void reschedule();
+    private:
+        u32 m_sleep_end_time;
+    };
+
+    int userspace_buffer_is_valid(const char* buffer, size_t size);
 
     KString m_name;
     State m_state;
@@ -136,11 +148,13 @@ private:
     Stack m_kernel_stack;
     Registers m_registers;
     Heap m_heap;
-    u32 m_sleep_end_time;
     u32 m_jiffies_when_scheduled;
     u32 m_cpu_jiffies;
-    pine::Maybe<KOwner<UARTResource>> m_maybe_uart_resource;
+    const Waitable* m_waiting_for;
+    FileDescriptorTable m_fd_table;
 };
+
+void reschedule_while_waiting_for(const Waitable&);
 
 extern "C" {
 [[noreturn]] void spin_task();
