@@ -142,6 +142,15 @@ public:
         return m_contents[index];
     }
 
+    Value* data()
+    {
+        return m_contents;
+    }
+    Value* data() const
+    {
+        return m_contents;
+    }
+
     using Iter = RandomAccessIter<Vector<Value, Allocator, Destructor>, Value>;
     Iter begin() { return Iter::begin(*this); }
     Iter end() { return Iter::end(*this); }

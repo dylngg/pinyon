@@ -56,32 +56,34 @@ void shell()
 
     for (;;) {
         printf("# ");
-        read(stdin, &buf[0], 1024);
+        ssize_t amount_read = read(stdin, &buf[0], 1024);
+        assert(amount_read >= 0);
+        pine::StringView command(buf.data(), static_cast<size_t>(amount_read));
 
-        if (strcmp(&buf[0], "exit") == 0)
+        if (command == "exit")
             break;
-        if (strcmp(&buf[0], "memstat") == 0) {
+        if (command == "memstat") {
             builtin_memstat();
             continue;
         }
-        if (strcmp(&buf[0], "uptime") == 0) {
+        if (command == "uptime") {
             builtin_uptime();
             continue;
         }
-        if (strcmp(&buf[0], "yield") == 0) {
+        if (command == "yield") {
             yield();
             continue;
         }
-        if (strcmp(&buf[0], "spin") == 0) {
-            for (volatile int i = 0; i < 10'0000'000; i++) { };
+        if (command == "spin") {
+            for (volatile int i = 0; i < 100'000'000; i++) { };
             continue;
         }
-        if (strcmp(&buf[0], "sleep") == 0) {
+        if (command == "sleep") {
             printf("Sleeping for 2 seconds.\n");
             sleep(2);
             continue;
         }
-        if (strcmp(&buf[0], "help") == 0) {
+        if (command == "help") {
             printf("The following commands are available to you:\n");
             printf("  - memstat\tProvides statistics on the amount of memory used by this task.\n");
             printf("  - uptime\tProvides statistics on the time since boot in seconds, as well as the CPU time used by this task.\n");
@@ -96,7 +98,7 @@ void shell()
             printf("  - Time slowly drifts away from real time.\n");
             continue;
         }
-        printf("Unknown command '%s'. Use 'help'.\n", &buf[0]);
+        printf("Unknown command '%s'. Use 'help'.\n", command.data());
     }
 
     printf("goodbye.\n");
