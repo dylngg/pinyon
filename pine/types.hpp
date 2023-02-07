@@ -1,9 +1,8 @@
 #pragma once
 
-#include <cstddef> // size_t
-#include <cstdint> // int types
 #include <climits> // sizes of types
-
+#include <cstddef> // size_t, ptrdiff_t, offsetof
+#include <cstdint> // int types
 
 /*
  * Define easier to type aliases for sized integers here.

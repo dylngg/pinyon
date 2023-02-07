@@ -16,6 +16,7 @@ HOSTOBJDIR=obj/host
 #                          don't produce thread-safe initialization of statics (normally required);
 #                          this static getter is used to get around the
 #                          https://isocpp.org/wiki/faq/ctors#static-init-order problem.
+ARCH_LDFLAGS=-lgcc
 ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -fno-threadsafe-statics -nostdlib -fno-rtti -fno-use-cxa-atexit
 INCLUDE=-I. -Ipine
 UBSAN_FLAGS=-fsanitize=undefined
@@ -23,7 +24,7 @@ ARCH_UBSAN_FLAGS=$(UBSAN_FLAGS) -fsanitize-undefined-trap-on-error
 HOST_UBSAN_FLAGS=$(UBSAN_FLAGS) # -fsanitize=unsigned-integer-overflow -fsanitize=integer  # clang only
 # -Wconversion: Yes, it complains a lot about unnecessary stuff; but it is
 #               also the only tool to catch real issues here...
-CXXFLAGS=-Wall -Wextra -Wpedantic -Wconversion -std=c++17 -g2 #-O2
+CXXFLAGS=-Wall -Wextra -Wpedantic -Wconversion -std=c++17 -g2 -O2
 PINE_OBJ=$(OBJDIR)/pine/c_string.o $(OBJDIR)/pine/malloc.o $(OBJDIR)/pine/print.o $(OBJDIR)/pine/c_builtins.o
 PINE_HOST_OBJ=$(HOSTOBJDIR)/pine/c_string.o $(HOSTOBJDIR)/pine/malloc.o $(HOSTOBJDIR)/pine/print.o $(HOSTOBJDIR)/pine/c_builtins.o
 KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/file.o $(OBJDIR)/kernel/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/mmu.o $(OBJDIR)/kernel/processor.o $(OBJDIR)/kernel/stack.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/timer.o $(OBJDIR)/kernel/uart.o
@@ -50,7 +51,7 @@ userspace: $(OBJDIR) $(USER_ASM_OBJ) $(USER_OBJ)
 kernel: $(OBJDIR) $(KERNEL_ASM_OBJ) $(KERNEL_OBJ)
 
 pinyon.elf: $(OBJDIR) pine userspace kernel
-	$(CC) -T linker.ld -o pinyon.elf $(ARCHFLAGS) $(KERNEL_ASM_OBJ) $(KERNEL_OBJ) $(USER_OBJ) $(USER_ASM_OBJ) $(PINE_OBJ)
+	$(CC) -T linker.ld -o pinyon.elf $(ARCHFLAGS) $(KERNEL_ASM_OBJ) $(KERNEL_OBJ) $(USER_OBJ) $(USER_ASM_OBJ) $(PINE_OBJ) $(ARCH_LDFLAGS)
 
 .PHONY: fmt
 fmt:

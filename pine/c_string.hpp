@@ -55,13 +55,14 @@ void to_strbuf_hex(char* buf, size_t bufsize, UInt num, ToAFlag flag)
     buf[1] = 'x';
     buf += 2;
 
+    int length = sizeof(num) * 2;
     int pos = 0;
-    for (; pos < 8; pos++)
+    for (; pos < length; pos++)
         buf[pos] = '0';
 
-    buf[8] = '\0';
+    buf[length] = '\0';
 
-    pos = 7;
+    pos = length - 1;
     while (pos >= 0 && num > 0) {
         int hex_num = num % 16;
         if (hex_num < 10)

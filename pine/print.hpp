@@ -83,6 +83,7 @@ inline void print_with(Printer& printer, StringView string)
 enum class ArgModifiers {
     None,
     Long,
+    LongLong,
     SizeT,
 };
 
@@ -116,6 +117,10 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
         if (type_or_mod_ch == 'l') {
             mod = ArgModifiers::Long;
             ++iter; // consume 'l'
+            if (*iter == 'l') {
+                mod = ArgModifiers::LongLong;
+                ++iter;
+            }
         } else if (type_or_mod_ch == 'z') {
             mod = ArgModifiers::SizeT;
             ++iter; // consume 'z'
@@ -154,6 +159,9 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
 
             if (type_ch == 'u') {
                 switch (mod) {
+                case ArgModifiers::LongLong:
+                    to_strbuf(digits, bufsize, va_arg(rest, unsigned long long));
+                    break;
                 case ArgModifiers::Long:
                     to_strbuf(digits, bufsize, va_arg(rest, unsigned long));
                     break;
@@ -166,6 +174,9 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
                 }
             } else {
                 switch (mod) {
+                case ArgModifiers::LongLong:
+                    to_strbuf(digits, bufsize, va_arg(rest, long long));
+                    break;
                 case ArgModifiers::Long:
                     to_strbuf(digits, bufsize, va_arg(rest, long));
                     break;
@@ -185,8 +196,32 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
             break;
         }
 
-        case 'p':
         case 'x': {
+            constexpr int bufsize = limits<unsigned long long>::digits + 1; // max int possible here
+            char hex[bufsize]; // FIXME: Replace with Buffer<>/Array<>
+            bzero(hex, bufsize);
+
+            switch (mod) {
+            case ArgModifiers::LongLong:
+                to_strbuf_hex(hex, bufsize, va_arg(rest, unsigned long long), ToAFlag::Lower);
+                break;
+            case ArgModifiers::Long:
+                to_strbuf_hex(hex, bufsize, va_arg(rest, unsigned long), ToAFlag::Lower);
+                break;
+            case ArgModifiers::SizeT:
+                to_strbuf_hex(hex, bufsize, va_arg(rest, size_t), ToAFlag::Lower);
+                break;
+            case ArgModifiers::None:
+                to_strbuf_hex(hex, bufsize, va_arg(rest, unsigned int), ToAFlag::Lower);
+                break;
+            }
+
+            if (!try_add_string(hex))
+                return false;
+            break;
+        }
+
+        case 'p': {
             PtrData ptr_data = va_arg(rest, PtrData);
 
             constexpr int bufsize = limits<PtrData>::digits + 1;
