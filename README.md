@@ -7,12 +7,13 @@ Pinyon is a really basic toy ARMv7 kernel targeting the Raspberry Pi 2. It prese
 - [x] Basic UNIX-like shell
 - [x] Preemptive round-robin scheduling
 - [x] Memory allocation
-- [x] `readline()`/`write()` syscalls for UART IO
+- [x] `open()`/`read()`/`write()` syscalls for UART IO
 - [x] Process CPU time and memory reporting
 - [x] System uptime reporting
-- [x] Virtual memory (though tasks still run with supervisor privileges currently)
+- [x] Virtual memory
+- [x] Tasks run with non-supervisor privileges
 
-## Prequesites
+## Prerequisites
 
 GNU Make is required for building. On MacOS, the default `make` that comes with XCode developer tools seems to work.
 
