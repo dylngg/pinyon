@@ -1,6 +1,7 @@
 #include "console.hpp"
 #include "interrupts.hpp"
 #include "kmalloc.hpp"
+#include "mailbox.hpp"
 #include "panic.hpp"
 #include "tasks.hpp"
 #include "timer.hpp"
@@ -15,7 +16,7 @@ void operator delete(void* ptr)
     panic("operator delete got called! (new() doesn't exist?!): ptr", ptr);
 }
 
-void operator delete(void* ptr, size_t size)  // C++14 specialization
+void operator delete(void* ptr, size_t size) // C++14 specialization
 {
     panic("operator delete got called! (new() doesn't exist?!): ptr", ptr, ", size", size);
 }
@@ -33,6 +34,11 @@ void init()
     const char* pinyon = "\033[0;33mPinyon\033[0m";
     const char* pine = "+\033[0;32mPine\033[0m";
     consolef("Welcome to %s%s! (%c) %d\n", pinyon, pine, 'c', 2021);
+
+    auto maybe_serial = try_retrieve_serial_num_from_mailbox();
+    PANIC_IF(!maybe_serial);
+    consolef("Serial: %llx\n", *maybe_serial);
+
     consoleln("Use 'help' for a list of commands to run.");
 
     tasks_init();

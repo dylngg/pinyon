@@ -27,7 +27,7 @@ HOST_UBSAN_FLAGS=$(UBSAN_FLAGS) # -fsanitize=unsigned-integer-overflow -fsanitiz
 CXXFLAGS=-Wall -Wextra -Wpedantic -Wconversion -std=c++17 -g2 -O2
 PINE_OBJ=$(OBJDIR)/pine/c_string.o $(OBJDIR)/pine/malloc.o $(OBJDIR)/pine/print.o $(OBJDIR)/pine/c_builtins.o
 PINE_HOST_OBJ=$(HOSTOBJDIR)/pine/c_string.o $(HOSTOBJDIR)/pine/malloc.o $(HOSTOBJDIR)/pine/print.o $(HOSTOBJDIR)/pine/c_builtins.o
-KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/file.o $(OBJDIR)/kernel/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/mmu.o $(OBJDIR)/kernel/processor.o $(OBJDIR)/kernel/stack.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/timer.o $(OBJDIR)/kernel/uart.o
+KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/file.o $(OBJDIR)/kernel/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/mailbox.o $(OBJDIR)/kernel/mmu.o $(OBJDIR)/kernel/processor.o $(OBJDIR)/kernel/stack.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/timer.o $(OBJDIR)/kernel/uart.o
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/bootup.o $(OBJDIR)/kernel/switch.o $(OBJDIR)/kernel/vector.o
 USER_OBJ=$(OBJDIR)/userspace/shell.o $(OBJDIR)/userspace/lib.o
 USER_ASM_OBJ=$(OBJDIR)/userspace/syscall.o
