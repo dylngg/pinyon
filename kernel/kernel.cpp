@@ -6,7 +6,10 @@
 #include "tasks.hpp"
 #include "timer.hpp"
 
-extern "C" void init();
+extern "C" {
+void init();  // Export init symbol as C
+void mmu_init();  // Forward declare mmu init symbol
+}
 
 /*
  * operator delete is required with virtual destructors.
@@ -27,6 +30,7 @@ void init()
     uart_init();
     console("Initializing... ");
     console("memory ");
+    mmu_init();
     console("timer ");
     timer_init();
     consoleln();

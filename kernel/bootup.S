@@ -4,6 +4,7 @@
 .global halt
 .global halt_addr
 .global spin_addr
+.global mmu_init
 
 start:
     /* -- Disable all but one core --*/
@@ -43,8 +44,12 @@ ckzbssbnds:
 preinit:
     bl setup_vtable
     bl setup_stacks
+    ldr r0, =init
+    blx r0
 
-setup_mmu:
+mmu_init:
+    push {lr}
+
     ldr r0, =__code_end
     ldr r1, =init_page_tables
     blx r1
@@ -61,9 +66,7 @@ setup_mmu:
     orr r3, #1
     mcr p15, 0, r3, c1, c0, 0
 
-    /* -- Load up init in kernel.cpp -- */
-    ldr r1, =init
-    blx r1
+    pop {pc}
 
 spin:
 halt:
