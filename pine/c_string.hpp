@@ -20,7 +20,7 @@ enum class ToAFlag : int {
 template <typename Int, enable_if<is_integer<Int>, Int>* = nullptr>
 void to_strbuf(char* buf, size_t bufsize, Int num)
 {
-    if (bufsize < limits<Int>::digits + 1)
+    if (bufsize < limits<Int>::characters10 + 1)
         return;
 
     Int absnum = num;
@@ -48,30 +48,30 @@ void to_strbuf(char* buf, size_t bufsize, Int num)
 template <typename UInt, enable_if<is_unsigned<UInt>, UInt>* = nullptr>
 void to_strbuf_hex(char* buf, size_t bufsize, UInt num, ToAFlag flag)
 {
-    if (bufsize < limits<UInt>::digits + 1)
+    size_t length = limits<UInt>::digits16;
+    if (bufsize < length + 3)  // + 0x + \0
         return;
 
     buf[0] = '0';
     buf[1] = 'x';
     buf += 2;
 
-    int length = sizeof(num) * 2;
-    int pos = 0;
+    size_t pos = 0;
     for (; pos < length; pos++)
         buf[pos] = '0';
 
     buf[length] = '\0';
 
-    pos = length - 1;
-    while (pos >= 0 && num > 0) {
+    pos = length;
+    while (pos != 0 && num > 0) {
+        pos--;
         int hex_num = num % 16;
         if (hex_num < 10)
             buf[pos] = static_cast<char>(hex_num + '0');
         else
             buf[pos] = static_cast<char>((hex_num - 10) + (flag == ToAFlag::Upper ? 'A' : 'a'));
 
-        num >>= 4; // divide by 16, but no need for division
-        pos--;
+        num /= 16;
     }
 }
 

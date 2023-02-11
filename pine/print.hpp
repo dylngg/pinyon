@@ -56,7 +56,7 @@ void print_each_with(Printer& printer, const First& first, const Args&... args)
 template <typename Int, enable_if<is_integer<Int>, Int>* = nullptr>
 void print_with(Printer& printer, Int num)
 {
-    constexpr int bufsize = limits<Int>::characters + 1;  // + '-' and '\0'
+    constexpr int bufsize = limits<Int>::characters10 + 1;  // '\0'
     char buf[bufsize]; // FIXME: Replace with Buffer<>/Array<>
     bzero(buf, bufsize);
 
@@ -67,7 +67,7 @@ void print_with(Printer& printer, Int num)
 template <typename Ptr, enable_if<is_pointer<Ptr> && !is_implicitly_convertible<Ptr, StringView>, Ptr>* = nullptr>
 void print_with(Printer& printer, Ptr ptr)
 {
-    constexpr int bufsize = limits<uintptr_t>::characters + 3; // + 0x + '\0'
+    constexpr int bufsize = limits<uintptr_t>::digits16 + 3; // + 0x + '\0'
     char buf[bufsize]; // FIXME: Replace with Buffer<>/Array<>
     bzero(buf, bufsize);
 
@@ -153,7 +153,7 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
         case 'u':
             [[fallthrough]];
         case 'd': {
-            constexpr int bufsize = limits<unsigned long long>::digits + 1; // max int possible here
+            constexpr int bufsize = limits<unsigned long long>::characters10 + 1; // max int possible here
             char digits[bufsize]; // FIXME: Replace with Buffer<>/Array<>
             bzero(digits, bufsize);
 
@@ -197,7 +197,7 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
         }
 
         case 'x': {
-            constexpr int bufsize = limits<unsigned long long>::digits + 1; // max int possible here
+            constexpr int bufsize = limits<unsigned long long>::characters10 + 1; // max int possible here
             char hex[bufsize]; // FIXME: Replace with Buffer<>/Array<>
             bzero(hex, bufsize);
 
@@ -224,7 +224,7 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
         case 'p': {
             PtrData ptr_data = va_arg(rest, PtrData);
 
-            constexpr int bufsize = limits<PtrData>::digits + 1;
+            constexpr int bufsize = limits<PtrData>::digits10 + 1;
             char hex[bufsize]; // FIXME: Replace with Buffer<>/Array<>
             bzero(hex, bufsize);
 
