@@ -34,18 +34,21 @@ MailboxRegisters& mailbox_registers();
 
 struct MailboxRegisters {
     bool send_in_property_channel(u32* message_contents);
+    inline u32 read();
+    inline void write(u32);
+    inline u32 status();
 
-    volatile u32 read;
+    volatile u32 raw_read;
     volatile u32 unused1;
     volatile u32 unused2;
     volatile u32 unused3;
     volatile u32 peek;
     volatile u32 sender;
-    volatile u32 status;
+    volatile u32 raw_status;
     volatile u32 config;
-    volatile u32 write;
+    volatile u32 raw_write;
 };
 
-static_assert(offsetof(MailboxRegisters, write) == 0x20);
+static_assert(offsetof(MailboxRegisters, raw_write) == 0x20);
 
 pine::Maybe<u64> try_retrieve_serial_num_from_mailbox();

@@ -3,11 +3,30 @@
 #include <kernel/panic.hpp>
 
 #include <pine/twomath.hpp>
+#include <pine/barrier.hpp>
 
 MailboxRegisters& mailbox_registers()
 {
     static auto* g_mailbox_registers = reinterpret_cast<MailboxRegisters*>(MAILBOX_BASE);
     return *g_mailbox_registers;
+}
+
+u32 MailboxRegisters::read()
+{
+    pine::MemoryBarrier barrier {};
+    return raw_read;
+}
+
+u32 MailboxRegisters::status()
+{
+    pine::MemoryBarrier barrier {};
+    return raw_status;
+}
+
+void MailboxRegisters::write(u32 data)
+{
+    pine::MemoryBarrier barrier {};
+    raw_write = data;
 }
 
 bool MailboxRegisters::send_in_property_channel(u32* message_contents)
@@ -19,16 +38,16 @@ bool MailboxRegisters::send_in_property_channel(u32* message_contents)
     // upper 28 msb are the message address, lower 4 lsb are the channel
     auto message = message_addr | static_cast<PtrData>(MailboxChannel::PropertyTagsSend);
 
-    while (status & MAILBOX_FULL) {};
+    while (status() & MAILBOX_FULL) {};
 
-    write = message;
+    write(message);
 
     for (;;) {
-        if (status & MAILBOX_EMPTY)
+        if (status() & MAILBOX_EMPTY)
             continue;
 
         // check if response to our message
-        while (read == message) {
+        while (read() == message) {
             if (message_contents[1] == MAILBOX_RESPONSE)
                 return true;
             if (message_contents[1] == MAILBOX_ERROR)
