@@ -25,13 +25,15 @@ template <typename Value>
 struct Maybe : private ConditionallyCopyable<Value>, private ConditionallyMovable<Value> {
     // empty: e.g. Maybe<Value> maybe {};
     constexpr Maybe()
-        : m_has_value(false) {};
+        : m_value_space()
+        , m_has_value(false) {};
     constexpr static Maybe Not() { return {}; }
 
     // ctor: e.g. int i = 0; Maybe<Value> maybe { i };
     template<class Convert, enable_if<is_implicitly_convertible<Convert, Value>>* = nullptr>
     constexpr Maybe(const Convert& value)
-        : m_has_value(true)
+        : m_value_space()
+        , m_has_value(true)
     {
         new (&m_value_space) Value(value);
     }
@@ -39,14 +41,16 @@ struct Maybe : private ConditionallyCopyable<Value>, private ConditionallyMovabl
     // https://devblogs.microsoft.com/cppblog/c20s-conditionally-explicit-constructors/
     template<class Convert, enable_if<!is_implicitly_convertible<Convert, Value>>* = nullptr>
     constexpr explicit Maybe(const Convert& value)
-        : m_has_value(true)
+        : m_value_space()
+        , m_has_value(true)
     {
         new (&m_value_space) Value(value);
     }
 
     // rvalue ctor: e.g. Maybe<std::unique_ptr<C>> maybe { std::make_unique<C>() };
     constexpr Maybe(Value&& value)
-        : m_has_value(true)
+        : m_value_space()
+        , m_has_value(true)
     {
         new (&m_value_space) Value(move(value));
     }
@@ -58,6 +62,8 @@ struct Maybe : private ConditionallyCopyable<Value>, private ConditionallyMovabl
 
     // copy ctor: e.g. Maybe<Value> other; Maybe<Value> maybe { other };
     constexpr Maybe(const Maybe& other_maybe)
+        : m_value_space()
+        , m_has_value(false)
     {
         if ((m_has_value = other_maybe.has_value()))
             new (&m_value_space) Value(other_maybe.value());
@@ -65,6 +71,8 @@ struct Maybe : private ConditionallyCopyable<Value>, private ConditionallyMovabl
 
     // rvalue ctor: e.g. Maybe<Value> maybe { Maybe<Value> {} };
     constexpr Maybe(Maybe&& other_maybe)
+        : m_value_space()
+        , m_has_value(false)
     {
         if ((m_has_value = other_maybe.has_value()))
             new (&m_value_space) Value(other_maybe.release_value());
@@ -73,6 +81,8 @@ struct Maybe : private ConditionallyCopyable<Value>, private ConditionallyMovabl
     // rvalue ctor: e.g. Maybe<Value> maybe { Maybe<ConstructibleValue> {} };
     template<class Other, enable_if<is_constructible<Value, Other&&>>* = nullptr>
     constexpr Maybe(Maybe<Other>&& other_maybe)
+        : m_value_space()
+        , m_has_value(false)
     {
         if ((m_has_value = other_maybe.has_value()))
             new (&m_value_space) Value(other_maybe.release_value());
@@ -138,7 +148,7 @@ private:
             value().~Value();
     }
 
-    alignas(Value) u8 m_value_space[sizeof(Value)];
+    alignas(Value) u8 m_value_space[sizeof(Value)] {};
     bool m_has_value = false;
 };
 

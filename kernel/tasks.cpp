@@ -76,8 +76,8 @@ pine::Maybe<Task> Task::try_create(const char* name, u32 pc, CreateFlags flags)
     return Task {
         pine::move(*maybe_name),
         heap,
-        pine::move(*maybe_stack),
         pine::move(*maybe_kernel_stack),
+        pine::move(maybe_stack),
         *registers,
         pine::move(fd_table),
     };
