@@ -65,11 +65,11 @@ pine::Maybe<Task> Task::try_create(const char* name, u32 pc, CreateFlags flags)
         return {};
 
     FileDescriptorTable fd_table {};
-    int stdin_fd = fd_table.open("/dev/uart0", FileMode::Read);  // stdin
+    int stdin_fd = fd_table.open("/dev/zero", FileMode::Read);  // stdin
     if (stdin_fd == -1)
         return {};
 
-    int stdout_fd = fd_table.open("/dev/uart0", FileMode::Write); // stdout
+    int stdout_fd = fd_table.open("/dev/null", FileMode::Write); // stdout
     if (stdout_fd == -1)
         return {};
 
