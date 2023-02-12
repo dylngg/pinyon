@@ -1,6 +1,7 @@
 #include "display.hpp"
 #include "mailbox.hpp"
 #include "panic.hpp"
+#include "data/font.hpp"
 
 struct DisplayTagGetPhysicalDimensions {
     u32 tag = MAILBOX_TAG_SET_DISPLAY_PHYS_DIM;
@@ -100,7 +101,13 @@ void Display::init(unsigned int width, unsigned int height)
         .pitch {},
     };
 
-    PANIC_IF(!mailbox_registers().send_in_property_channel(reinterpret_cast<u32*>(&message)));
+    // We are safe to use u32 since our message is aligned to 32-bits
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+    auto* message_ptr = reinterpret_cast<u32*>(&message);
+#pragma GCC diagnostic pop
+
+    PANIC_IF(!mailbox_registers().send_in_property_channel(message_ptr));
 
     PANIC_IF(message.phys_dim.in_out_width != message.virt_dim.in_out_width);
     PANIC_IF(message.phys_dim.in_out_height != message.virt_dim.in_out_height);
@@ -110,11 +117,41 @@ void Display::init(unsigned int width, unsigned int height)
     PANIC_IF(message.depth.in_out_depth != display_depth);
     m_depth = message.depth.in_out_depth;
 
+    // Pitch is the width of the row in bytes
+    m_pitch = message.pitch.out_pitch;
+
     // Convert from bus address to ARM accessible address
     m_buffer = reinterpret_cast<u32*>((message.allocation.in_alignment_out_ptr) & ~0xC0000000);
     m_size = message.allocation.out_size;
 
     mmu::page_allocator().reserve_region(PageRegion::from_ptr(m_buffer, m_size), mmu::PageAllocator::Backing::Identity);
 
-    m_buffer[0] = 1;
+    draw_string("Welcome to Pinyon!", 20, 20, 0x21dd7f);
+}
+
+void Display::draw_string(pine::StringView string, unsigned x, unsigned y, u32 color)
+{
+    for (char ch : string) {
+        draw_character(ch, x, y, color);
+        x += font::width + 2;
+    }
+}
+
+void Display::draw_character(char ch, unsigned x, unsigned y, u32 color)
+{
+    for (unsigned font_y = 0; font_y < font::height; font_y++) {
+        for (unsigned font_x = 0; font_x < font::width; font_x++) {
+            if (!font::character_has_visible_pixel(ch, font_x, font_y))
+                continue;
+
+            draw_pixel(x + font_x, y + font_y, color);
+        }
+    }
+}
+
+void Display::draw_pixel(unsigned x, unsigned y, u32 color)
+{
+    auto bytes_per_pixel = m_depth / 8;
+    u32 offset = x + ((y * m_pitch) / bytes_per_pixel);
+    m_buffer[offset] = color;
 }
