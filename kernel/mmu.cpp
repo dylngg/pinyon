@@ -217,6 +217,7 @@ void PageAllocator::init(L1Table& l1_table, PhysicalPageAllocator& physical_page
     m_physical_page_allocator = &physical_page_allocator;
     m_virtual_page_allocator = &virtual_page_allocator;
     m_l2_table_allocator.add(scratch_pages.ptr(), scratch_pages.size());
+    m_spare_free_l2_page = nullptr;
 }
 
 pine::Allocation PageAllocator::allocate(size_t size)
@@ -384,7 +385,7 @@ bool PageAllocator::try_record_page_in_l1(PageRegion phys_region, PageRegion vir
             break;
 
         case L1Type::Fault: {
-            if (!l2_backing) {
+            if (!maybe_l2_table) {
                 auto l2_table_alloc = try_reserve_l2_table_entry();
                 if (!l2_table_alloc)
                     return false;

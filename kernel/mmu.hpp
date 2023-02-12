@@ -392,8 +392,8 @@ private:
     PhysicalPageAllocator* m_physical_page_allocator = nullptr;
     VirtualPageAllocator* m_virtual_page_allocator = nullptr;
     L1Table* m_l1_table = nullptr;
-    pine::SlabAllocator<L2Table> m_l2_table_allocator;
-    void* m_spare_free_l2_page;
+    pine::SlabAllocator<L2Table> m_l2_table_allocator {};
+    void* m_spare_free_l2_page = nullptr;
 };
 
 PageAllocator& page_allocator();
