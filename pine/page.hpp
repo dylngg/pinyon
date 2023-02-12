@@ -13,8 +13,8 @@ struct Region {
     [[nodiscard]] static Region from_ptr(void* ptr, size_t size_in_bytes)
     {
         return {
-            reinterpret_cast<PtrData>(ptr) / Magnitude,
-            size_in_bytes / Magnitude
+            .offset = reinterpret_cast<PtrData>(ptr) / Magnitude,
+            .length = pine::divide_up(size_in_bytes, Magnitude)
         };
     }
     [[nodiscard]] void* ptr(size_t left_offset = 0) const

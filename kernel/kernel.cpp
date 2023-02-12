@@ -1,6 +1,6 @@
 #include "console.hpp"
+#include "display.hpp"
 #include "interrupts.hpp"
-#include "kmalloc.hpp"
 #include "mailbox.hpp"
 #include "panic.hpp"
 #include "tasks.hpp"
@@ -33,6 +33,8 @@ void init()
     mmu_init();
     console("timer ");
     timer_init();
+    console("display");
+    display_init(1024, 756);
     consoleln();
 
     const char* pinyon = "\033[0;33mPinyon\033[0m";

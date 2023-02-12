@@ -61,12 +61,12 @@ pine::Maybe<u64> try_retrieve_serial_num_from_mailbox()
 {
     // The message must be aligned to 16 bits as only the upper 28 bits are
     // provided to the mailbox
-    alignas(16) u32 message_contents[8];
+    static __attribute__((aligned(16))) u32 message_contents[8];
 
     message_contents[0] = sizeof(message_contents);     // length of buffer
     message_contents[1] = MAILBOX_REQUEST;              // mark as request
 
-    message_contents[2] = MAILBOX_TAG_GETSERIAL;
+    message_contents[2] = MAILBOX_TAG_GET_SERIAL;
     message_contents[3] = 8;    // buffer size in bytes
     message_contents[4] = 8;    // response size in bytes
 

@@ -4,7 +4,7 @@
 #include <pine/maybe.hpp>
 
 #define MAILBOX_BASE    0x3f00b880
-#define MAILBOX_REQUEST    0
+#define MAILBOX_REQUEST 0
 
 enum class MailboxChannel : u32 {
     Power = 0,
@@ -20,8 +20,8 @@ enum class MailboxChannel : u32 {
 };
 
 /* tags */
-#define MAILBOX_TAG_GETSERIAL      0x10004
-#define MAILBOX_END_TAG            0
+#define MAILBOX_TAG_GET_SERIAL      0x10004
+#define MAILBOX_END_TAG             0
 
 /* responses */
 #define MAILBOX_RESPONSE   0x80000000
