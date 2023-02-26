@@ -1,6 +1,7 @@
 #include "mmu.hpp"
 #include "panic.hpp"
 
+#include <pine/c_builtins.hpp>
 #include <pine/twomath.hpp>
 #include <pine/barrier.hpp>
 #include <pine/page.hpp>
@@ -224,6 +225,7 @@ pine::Allocation PageAllocator::allocate(size_t size)
 {
     auto num_pages = pine::align_up_two(size, PageSize) / PageSize;
     auto [_, virt_region] = allocate_pages(num_pages);
+    bzero(virt_region.ptr(), virt_region.size());
     return { virt_region.ptr(), virt_region.size() };
 }
 
