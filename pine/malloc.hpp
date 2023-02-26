@@ -336,7 +336,7 @@ private:
     }
     static size_t page_length_from_depth(unsigned depth)
     {
-        return (size_t)1u << (depth + 1);
+        return (size_t)1u << depth;
     }
 
     using Node = ManualLinkedList<PageRegion>::Node;
