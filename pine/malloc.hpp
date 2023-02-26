@@ -150,11 +150,8 @@ public:
         return align_up_two(requested_size, PageSize) + PageSize;
     }
 
-    pine::Allocation allocate(size_t size = sizeof(Value))
+    pine::Allocation allocate()
     {
-        if (size != sizeof(Value))  // ASSERT?
-            return {};
-
         auto [found, bitmap_page_index, index_in_bitmap_page] = try_find_free_bit();
         if (!found)
             return {};

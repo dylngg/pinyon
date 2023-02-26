@@ -291,7 +291,7 @@ Pair<PageRegion, AllocationCost> PageAllocatorBackend::remove_and_trim_region(Ma
 
 Pair<unsigned, PageAllocatorBackend::Node*> PageAllocatorBackend::create_node(PageRegion region)
 {
-    auto allocation = m_node_allocator.allocate(sizeof(Node));
+    auto allocation = m_node_allocator.allocate();
     if (!allocation.ptr)
         return { 0, nullptr };
 

@@ -424,7 +424,7 @@ bool PageAllocator::try_record_page_in_l1(PageRegion phys_region, PageRegion vir
 
 pine::Allocation PageAllocator::try_reserve_l2_table_entry()
 {
-    auto l2_alloc = m_l2_table_allocator.allocate(sizeof(L2Table));
+    auto l2_alloc = m_l2_table_allocator.allocate();
     if (l2_alloc)
         return l2_alloc;
 
@@ -441,8 +441,8 @@ pine::Allocation PageAllocator::try_reserve_l2_table_entry()
 
     // Priority is allocation not another space page, so alloc that first.
     // That being said, it is unlikely both will fail
-    alloc = m_l2_table_allocator.allocate(sizeof(L2Table));
-    m_spare_free_l2_page = m_l2_table_allocator.allocate(sizeof(L2Table)).ptr;
+    alloc = m_l2_table_allocator.allocate();
+    m_spare_free_l2_page = m_l2_table_allocator.allocate().ptr;
     return alloc;
 }
 
