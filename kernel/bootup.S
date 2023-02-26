@@ -53,7 +53,6 @@ mmu_init:
     ldr r0, =__code_end
     ldr r1, =init_page_tables
     blx r1
-    pop {pc}
 
     mcr p15, 0, r0, c8, c7, 0   /* See B3.18.7; Invalidate entire unified TLB; r0 is dummy */
     dmb

@@ -29,7 +29,9 @@ void init_page_tables(PtrData code_end)
     //        especially for 16KiB L1Table
     auto code_region = SectionRegion::from_range(0, code_section_end);
 
-    PageRegion vm_region         { 0,                        MEMORY_END_PAGES };
+    PageRegion vm_region         { 0, MEMORY_END_PAGES };
+    PageRegion phys_region       { 0, PHYSICAL_MEMORY_END_PAGES };
+
     SectionRegion l1_region      { code_region.end_offset(), 1 };
     // Experimental trials suggests 16 is the min here; at least 4 pages are required for the
     // physical and virtual page allocators
@@ -38,7 +40,8 @@ void init_page_tables(PtrData code_end)
     auto [phys_scratch_region, virt_scratch_region] = pv_scratch_region.halve();
     auto device_region = SectionRegion::from_range(DEVICES_START, DEVICES_END);
 
-    g_physical_page_allocator.init(vm_region, phys_scratch_region);
+    g_physical_page_allocator.init(phys_region, phys_scratch_region);
+    g_physical_page_allocator.add(as_page_region(device_region));
     g_virtual_page_allocator.init(vm_region, virt_scratch_region);
 
     // Map into L1 table

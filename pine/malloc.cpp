@@ -154,8 +154,8 @@ BrokeredAllocation PageAllocatorBackend::allocate(size_t num_pages, PageAlignmen
 
 void PageAllocatorBackend::init(PageRegion allocating_range, PageRegion scratch_pages)
 {
-    add(scratch_pages);
-    free_region(allocating_range);
+    m_node_allocator.add(scratch_pages.ptr(), scratch_pages.size());
+    add(allocating_range);
 }
 
 BrokeredAllocation PageAllocatorBackend::reserve_region(PageRegion region)
@@ -170,7 +170,7 @@ BrokeredAllocation PageAllocatorBackend::reserve_region(PageRegion region)
 
 void PageAllocatorBackend::add(PageRegion pages)
 {
-    m_node_allocator.add(pages.ptr(), pages.size());
+    free_region(pages);
 }
 
 AllocationCost PageAllocatorBackend::free_region(PageRegion region)

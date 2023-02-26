@@ -376,6 +376,11 @@ public:
         m_page_allocator.init(allocating_range, scratch_pages);
     }
 
+    void add(PageRegion region)
+    {
+        m_page_allocator.add(region);
+    }
+
     template <typename... Args>
     Allocation allocate(Args... args)
     {

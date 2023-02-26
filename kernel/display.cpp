@@ -1,6 +1,7 @@
 #include "display.hpp"
 #include "mailbox.hpp"
 #include "panic.hpp"
+#include "mmu.hpp"
 #include "data/font.hpp"
 
 struct DisplayTagGetPhysicalDimensions {
@@ -123,8 +124,6 @@ void Display::init(unsigned int width, unsigned int height)
     // Convert from bus address to ARM accessible address
     m_buffer = reinterpret_cast<u32*>((message.allocation.in_alignment_out_ptr) & ~0xC0000000);
     m_size = message.allocation.out_size;
-
-    mmu::page_allocator().reserve_region(PageRegion::from_ptr(m_buffer, m_size), mmu::PageAllocator::Backing::Identity);
 
     draw_string("Welcome to Pinyon!", 20, 20, 0x21dd7f);
 }

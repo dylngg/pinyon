@@ -8,10 +8,9 @@
 #include <pine/units.hpp>
 #include <pine/bit.hpp>
 
-#define DEVICES_START 0x3F000000
+#define DEVICES_START 0x3C000000
 #define DEVICES_END 0x40000000
-#define HEAP_START 0x20000000
-#define HEAP_END 0x24000000
+#define PHYSICAL_MEMORY_END_PAGES 131072
 #define MEMORY_END_PAGES 1048576  // 2^32 / PageSize
 
 // We do conversions between bitfields and full types all the time around here,
