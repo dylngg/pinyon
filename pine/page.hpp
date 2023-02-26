@@ -98,7 +98,7 @@ struct Region {
 
     static Region<Magnitude> from_range(PtrData start, PtrData end)
     {
-        return { start / Magnitude, pine::divide_up(end - start, Magnitude) };
+        return { start / Magnitude, (end - start) / Magnitude };
     }
     template <size_t NewMagnitude>
     static Region<NewMagnitude> convert_to(Region<Magnitude> region)
