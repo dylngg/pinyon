@@ -209,7 +209,7 @@ UARTRequest& uart_request()
 
 void reschedule_while_waiting_for(const Waitable&);
 
-size_t UARTFile::read(char *buf, size_t at_most_bytes)
+ssize_t UARTFile::read(char *buf, size_t at_most_bytes)
 {
     PANIC_MESSAGE_IF(!uart_request().is_finished(), "UART request already under operation!");
 
@@ -225,10 +225,10 @@ size_t UARTFile::read(char *buf, size_t at_most_bytes)
         reschedule_while_waiting_for(request);
 
     PANIC_IF(!request.is_finished());
-    return request.size_read_or_written();
+    return static_cast<ssize_t>(request.size_read_or_written());
 }
 
-size_t UARTFile::write(char *buf, size_t size)
+ssize_t UARTFile::write(char *buf, size_t size)
 {
     PANIC_MESSAGE_IF(!uart_request().is_finished(), "UART request already under operation!");
 
@@ -244,7 +244,7 @@ size_t UARTFile::write(char *buf, size_t size)
         reschedule_while_waiting_for(request);
 
     PANIC_IF(!request.is_finished());
-    return request.size_read_or_written();
+    return static_cast<ssize_t>(request.size_read_or_written());
 }
 
 void UARTRequest::enable_irq()

@@ -68,8 +68,8 @@ UARTRequest& uart_request();
 class UARTFile : public File {
 public:
     ~UARTFile() override = default;
-    size_t read(char* buf, size_t at_most_bytes) override;
-    size_t write(char* buf, size_t bytes) override;
+    ssize_t read(char* buf, size_t at_most_bytes) override;
+    ssize_t write(char* buf, size_t bytes) override;
 
 private:
 };

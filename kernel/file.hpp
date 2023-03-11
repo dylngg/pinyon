@@ -7,8 +7,8 @@
 class File {
 public:
     virtual ~File() = default;
-    virtual size_t read(char* buf, size_t at_most_bytes) = 0;
-    virtual size_t write(char* buf, size_t bytes) = 0;
+    virtual ssize_t read(char* buf, size_t at_most_bytes) = 0;
+    virtual ssize_t write(char* buf, size_t bytes) = 0;
 };
 
 class FileDescription {

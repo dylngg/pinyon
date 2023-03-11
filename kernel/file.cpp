@@ -9,15 +9,19 @@
 ssize_t FileDescription::read(char *buf, size_t at_most_bytes) {
     if (m_mode == FileMode::Write)
         return -EINVAL;
+    if (at_most_bytes > pine::limits<ssize_t>::max)
+        return -EINVAL;
 
-    return static_cast<ssize_t>(m_file->read(buf, at_most_bytes));  // validated by caller
+    return m_file->read(buf, at_most_bytes);
 }
 
 ssize_t FileDescription::write(char *buf, size_t bytes) {
     if (m_mode == FileMode::Read)
-        return {};
+        return -EINVAL;
+    if (bytes > pine::limits<ssize_t>::max)
+        return -EINVAL;
 
-    return static_cast<ssize_t>(m_file->write(buf, bytes));  // validated by caller
+    return m_file->write(buf, bytes);
 }
 
 FileDescription* FileTable::open(pine::StringView path, FileMode mode)

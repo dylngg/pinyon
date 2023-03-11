@@ -3,12 +3,13 @@
 
 class DevZeroFile : public File {
 public:
-    inline size_t read(char* buf, size_t at_most_bytes) override
+    inline ssize_t read(char* buf, size_t at_most_bytes) override
     {
         bzero(buf, at_most_bytes);
-        return at_most_bytes;
+        return static_cast<ssize_t>(at_most_bytes);    // validated by FileDescription
+
     }
-    inline size_t write(char*, size_t bytes) override
+    inline ssize_t write(char*, size_t bytes) override
     {
         return bytes;
     }
@@ -16,12 +17,12 @@ public:
 
 class DevNullFile : public File {
 public:
-    inline size_t read(char*, size_t) override
+    inline ssize_t read(char*, size_t) override
     {
         return 0;
     }
-    inline size_t write(char*, size_t bytes) override
+    inline ssize_t write(char*, size_t bytes) override
     {
-        return bytes;
+        return static_cast<ssize_t>(bytes);  // validated by FileDescription
     }
 };
