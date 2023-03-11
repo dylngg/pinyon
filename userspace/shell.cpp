@@ -36,9 +36,9 @@ static void setup_uart_as_stdio()
     int uart_write_fd = open("/dev/uart0", FileMode::Write);
     assert(uart_write_fd > 0);
 
-    assert(close(stdin) >= 0);
+    assert(close(STDIN_FILENO) >= 0);
     assert(dup(uart_read_fd) >= 0);
-    assert(close(stdout) >= 0);
+    assert(close(STDOUT_FILENO) >= 0);
     assert(dup(uart_write_fd) >= 0);
 }
 
@@ -69,7 +69,7 @@ void shell()
 
     for (;;) {
         printf("# ");
-        ssize_t amount_read = read(stdin, &buf[0], 1024);
+        ssize_t amount_read = read(STDIN_FILENO, &buf[0], 1024);
         assert(amount_read >= 0);
         pine::StringView command(buf.data(), static_cast<size_t>(amount_read));
 

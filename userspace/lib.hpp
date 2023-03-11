@@ -18,8 +18,8 @@ u32 syscall2(Syscall call, u32 arg1, u32 arg2);
 u32 syscall3(Syscall call, u32 arg1, u32 arg2, u32 arg3);
 }
 
-constexpr int stdin = 0;
-constexpr int stdout = 1;
+constexpr int STDIN_FILENO = 0;
+constexpr int STDOUT_FILENO = 1;
 
 int open(pine::StringView path, FileMode mode);
 

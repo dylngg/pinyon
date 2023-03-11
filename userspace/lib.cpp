@@ -84,7 +84,7 @@ int printf(const char* fmt, ...)
     };
 
     vfnprintf(try_add_wrapper, fmt, args);
-    write(stdout, print_buf, print_buf_pos);  // 1: stdout
+    write(STDOUT_FILENO, print_buf, print_buf_pos);
     free(print_alloc);
     return 0;
 }
