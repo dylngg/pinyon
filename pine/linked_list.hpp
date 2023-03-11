@@ -90,7 +90,10 @@ public:
     // Because the user is manually dealing with memory we cannot have copy
     // semantics
     ManualLinkedList(const ManualLinkedList&) = delete;
-    ManualLinkedList(ManualLinkedList&&) = delete;
+    ManualLinkedList(ManualLinkedList&& other)
+        : m_head(pine::exchange(other.m_head, nullptr))
+        , m_tail(pine::exchange(other.m_tail, nullptr))
+        , m_length(pine::exchange(other.m_length, 0)) {};
 
     void insert_after(Node* after_node_ptr, Node& new_node)
     {

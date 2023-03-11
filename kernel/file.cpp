@@ -1,7 +1,8 @@
+#include "display.hpp"
 #include "file.hpp"
-#include "uart.hpp"
 #include "panic.hpp"
 #include "pseudo_devices.hpp"
+#include "uart.hpp"
 
 #include <pine/limits.hpp>
 #include <pine/errno.hpp>
@@ -35,6 +36,9 @@ FileDescription* FileTable::open(pine::StringView path, FileMode mode)
     }
     else if (path == "/dev/uart0") {
         maybe_file = KOwner<UARTFile>::try_create(kernel_allocator());
+    }
+    else if (path == "/dev/display") {
+        maybe_file = KOwner<DisplayFile>::try_create(kernel_allocator());
     }
 
     if (!maybe_file)

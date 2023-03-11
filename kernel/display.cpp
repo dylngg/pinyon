@@ -4,6 +4,9 @@
 #include "mmu.hpp"
 #include "data/font.hpp"
 
+#include <pine/errno.hpp>
+#include <pine/c_string.hpp>
+
 struct DisplayTagGetPhysicalDimensions {
     u32 tag = MAILBOX_TAG_SET_DISPLAY_PHYS_DIM;
     u32 in_size = 2 * sizeof(u32);
@@ -124,13 +127,25 @@ void Display::init(unsigned int width, unsigned int height)
     // Convert from bus address to ARM accessible address
     m_buffer = reinterpret_cast<u32*>((message.allocation.in_alignment_out_ptr) & ~0xC0000000);
     m_size = message.allocation.out_size;
-
-    draw_string("Welcome to Pinyon!", 20, 20, 0x21dd7f);
 }
 
 void Display::draw_string(pine::StringView string, unsigned x, unsigned y, u32 color)
 {
+    auto original_x = x;
     for (char ch : string) {
+        if (ch == '\n') {
+            x = original_x;
+            y += font::height + 2;
+            continue;
+        }
+
+        if (x + font::width > m_width) {
+            continue;
+        }
+        if (y > m_width) {
+            continue;
+        }
+
         draw_character(ch, x, y, color);
         x += font::width + 2;
     }
@@ -153,4 +168,25 @@ void Display::draw_pixel(unsigned x, unsigned y, u32 color)
     auto bytes_per_pixel = m_depth / 8;
     u32 offset = x + ((y * m_pitch) / bytes_per_pixel);
     m_buffer[offset] = color;
+}
+
+ssize_t DisplayFile::read(char* buf, size_t at_most_bytes)
+{
+    if (m_displayed_string.empty())
+        return 0;
+
+    auto amount_copied = pine::strbufcopy(buf, at_most_bytes, m_displayed_string.c_str());
+    return static_cast<ssize_t>(amount_copied);
+}
+
+ssize_t DisplayFile::write(char* buf, size_t bytes)
+{
+    m_displayed_string.clear();
+    auto maybe_string = KString::try_create(kernel_allocator(), buf, bytes);
+    if (!maybe_string)
+        return -ENOMEM;
+
+    m_displayed_string = pine::move(*maybe_string);
+    display().draw_string(m_displayed_string, DISPLAY_X_INSET, DISPLAY_Y_INSET, 0x21dd7f);
+    return bytes;
 }

@@ -245,8 +245,8 @@ bool character_has_visible_pixel(char ch, unsigned x, unsigned y) {
     if (y >= char_height)
         return false;
 
-    unsigned index = ch - start_ch;
-    return data[index][y] & (0x80 >> x);
+    unsigned ch_index = ch - start_ch;
+    return data[ch_index][y] & (0x80 >> x);
 }
 
 }

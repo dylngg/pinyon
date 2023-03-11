@@ -25,7 +25,7 @@ int open(pine::StringView path, FileMode mode);
 
 ssize_t read(int fd, char* buf, size_t bytes);
 
-ssize_t write(int fd, char* buf, size_t bytes);
+ssize_t write(int fd, const char* buf, size_t bytes);
 
 int close(int fd);
 

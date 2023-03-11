@@ -18,4 +18,5 @@ enum class Syscall : u32 {
 enum class FileMode {
     Read,
     Write,
+    ReadWrite,
 };

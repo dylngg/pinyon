@@ -1,7 +1,8 @@
 #pragma once
 
 enum Errno {
-    EINVAL,
-    EFBIG,
     EBADF,
+    EFBIG,
+    EINVAL,
+    ENOMEM
 };

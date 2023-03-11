@@ -19,7 +19,7 @@ ssize_t read(int fd, char* buf, size_t at_most_bytes)
     return bytes_read;
 }
 
-ssize_t write(int fd, char* buf, size_t bytes)
+ssize_t write(int fd, const char* buf, size_t bytes)
 {
     return pine::bit_cast<ssize_t>(syscall3(Syscall::Write, pine::bit_cast<u32>(fd), reinterpret_cast<u32>(buf), bytes));
 }

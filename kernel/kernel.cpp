@@ -24,6 +24,15 @@ void operator delete(void* ptr, size_t size) // C++14 specialization
     panic("operator delete got called! (new() doesn't exist?!): ptr", ptr, ", size", size);
 }
 
+extern "C" {
+
+void __cxa_pure_virtual()
+{
+    panic("A pure virtual function was called!");
+}
+
+}
+
 void init()
 {
     interrupts_init();

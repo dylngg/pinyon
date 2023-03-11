@@ -42,11 +42,24 @@ static void setup_uart_as_stdio()
     assert(dup(uart_write_fd) >= 0);
 }
 
+static void display_welcome()
+{
+    int display_fd = open("/dev/display", FileMode::ReadWrite);
+    assert(display_fd > 0);
+
+    const char* message = "Welcome to Pinyon!";
+    assert(write(display_fd, message, strlen(message)) > 0);
+
+    assert(close(display_fd) >= 0);
+}
+
 extern "C" {
 
 void shell()
 {
     setup_uart_as_stdio();  // Make /dev/uart0 stdin and stdout
+
+    display_welcome();
 
     TVector<char> buf(mem_allocator());
     if (!buf.ensure(1024)) {

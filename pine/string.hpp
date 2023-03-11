@@ -16,6 +16,10 @@ public:
     static Maybe<String> try_create(Allocator& allocator, const char* from)
     {
         size_t length = strlen(from);
+        return try_create(allocator, from, length);
+    }
+    static Maybe<String> try_create(Allocator& allocator, const char* from, size_t length)
+    {
         auto [ptr, _] = allocator.allocate(length);
         if (!ptr)
             return {};
@@ -41,14 +45,17 @@ public:
         return *this;
     }
 
-    /*
-     * Returns the length of the string in bytes.
-     */
+    void clear()
+    {
+        if (m_string)
+            Destructor::destroy(m_string);
+
+        m_string = nullptr;
+        m_length = 0;
+    };
+
     size_t length() const { return m_length; }
 
-    /*
-     * Checks whether the string is empty.
-     */
     bool empty() const { return m_length == 0; }
 
     char& operator[](size_t index)
@@ -62,6 +69,11 @@ public:
     bool operator==(StringView other) const
     {
         return strcmp(m_string, other.data()) == 0;
+    }
+
+    const char* c_str() const
+    {
+        return m_string;
     }
 
     operator StringView() const
