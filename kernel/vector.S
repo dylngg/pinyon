@@ -15,16 +15,16 @@ setup_vtable:
 
     /*
      * First load the 8 words of r0 (vtable) into corresponding r2-r9 registers;
-     * Here, the ia is the magic: after loading a particular register, the
-     * address for the next register increments. The result is a cascading 8
-     * word load of the contents of r0 into 8 registers.
+     * After loading a particular register, the address for the next register
+     * increments. The result is a cascading 8 word load of the contents of r0
+     * into 8 registers.
      */
-    ldmia r0!, {r2-r9}
+    ldm r0!, {r2-r9}
     /*
      * Now do the opposite, take those 8 registers (vtable entries) and write
      * them to r1, the location of the vector table using the same tricks.
      */
-    stmia r1!, {r2-r9}
+    stm r1!, {r2-r9}
     /*
      * r0 is now pointing to immediately _after_ the vector table thanks to the
      * magic ! char on r0!, which says to store the address after the last load
@@ -33,8 +33,8 @@ setup_vtable:
      * Now we load and store our branch-to-abs-branch stuff to the piece of
      * memory after the vector table. Same magic with r1!.
      */
-    ldmia r0!, {r2-r8}
-    stmia r1!, {r2-r8}
+    ldm r0!, {r2-r8}
+    stm r1!, {r2-r8}
 
 setup_stacks:
     /* Each mode, including IRQ mode, has their own stack. We'll use this to save
@@ -122,7 +122,7 @@ irq_wrap:
     push {r0-r3, r12}
     bl irq_handler
     pop {r0-r3, r12}
-    rfeia sp!               /* Return to LR, restore SPRS into CPRS (e.g. returns back to old mode) */
+    rfe sp!               /* Return to LR, restore SPRS into CPRS (e.g. returns back to old mode) */
 
 swi_wrap:
     /*
@@ -143,4 +143,4 @@ swi_wrap:
     mov r1, #0              /* r0 is used as return value; we shouldn't leak for the rest */
     mov r2, #0
     mov r3, #0
-    rfeia sp!               /* Return to LR, restore SPRS into CPRS (e.g. returns back to old mode) */
+    rfe sp!               /* Return to LR, restore SPRS into CPRS (e.g. returns back to old mode) */

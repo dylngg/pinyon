@@ -32,11 +32,11 @@ start:
     mov r6, #0
     b       ckzbssbnds
 zbss:
-    /* Basically zero out 4 words at r2 addr, ia with stm increases r2 to
+    /* Basically zero out 4 words at r2 addr, stm increases r2 to
      * next segment; with !, puts that increase back in r2
      * See https://heyrick.eu/armwiki/STM
      */
-    stmia r2!, {r3-r6}
+    stm r2!, {r3-r6}
 ckzbssbnds:
     cmp r2, r7
     blo zbss            /* r2 < r7; r2 is curr addr, r7 is the end of bss */

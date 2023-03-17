@@ -33,10 +33,10 @@ task_save:
     str r2, [r0]
     add r0, #4
     cmp r1, #0
-    stmeqia r0, {sp, lr}^       /* Save SP and LR from user mode if not is_kernel_task */
+    stmeq r0, {sp, lr}^       /* Save SP and LR from user mode if not is_kernel_task */
     add r0, #8                  /* cannot use ! in prev stmia */
-    stmia r0!, {sp, lr}         /* Save SP and LR from current mode */
-    stmia r0!, {r0-r12}         /* Save general registers */
+    stm r0!, {sp, lr}         /* Save SP and LR from current mode */
+    stm r0!, {r0-r12}         /* Save general registers */
     ldr r2, =_task_return_again /* PC for context switch back */
     str r2, [r0]
     mov r0, #0
@@ -68,10 +68,10 @@ _task_start:
     msr spsr, r1
     add r2, #4
     cmp r3, #0
-    ldmeqia r2, {sp, lr}^       /* Restore SP and LR in user mode if not is_kernel_task_stored */
+    ldmeq r2, {sp, lr}^       /* Restore SP and LR in user mode if not is_kernel_task_stored */
     add r2, #8
-    ldmia r2!, {sp, lr}         /* Restore SP and LR of current mode; if we are starting a new task this is their supervisor SP and LR */
-    ldmia r2, {r0-r12, pc}^     /* Go to PC; SPSR is copied into CPSR */
+    ldm r2!, {sp, lr}         /* Restore SP and LR of current mode; if we are starting a new task this is their supervisor SP and LR */
+    ldm r2, {r0-r12, pc}^     /* Go to PC; SPSR is copied into CPSR */
 
 task_kernel_return:
     // FIXME: We should panic here, since if somehow the kernel LR is returned
