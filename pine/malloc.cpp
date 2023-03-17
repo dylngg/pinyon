@@ -127,7 +127,8 @@ size_t FixedAllocation::free(Allocation)
 Allocation HighWatermarkAllocator::allocate(size_t requested_size)
 {
     requested_size = align_up_two(requested_size, Alignment);
-    if (m_watermark + requested_size > m_end)
+    // Adding to nullptr is undefined behavior
+    if (m_watermark == nullptr || m_watermark + requested_size > m_end)
         return {};
 
     void* ptr = m_watermark;
