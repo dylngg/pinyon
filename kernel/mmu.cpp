@@ -64,7 +64,7 @@ void print_with(pine::Printer& printer, const L2Ptr& l2_ptr)
 {
     constexpr auto bufsize = 64;
     char buf[bufsize];
-    pine::sbufprintf(buf, bufsize, "L2(sbz:%d%d%d, domain:%d%d%d%d, p:%d, addr:%x)",
+    pine::sbufprintf(buf, bufsize, "L2(sbz:%d%d%d, domain:%d%d%d%d, p:%d, addr:%#x)",
                      (l2_ptr.sbz & 1), (l2_ptr.sbz & (1 << 2)), (l2_ptr.sbz & (1 << 3)),
                      (l2_ptr.domain & 1), (l2_ptr.domain & (1 << 2)), (l2_ptr.domain & (1 << 3)), (l2_ptr.domain & (1 << 4)),
                      l2_ptr.p,
@@ -76,7 +76,7 @@ void print_with(pine::Printer& printer, const Section& s)
 {
     constexpr auto bufsize = 128;
     char buf[bufsize];
-    pine::sbufprintf(buf, bufsize, "Section(bc:%d%d, xn:%d, domain:%d%d%d%d, pap:%d%d%d, tex:%d%d%d, apx:%d, s:%d, nG:%d, sbz:%d, addr:%x)",
+    pine::sbufprintf(buf, bufsize, "Section(bc:%d%d, xn:%d, domain:%d%d%d%d, pap:%d%d%d, tex:%d%d%d, apx:%d, s:%d, nG:%d, sbz:%d, addr:%#x)",
                      s.b, s.c,
                      s.xn,
                      (s.domain & 1), (s.domain & (1 << 2)), (s.domain & (1 << 3)), (s.domain & (1 << 4)),

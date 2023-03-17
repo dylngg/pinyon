@@ -51,4 +51,9 @@ struct MailboxRegisters {
 
 static_assert(offsetof(MailboxRegisters, raw_write) == 0x20);
 
-pine::Maybe<u64> try_retrieve_serial_num_from_mailbox();
+struct SerialNum {
+    u32 bottom;
+    u32 top;
+};
+
+pine::Maybe<SerialNum> try_retrieve_serial_num_from_mailbox();

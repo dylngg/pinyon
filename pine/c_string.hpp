@@ -49,12 +49,8 @@ template <typename UInt, enable_if<is_unsigned<UInt>, UInt>* = nullptr>
 void to_strbuf_hex(char* buf, size_t bufsize, UInt num, ToAFlag flag)
 {
     size_t length = limits<UInt>::digits16;
-    if (bufsize < length + 3)  // + 0x + \0
+    if (bufsize < length + 1)  // + \0
         return;
-
-    buf[0] = '0';
-    buf[1] = 'x';
-    buf += 2;
 
     size_t pos = 0;
     for (; pos < length; pos++)

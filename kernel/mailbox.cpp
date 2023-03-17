@@ -57,7 +57,8 @@ bool MailboxRegisters::send_in_property_channel(u32* message_contents)
     return false;
 }
 
-pine::Maybe<u64> try_retrieve_serial_num_from_mailbox()
+
+pine::Maybe<SerialNum> try_retrieve_serial_num_from_mailbox()
 {
     // The message must be aligned to 16 bits as only the upper 28 bits are
     // provided to the mailbox
@@ -77,5 +78,5 @@ pine::Maybe<u64> try_retrieve_serial_num_from_mailbox()
     if (!mailbox_registers().send_in_property_channel(&message_contents[0]))
         return {};
 
-    return static_cast<u64>(message_contents[5]) | (static_cast<u64>(message_contents[6]) << 32);
+    return SerialNum { message_contents[5], message_contents[6] };
 }

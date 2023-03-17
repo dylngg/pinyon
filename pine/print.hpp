@@ -71,7 +71,10 @@ void print_with(Printer& printer, Ptr ptr)
     char buf[bufsize]; // FIXME: Replace with Buffer<>/Array<>
     bzero(buf, bufsize);
 
-    to_strbuf_hex(buf, bufsize, reinterpret_cast<uintptr_t>(ptr), ToAFlag::Lower);
+    buf[0] = '0';
+    buf[1] = 'x';
+
+    to_strbuf_hex(buf + 2, bufsize, reinterpret_cast<uintptr_t>(ptr), ToAFlag::Lower);
     print_with(printer, buf);
 }
 
@@ -80,10 +83,14 @@ inline void print_with(Printer& printer, StringView string)
     printer.print(string);
 }
 
+enum class FlagModifiers {
+    None,
+    AlternativeForm,
+};
+
 enum class ArgModifiers {
     None,
     Long,
-    LongLong,
     SizeT,
 };
 
@@ -93,6 +100,7 @@ size_t sbufprintf(char* buf, size_t bufsize, const char* fmt, ...);
 template <typename TryAddStringFunc>
 size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest)
 {
+    FlagModifiers flag;
     ArgModifiers mod;
     // Keep a fake two char string on the stack for easy adding of single or dual chars
     char chstr[2] = " ";
@@ -111,16 +119,19 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
         // Format specifier: %s
 
         ++iter; // consume '%'
+        flag = FlagModifiers::None;
         mod = ArgModifiers::None;
+
+        char flag_ch = *iter;
+        if (flag_ch == '#') {
+            flag = FlagModifiers::AlternativeForm;
+            ++iter;
+        }
 
         char type_or_mod_ch = *iter;
         if (type_or_mod_ch == 'l') {
             mod = ArgModifiers::Long;
             ++iter; // consume 'l'
-            if (*iter == 'l') {
-                mod = ArgModifiers::LongLong;
-                ++iter;
-            }
         } else if (type_or_mod_ch == 'z') {
             mod = ArgModifiers::SizeT;
             ++iter; // consume 'z'
@@ -153,15 +164,12 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
         case 'u':
             [[fallthrough]];
         case 'd': {
-            constexpr int bufsize = limits<unsigned long long>::characters10 + 1; // max int possible here
+            constexpr int bufsize = limits<unsigned long>::characters10 + 1; // max int possible here
             char digits[bufsize]; // FIXME: Replace with Buffer<>/Array<>
             bzero(digits, bufsize);
 
             if (type_ch == 'u') {
                 switch (mod) {
-                case ArgModifiers::LongLong:
-                    to_strbuf(digits, bufsize, va_arg(rest, unsigned long long));
-                    break;
                 case ArgModifiers::Long:
                     to_strbuf(digits, bufsize, va_arg(rest, unsigned long));
                     break;
@@ -174,9 +182,6 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
                 }
             } else {
                 switch (mod) {
-                case ArgModifiers::LongLong:
-                    to_strbuf(digits, bufsize, va_arg(rest, long long));
-                    break;
                 case ArgModifiers::Long:
                     to_strbuf(digits, bufsize, va_arg(rest, long));
                     break;
@@ -197,22 +202,28 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
         }
 
         case 'x': {
-            constexpr int bufsize = limits<unsigned long long>::characters10 + 1; // max int possible here
+            constexpr int bufsize = limits<unsigned long>::digits16 + 3; // max int possible here; + 0x + \0
             char hex[bufsize]; // FIXME: Replace with Buffer<>/Array<>
+            char* hex_start = hex;
+            size_t hex_bufsize = bufsize;
             bzero(hex, bufsize);
 
+            if (flag == FlagModifiers::AlternativeForm) {
+                hex[0] = '0';
+                hex[1] = 'x';
+                hex_start = hex + 2;
+                hex_bufsize -= 2;
+            }
+
             switch (mod) {
-            case ArgModifiers::LongLong:
-                to_strbuf_hex(hex, bufsize, va_arg(rest, unsigned long long), ToAFlag::Lower);
-                break;
             case ArgModifiers::Long:
-                to_strbuf_hex(hex, bufsize, va_arg(rest, unsigned long), ToAFlag::Lower);
+                to_strbuf_hex(hex_start, hex_bufsize, va_arg(rest, unsigned long), ToAFlag::Lower);
                 break;
             case ArgModifiers::SizeT:
-                to_strbuf_hex(hex, bufsize, va_arg(rest, size_t), ToAFlag::Lower);
+                to_strbuf_hex(hex_start, hex_bufsize, va_arg(rest, size_t), ToAFlag::Lower);
                 break;
             case ArgModifiers::None:
-                to_strbuf_hex(hex, bufsize, va_arg(rest, unsigned int), ToAFlag::Lower);
+                to_strbuf_hex(hex_start, hex_bufsize, va_arg(rest, unsigned int), ToAFlag::Lower);
                 break;
             }
 
@@ -224,11 +235,14 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
         case 'p': {
             PtrData ptr_data = va_arg(rest, PtrData);
 
-            constexpr int bufsize = limits<PtrData>::digits10 + 1;
+            constexpr int bufsize = limits<PtrData>::digits16 + 3;  // 0x + \0
             char hex[bufsize]; // FIXME: Replace with Buffer<>/Array<>
             bzero(hex, bufsize);
 
-            to_strbuf_hex(hex, bufsize, ptr_data, ToAFlag::Lower);
+            hex[0] = '0';
+            hex[1] = 'x';
+
+            to_strbuf_hex(hex + 2, bufsize - 2, ptr_data, ToAFlag::Lower);
             if (!try_add_string(hex))
                 return false;
             break;

@@ -52,7 +52,8 @@ void init()
 
     auto maybe_serial = try_retrieve_serial_num_from_mailbox();
     PANIC_IF(!maybe_serial);
-    consolef("Serial: %llx\n", *maybe_serial);
+    auto serial = *maybe_serial;
+    consolef("Serial: %#x%x\n", serial.bottom, serial.top);
 
     consoleln("Use 'help' for a list of commands to run.");
 
