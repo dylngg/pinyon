@@ -6,7 +6,7 @@ void bzero(void* target, size_t size)
 {
     unsigned char* _target = (unsigned char*)target;
     while (size > 0) {
-        *_target = 0;
+        *_target++ = 0;
         size--;
     }
 }
