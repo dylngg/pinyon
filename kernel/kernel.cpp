@@ -1,14 +1,23 @@
+#ifdef AARCH64
+#elif AARCH32
 #include "console.hpp"
 #include "display.hpp"
 #include "interrupts.hpp"
 #include "mailbox.hpp"
-#include "panic.hpp"
 #include "tasks.hpp"
 #include "timer.hpp"
+#else
+#error Architecture not defined
+#endif
+
+#include <pine/types.hpp>
+#include "panic.hpp"
 
 extern "C" {
 void init();  // Export init symbol as C
+#ifdef AARCH32
 void mmu_init();  // Forward declare mmu init symbol
+#endif
 }
 
 /*
@@ -35,6 +44,7 @@ void __cxa_pure_virtual()
 
 void init()
 {
+#ifdef AARCH32
     interrupts_init();
     uart_init();
     console("Initializing... ");
@@ -58,4 +68,5 @@ void init()
     consoleln("Use 'help' for a list of commands to run.");
 
     tasks_init();
+#endif
 }

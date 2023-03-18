@@ -74,11 +74,13 @@ PINE_OBJ=$(OBJDIR)/pine/c_string.o $(OBJDIR)/pine/malloc.o $(OBJDIR)/pine/print.
 PINE_HOST_OBJ=$(HOSTOBJDIR)/pine/c_string.o $(HOSTOBJDIR)/pine/malloc.o $(HOSTOBJDIR)/pine/print.o $(HOSTOBJDIR)/pine/c_builtins.o
 
 ifeq ($(AARCH64),1)
+ARCH_DEFINES=-DAARCH64
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/arch/aarch64/bootup.o $(OBJDIR)/kernel/arch/aarch64/vector.o
-KERNEL_OBJ=
+KERNEL_OBJ=$(OBJDIR)/kernel/kernel.o
 USER_OBJ=
 USER_ASM_OBJ=
 else
+ARCH_DEFINES=-DAARCH32
 KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/display.o $(OBJDIR)/kernel/file.o $(OBJDIR)/kernel/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/mailbox.o $(OBJDIR)/kernel/mmu.o $(OBJDIR)/kernel/processor.o $(OBJDIR)/kernel/stack.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/timer.o $(OBJDIR)/kernel/uart.o
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/arch/aarch32/bootup.o $(OBJDIR)/kernel/switch.o $(OBJDIR)/kernel/arch/aarch32/vector.o
 USER_OBJ=$(OBJDIR)/userspace/shell.o $(OBJDIR)/userspace/lib.o
@@ -155,7 +157,7 @@ clean:
 	rm -rf obj/ pinyon.elf pinyon.out
 
 $(OBJDIR)/%.o: %.cpp
-	$(CC) $(DEFINES) $(ARCHFLAGS) $(FREESTANDING_FLAGS) $(INCLUDE) $(CXXFLAGS) $(ARCH_UBSAN_FLAGS) -c $< -o $@
+	$(CC) $(DEFINES) $(ARCH_DEFINES) $(ARCHFLAGS) $(FREESTANDING_FLAGS) $(INCLUDE) $(CXXFLAGS) $(ARCH_UBSAN_FLAGS) -c $< -o $@
 
 $(HOSTOBJDIR)/%.o: %.cpp
 	$(HOST_CC) $(INCLUDE) $(CXXFLAGS) $(HOST_UBSAN_FLAGS) -c $< -o $@
