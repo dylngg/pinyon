@@ -1,10 +1,20 @@
 # Whether or not to build with Clang
 CLANG ?= 1
+# AARCH64 must be built with CLANG
+AARCH64 ?= 1
 
 ifeq ($(CLANG),1)
 CC=clang++
 else
 CC=arm-none-eabi-g++
+endif
+
+ifeq ($(CLANG),1)
+LD=ld.lld-mp-14
+OBJCOPY=llvm-objcopy-mp-14
+else
+LD=arm-none-eabi-ld
+OBJCOPY=arm-none-eabi-objcopy
 endif
 
 HOST_CC=g++
@@ -14,14 +24,31 @@ HOST_CC=g++
 #            VS Code use. Not required for building.
 COMPILEDB=python3 -m compiledb
 
+ifeq ($(AARCH64), 1)
+QEMU=qemu-system-aarch64
+QEMU_FLAGS=-m 1G -M raspi3b
+else
 QEMU=qemu-system-arm
 QEMU_FLAGS=-m 1G -M raspi2
+endif
+
+ifeq ($(AARCH64), 1)
+GDB=ggdb
+else
+GDB=arm-none-eabi-gdb
+endif
 
 OBJDIR=obj
 HOSTOBJDIR=obj/host
 
 ifeq ($(CLANG),1)
+
+ifeq ($(AARCH64),1)
+ARCHFLAGS=--target=aarch64-none-eabi -mcpu=cortex-a53
+else
 ARCHFLAGS=--target=armv7-none-eabi -mcpu=cortex-a7+nofp+nosimd
+endif
+
 else
 ARCHFLAGS=-mcpu=cortex-a7
 endif
@@ -45,10 +72,19 @@ HOST_UBSAN_FLAGS=$(UBSAN_FLAGS) # -fsanitize=unsigned-integer-overflow -fsanitiz
 CXXFLAGS=-Wall -Wextra -Wpedantic -Wconversion -Wno-volatile -std=c++20 -g2
 PINE_OBJ=$(OBJDIR)/pine/c_string.o $(OBJDIR)/pine/malloc.o $(OBJDIR)/pine/print.o $(OBJDIR)/pine/c_builtins.o $(OBJDIR)/pine/arch/eabi.o
 PINE_HOST_OBJ=$(HOSTOBJDIR)/pine/c_string.o $(HOSTOBJDIR)/pine/malloc.o $(HOSTOBJDIR)/pine/print.o $(HOSTOBJDIR)/pine/c_builtins.o
+
+ifeq ($(AARCH64),1)
+KERNEL_ASM_OBJ=$(OBJDIR)/kernel/arch/aarch64/bootup.o $(OBJDIR)/kernel/arch/aarch64/vector.o
+KERNEL_OBJ=
+USER_OBJ=
+USER_ASM_OBJ=
+else
 KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/display.o $(OBJDIR)/kernel/file.o $(OBJDIR)/kernel/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/mailbox.o $(OBJDIR)/kernel/mmu.o $(OBJDIR)/kernel/processor.o $(OBJDIR)/kernel/stack.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/timer.o $(OBJDIR)/kernel/uart.o
-KERNEL_ASM_OBJ=$(OBJDIR)/kernel/bootup.o $(OBJDIR)/kernel/switch.o $(OBJDIR)/kernel/vector.o
+KERNEL_ASM_OBJ=$(OBJDIR)/kernel/arch/aarch32/bootup.o $(OBJDIR)/kernel/switch.o $(OBJDIR)/kernel/arch/aarch32/vector.o
 USER_OBJ=$(OBJDIR)/userspace/shell.o $(OBJDIR)/userspace/lib.o
 USER_ASM_OBJ=$(OBJDIR)/userspace/syscall.o
+endif
+
 TESTS=pine/test/twomath.hpp pine/test/twomath.hpp pine/test/maybe.hpp
 TESTFILE=pine/test/test.cpp
 
@@ -69,7 +105,7 @@ userspace: $(OBJDIR) $(USER_ASM_OBJ) $(USER_OBJ)
 kernel: $(OBJDIR) $(KERNEL_ASM_OBJ) $(KERNEL_OBJ)
 
 pinyon.elf: $(OBJDIR) pine userspace kernel
-	$(CC) -T linker.ld -o pinyon.elf $(ARCHFLAGS) $(FREESTANDING_FLAGS) $(KERNEL_ASM_OBJ) $(KERNEL_OBJ) $(USER_OBJ) $(USER_ASM_OBJ) $(PINE_OBJ)
+	$(LD) -T linker.ld -o pinyon.elf $(KERNEL_ASM_OBJ) $(KERNEL_OBJ) $(USER_OBJ) $(USER_ASM_OBJ) $(PINE_OBJ)
 
 .PHONY: fmt
 fmt:
@@ -81,22 +117,23 @@ fullfmt:
 
 .PHONY: run
 run: pinyon.elf
-	qemu-system-arm $(QEMU_FLAGS) -serial stdio -kernel $<
+	$(QEMU) $(QEMU_FLAGS) -serial stdio -kernel $<
 
 .PHONY: debug
 debug: pinyon.elf
-	sh feed.sh | qemu-system-arm -s -S -nographic $(QEMU_FLAGS) -kernel $< 1>pinyon.out 2>&1 &
+	sh feed.sh | $(QEMU) -s -S -nographic $(QEMU_FLAGS) -kernel $< 1>pinyon.out 2>&1 &
 	sleep 1  # hack
-	arm-none-eabi-gdb $<
-	killall qemu-system-arm
+	$(GDB) $<
+	killall $(QEMU)
 
+ifneq ($(AARCH64),1)
 .PHONY: trace
 trace: pinyon.elf
-	# FIXME: Get a newer QEMU that supports raspi3
-	sh feed.sh | qemu-system-arm -s -S -nographic $(QEMU_FLAGS) -d mmu,exec,guest_errors,cpu,in_asm,plugin,page -kernel $< 1>pinyon.out 2>&1 &
+	sh feed.sh | $(QEMU) -s -S -nographic $(QEMU_FLAGS) -d mmu,exec,guest_errors,cpu,in_asm,plugin,page -kernel $< 1>pinyon.out 2>&1 &
 	sleep 1  # hack
-	arm-none-eabi-gdb $<
-	killall qemu-system-arm
+	$(GDB) $<
+	killall $(QEMU)
+endif
 
 .PHONY: test
 test: test_pine
@@ -128,6 +165,8 @@ $(OBJDIR)/%.o: %.S
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)/kernel
+	mkdir -p $(OBJDIR)/kernel/arch/aarch64/
+	mkdir -p $(OBJDIR)/kernel/arch/aarch32/
 	mkdir -p $(OBJDIR)/userspace
 	mkdir -p $(OBJDIR)/pine
 	mkdir -p $(OBJDIR)/pine/arch
