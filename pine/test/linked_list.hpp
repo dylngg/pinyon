@@ -57,7 +57,7 @@ void manual_linked_list_iterate()
         prev = node;
         ++i;
         ++it;
-        it2++;
+        ++it2;
     }
 
     assert(i == 3);
@@ -88,7 +88,7 @@ void manual_linked_list_iterate()
 
         next = node;
         --it;
-        it2--;
+        --it2;
     }
 
     assert(i == 0);

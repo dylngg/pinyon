@@ -10,7 +10,17 @@
 
 void algorithm_find()
 {
-    pine::Vector<int, alien::Allocator> values ( alien::allocator(), { 5, 4, 3, 2, 1, 2, 3, 4, 5 });
+    pine::Vector<int, alien::Allocator> values( alien::allocator());
+    values.append(5);
+    assert(values.append(4));
+    assert(values.append(3));
+    assert(values.append(2));
+    assert(values.append(1));
+    assert(values.append(2));
+    assert(values.append(3));
+    assert(values.append(4));
+    assert(values.append(5));
+
     auto begin = values.begin();
     auto end = values.end();
 
@@ -45,7 +55,14 @@ void algorithm_find()
 
 void algorithm_find_if()
 {
-    pine::Vector<int, alien::Allocator> values( alien::allocator(), { 1, 3, 2, 4, 3, 1 } );
+    pine::Vector<int, alien::Allocator> values(alien::allocator());
+    assert(values.append(1));
+    assert(values.append(3));
+    assert(values.append(2));
+    assert(values.append(4));
+    assert(values.append(3));
+    assert(values.append(1));
+
     auto begin = values.begin();
     auto end = values.end();
 

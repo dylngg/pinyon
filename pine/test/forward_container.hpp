@@ -23,7 +23,10 @@ void forward_container_ctor()
     typename Container::Iter iters[3];
     int elements[3];
 
-    Container c1 (alien::allocator(), { 1, 2, 3 });  // initializer list
+    Container c1 (alien::allocator());
+    assert(c1.append(1));
+    assert(c1.append(2));
+    assert(c1.append(3));
     assert(c1.length() == 3);
     assert(c1.begin() != c1.end());
 
@@ -38,29 +41,15 @@ void forward_container_ctor()
 }
 
 template <typename Container>
-void forward_container_copy_ctor()
-{
-    int elements[3];
-
-    Container c1 (alien::allocator(), { 1, 2, 3 });
-    for (size_t i = 0; i < c1.length(); i++)
-        elements[i] = *pine::next(c1.begin(), i);
-
-    Container c2(c1);  // copy ctor
-    assert(c2.length() == 3);
-    for (size_t i = 0; i < 3; i++) {
-        auto c2_iter = pine::next(c2.begin(), i);
-        assert(*c2_iter == elements[i]);
-    }
-}
-
-template <typename Container>
 void forward_container_move_ctor()
 {
     typename Container::Iter iters[3];
     int elements[3];
 
-    Container c1 (alien::allocator(), { 1, 2, 3 });  // initializer list
+    Container c1 (alien::allocator());
+    assert(c1.append(1));
+    assert(c1.append(2));
+    assert(c1.append(3));
     assert(c1.length() == 3);
     assert(c1.begin() != c1.end());
 
@@ -92,6 +81,5 @@ void forward_container_tests()
     static_assert(pine::is_forward_iter<typename Container::Iter>);
     forward_container_empty<Container>();
     forward_container_ctor<Container>();
-    forward_container_copy_ctor<Container>();
     forward_container_move_ctor<Container>();
 }
