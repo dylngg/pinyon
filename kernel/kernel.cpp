@@ -6,6 +6,7 @@
 #include "mailbox.hpp"
 #include "tasks.hpp"
 #include "timer.hpp"
+#include "mmu.hpp"
 #else
 #error Architecture not defined
 #endif
@@ -15,9 +16,6 @@
 
 extern "C" {
 void init();  // Export init symbol as C
-#ifdef AARCH32
-void mmu_init();  // Forward declare mmu init symbol
-#endif
 }
 
 /*

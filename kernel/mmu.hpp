@@ -18,6 +18,8 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 
+extern "C" void mmu_init();  // Forward declare mmu init symbol
+
 struct VirtualAddress {
     VirtualAddress(PtrData ptr)
         : m_ptr(reinterpret_cast<u8*>(ptr)) {};
