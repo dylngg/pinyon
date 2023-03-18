@@ -1,4 +1,4 @@
-.section .text
+.text
 .global syscall0
 .global syscall1
 .global syscall2

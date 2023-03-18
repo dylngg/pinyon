@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include "types.hpp"
 
 constexpr unsigned KiB = 1024;

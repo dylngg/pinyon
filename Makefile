@@ -1,23 +1,40 @@
-# This makefile is not quite POSIX compatable and relies on GNU make features,
-# but it works with the old MacOS GNU make that comes by default with XCode
-# developer tools.
+# Whether or not to build with Clang
+CLANG ?= 1
+
+ifeq ($(CLANG),1)
+CC=clang++
+else
 CC=arm-none-eabi-g++
-HOST_CC=c++
+endif
+
+HOST_CC=g++
 # compiledb: Alternatively, 'python3 -m compiledb' works when installed via
 #            'pip3 install --user compiledb'; this command generates a
 #            compile_commands.json file from our Makefile, which IDEs such as
 #            VS Code use. Not required for building.
 COMPILEDB=python3 -m compiledb
+
 QEMU=qemu-system-arm
 QEMU_FLAGS=-m 1G -M raspi2
+
 OBJDIR=obj
 HOSTOBJDIR=obj/host
+
+ifeq ($(CLANG),1)
+ARCHFLAGS=--target=armv7-none-eabi -mcpu=cortex-a7+nofp+nosimd
+else
+ARCHFLAGS=-mcpu=cortex-a7
+endif
+
+ifeq ($(CLANG),1)
+DEFINES=-DCLANG_HAS_NO_CXX_INCLUDES
+endif
+
 # -fno-threadsafe-statics: for static initialization (T& getT() { static Type t {}; return t; })
 #                          don't produce thread-safe initialization of statics (normally required);
 #                          this static getter is used to get around the
 #                          https://isocpp.org/wiki/faq/ctors#static-init-order problem.
-ARCH_LDFLAGS=#-lgcc
-ARCHFLAGS=-mcpu=cortex-a7 -fpic -fno-exceptions -ffreestanding -fno-threadsafe-statics -nostdlib -fno-rtti -fno-use-cxa-atexit
+FREESTANDING_FLAGS=-fpic -fno-exceptions -ffreestanding -fno-threadsafe-statics -nostdlib -fno-rtti -fno-use-cxa-atexit
 INCLUDE=-I. -Ipine
 UBSAN_FLAGS=-fsanitize=undefined
 ARCH_UBSAN_FLAGS=$(UBSAN_FLAGS) -fsanitize-undefined-trap-on-error
@@ -26,7 +43,7 @@ HOST_UBSAN_FLAGS=$(UBSAN_FLAGS) # -fsanitize=unsigned-integer-overflow -fsanitiz
 #               also the only tool to catch real issues here...
 # -Wno-volatile: This mistake by the C++ committe was undone in C++23.
 CXXFLAGS=-Wall -Wextra -Wpedantic -Wconversion -Wno-volatile -std=c++20 -g2
-PINE_OBJ=$(OBJDIR)/pine/c_string.o $(OBJDIR)/pine/malloc.o $(OBJDIR)/pine/print.o $(OBJDIR)/pine/c_builtins.o
+PINE_OBJ=$(OBJDIR)/pine/c_string.o $(OBJDIR)/pine/malloc.o $(OBJDIR)/pine/print.o $(OBJDIR)/pine/c_builtins.o $(OBJDIR)/pine/arch/eabi.o
 PINE_HOST_OBJ=$(HOSTOBJDIR)/pine/c_string.o $(HOSTOBJDIR)/pine/malloc.o $(HOSTOBJDIR)/pine/print.o $(HOSTOBJDIR)/pine/c_builtins.o
 KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/display.o $(OBJDIR)/kernel/file.o $(OBJDIR)/kernel/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/mailbox.o $(OBJDIR)/kernel/mmu.o $(OBJDIR)/kernel/processor.o $(OBJDIR)/kernel/stack.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/timer.o $(OBJDIR)/kernel/uart.o
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/bootup.o $(OBJDIR)/kernel/switch.o $(OBJDIR)/kernel/vector.o
@@ -52,7 +69,7 @@ userspace: $(OBJDIR) $(USER_ASM_OBJ) $(USER_OBJ)
 kernel: $(OBJDIR) $(KERNEL_ASM_OBJ) $(KERNEL_OBJ)
 
 pinyon.elf: $(OBJDIR) pine userspace kernel
-	$(CC) -T linker.ld -o pinyon.elf $(ARCHFLAGS) $(KERNEL_ASM_OBJ) $(KERNEL_OBJ) $(USER_OBJ) $(USER_ASM_OBJ) $(PINE_OBJ) $(ARCH_LDFLAGS)
+	$(CC) -T linker.ld -o pinyon.elf $(ARCHFLAGS) $(FREESTANDING_FLAGS) $(KERNEL_ASM_OBJ) $(KERNEL_OBJ) $(USER_OBJ) $(USER_ASM_OBJ) $(PINE_OBJ)
 
 .PHONY: fmt
 fmt:
@@ -101,18 +118,19 @@ clean:
 	rm -rf obj/ pinyon.elf pinyon.out
 
 $(OBJDIR)/%.o: %.cpp
-	$(CC) $(ARCHFLAGS) $(INCLUDE) $(CXXFLAGS) $(ARCH_UBSAN_FLAGS) -c $< -o $@
+	$(CC) $(DEFINES) $(ARCHFLAGS) $(FREESTANDING_FLAGS) $(INCLUDE) $(CXXFLAGS) $(ARCH_UBSAN_FLAGS) -c $< -o $@
 
 $(HOSTOBJDIR)/%.o: %.cpp
 	$(HOST_CC) $(INCLUDE) $(CXXFLAGS) $(HOST_UBSAN_FLAGS) -c $< -o $@
 
 $(OBJDIR)/%.o: %.S
-	$(CC) $(ARCHFLAGS) -c $< -o $@
+	$(CC) $(ARCHFLAGS) $(FREESTANDING_FLAGS) -c $< -o $@
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)/kernel
 	mkdir -p $(OBJDIR)/userspace
 	mkdir -p $(OBJDIR)/pine
+	mkdir -p $(OBJDIR)/pine/arch
 
 $(HOSTOBJDIR): $(OBJDIR)
 	mkdir -p $(HOSTOBJDIR)/pine

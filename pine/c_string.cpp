@@ -1,8 +1,5 @@
 #include "c_string.hpp"
 
-// Note: this magic header comes from GCC's builtin functions
-//       https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#Other-Builtins
-#include <cstdarg>
 #include "math.hpp"
 #include "types.hpp"
 

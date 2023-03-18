@@ -1,10 +1,18 @@
 #pragma once
 
-#include <new>
-
 #include "type_traits.hpp"
 #include "types.hpp"
 #include "utility.hpp"
+
+// Note: Headers such as <new> come from GCC's builtin functions when using
+//       -ffrestanding: https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#Other-Builtins
+//       In clang with -ffreestanding, these are not defined, so we have our
+//       own new.hpp implementation.
+#ifdef CLANG_HAS_NO_CXX_INCLUDES
+#include "new.hpp"
+#else
+#include <new>
+#endif
 
 namespace pine {
 

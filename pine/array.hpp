@@ -1,7 +1,5 @@
 #pragma once
 
-#include <initializer_list>  // comes with -ffreestanding
-
 #include <pine/iter.hpp>
 #include <pine/types.hpp>
 #include <pine/utility.hpp>
@@ -12,12 +10,6 @@ template <typename Value, size_t Size>
 class Array {
 public:
     Array() = default;
-    Array(std::initializer_list<Value> items)
-    {
-        size_t i = 0;
-        for (auto item : items)
-            m_contents[i++] = pine::move(item);
-    }
 
     /*
      * Returns the number of entries.

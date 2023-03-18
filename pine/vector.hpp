@@ -1,7 +1,5 @@
 #pragma once
 
-#include <initializer_list>  // comes with -ffreestanding
-
 #include <pine/algorithm.hpp>
 #include <pine/math.hpp>
 #include <pine/page.hpp>
@@ -18,15 +16,6 @@ class Vector : private Destructor {
 public:
     Vector(Allocator& allocator)
         : Destructor(allocator) {};
-    Vector(Allocator& allocator, std::initializer_list<Value> values)
-        : Vector(allocator)
-    {
-        if (!ensure(values.size()))
-            return;
-
-        for (auto value : values)
-            emplace_unensured(move(value));
-    };
     ~Vector()
     {
         if (m_contents)

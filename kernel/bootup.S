@@ -21,7 +21,8 @@ start:
     mrc p15, #0, r3, c0, c0, #5
     and r3, r3, #3      /* r0 &= 0x3 */
     cmp r3, #0          /* Now "halt" if not core 0 */
-    bne halt
+    ldr r0, =halt
+    bxne r0
 
     /* -- Zero out BSS (global or static variables) -- */
     ldr r2, =__bss_start
@@ -42,13 +43,13 @@ ckzbssbnds:
     blo zbss            /* r2 < r7; r2 is curr addr, r7 is the end of bss */
 
 preinit:
-    bl setup_vtable
-    bl setup_stacks
+    ldr r0, =setup_vtable
+    blx r0
     ldr r0, =init
     blx r0
 
 mmu_init:
-    push {lr}
+    push {r0-r3, r12, lr}
 
     ldr r0, =__code_end
     ldr r1, =init_page_tables
@@ -66,12 +67,13 @@ mmu_init:
     orr r3, #1
     mcr p15, 0, r3, c1, c0, 0
 
-    pop {pc}
+    pop {r0-r3, r12, pc}
 
 spin:
 halt:
     wfi                 /* wait for interrupt; puts processor in low power mode */
-    b halt
+    ldr r0, =halt
+    bx r0
 
 /*
  * C function that returns the code address of 'halt'.

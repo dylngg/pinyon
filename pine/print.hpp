@@ -1,6 +1,14 @@
 #pragma once
 
+// Note: Headers such as <c...> comes from GCC's builtin functions when using
+//       -ffrestanding: https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#Other-Builtins
+//       In clang with -ffreestanding, these are not defined, but the C ones
+//       are.
+#ifdef CLANG_HAS_NO_CXX_INCLUDES
+#include <stdarg.h>
+#else
 #include <cstdarg>
+#endif
 
 #include "c_builtins.hpp"
 #include "iter.hpp"

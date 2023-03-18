@@ -1,5 +1,5 @@
 #pragma once
-#include <cstddef> // for size_t
+#include "types.hpp"  // for size_t
 
 /*
  * GCC (and perhaps Clang) will often try and emit these C functions in certain
