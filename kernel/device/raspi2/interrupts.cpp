@@ -1,10 +1,11 @@
 #include "../../arch/aarch32/processor.hpp"
 #include "interrupts.hpp"
+#include "../../interrupt_disabler.hpp"
 #include "../../console.hpp"
-#include "panic.hpp"
+#include "../../panic.hpp"
 #include "../../tasks.hpp"
 #include "../../timer.hpp"
-#include "../../uart.hpp"
+#include "../pl011/uart.hpp"
 
 #include <pine/barrier.hpp>
 #include <pine/bit.hpp>

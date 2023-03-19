@@ -1,5 +1,5 @@
 #include "console.hpp"
-#include "uart.hpp"
+#include "device/pl011/uart.hpp"
 
 #include <pine/barrier.hpp>
 

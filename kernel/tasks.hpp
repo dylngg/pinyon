@@ -4,6 +4,7 @@
 #include "file.hpp"
 #include "kmalloc.hpp"
 #include "wait.hpp"
+#include "interrupt_disabler.hpp"
 
 #include <pine/maybe.hpp>
 #include <pine/memory.hpp>

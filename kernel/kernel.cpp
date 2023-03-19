@@ -7,6 +7,7 @@
 #include "tasks.hpp"
 #include "timer.hpp"
 #include "mmu.hpp"
+#include "device/pl011/uart.hpp"
 #else
 #error Architecture not defined
 #endif

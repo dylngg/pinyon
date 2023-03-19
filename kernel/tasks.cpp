@@ -1,4 +1,3 @@
-#include "uart.hpp"
 #include "tasks.hpp"
 #include "panic.hpp"
 #include "timer.hpp"

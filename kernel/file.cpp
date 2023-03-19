@@ -2,7 +2,7 @@
 #include "file.hpp"
 #include "panic.hpp"
 #include "pseudo_devices.hpp"
-#include "uart.hpp"
+#include "device/pl011/uart.hpp"
 
 #include <pine/limits.hpp>
 #include <pine/errno.hpp>

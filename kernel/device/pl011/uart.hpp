@@ -1,8 +1,8 @@
 #pragma once
-#include "kmalloc.hpp"
-#include "file.hpp"
-#include "wait.hpp"
-#include "interrupt_disabler.hpp"
+#include "../../kmalloc.hpp"
+#include "../../file.hpp"
+#include "../../wait.hpp"
+#include "../../interrupt_disabler.hpp"
 
 #include <pine/maybe.hpp>
 #include <pine/types.hpp>
@@ -43,16 +43,15 @@ class UARTRequest : public Waitable {
 public:
     ~UARTRequest() override = default;
     bool is_finished() const override { return m_size == m_capacity; };
+    void handle_irq(InterruptsDisabledTag disabled_tag);
 
 private:
     UARTRequest() = default;
     UARTRequest(char* buf, size_t size, bool is_write_request);
 
     friend class UARTFile;
-    friend void irq_handler();
     friend UARTRequest& uart_request();
 
-    void handle_irq(InterruptsDisabledTag disabled_tag);
     void fill_from_uart();
     void enable_irq();
     size_t size_read_or_written() const { return m_size; };

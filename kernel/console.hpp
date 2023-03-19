@@ -1,10 +1,9 @@
 #pragma once
-#include "uart.hpp"
-
 #include <pine/barrier.hpp>
 #include <pine/print.hpp>
 #include <pine/string_view.hpp>
 #include <pine/types.hpp>
+#include <pine/utility.hpp>
 
 /*
  * Logging functions for the kernel; these poll the UART, instead of using IRQs
