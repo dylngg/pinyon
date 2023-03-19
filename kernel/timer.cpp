@@ -1,5 +1,5 @@
 #include "timer.hpp"
-#include "device/raspi2/interrupts.hpp"
+#include "interrupt_disabler.hpp"
 #include "panic.hpp"
 
 #include <pine/barrier.hpp>

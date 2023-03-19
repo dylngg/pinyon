@@ -2,7 +2,6 @@
 #include "kmalloc.hpp"
 #include "file.hpp"
 #include "wait.hpp"
-#include "device/raspi2/interrupts.hpp"
 #include "interrupt_disabler.hpp"
 
 #include <pine/maybe.hpp>

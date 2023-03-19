@@ -34,8 +34,6 @@ private:
 
 InterruptRegisters& interrupt_registers();
 
-void interrupts_init();
-
 // Normally we'd have one the following GCC attributes on our handlers to
 // signify that GCC should save registers used in the handler on start and
 // return, but this is not exactly what we want for the disabled ones, since we

@@ -152,3 +152,13 @@ void interrupts_init()
 {
     enable_irq();
 }
+
+void interrupts_enable_uart()
+{
+    interrupt_registers().enable_uart();
+}
+
+void interrupts_enable_timer()
+{
+    interrupt_registers().enable_timer();
+}

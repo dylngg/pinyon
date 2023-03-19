@@ -1,5 +1,5 @@
 #include "uart.hpp"
-#include "device/raspi2/interrupts.hpp"
+#include "interrupts.hpp"
 #include "kmalloc.hpp"
 #include "panic.hpp"
 #include "wait.hpp"
@@ -198,7 +198,7 @@ UARTRegisters& uart_registers()
 void uart_init()
 {
     uart_registers().reset();
-    interrupt_registers().enable_uart();
+    interrupts_enable_uart();
 }
 
 UARTRequest& uart_request()

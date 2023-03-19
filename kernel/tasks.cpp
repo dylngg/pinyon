@@ -2,7 +2,7 @@
 #include "tasks.hpp"
 #include "panic.hpp"
 #include "timer.hpp"
-#include "device/raspi2/interrupts.hpp"
+#include "interrupts.hpp"
 
 #include <pine/limits.hpp>
 #include <pine/units.hpp>
@@ -280,6 +280,6 @@ TaskManager& task_manager()
 void tasks_init()
 {
     InterruptDisabler disabler {};
-    interrupt_registers().enable_timer();
+    interrupts_enable_timer();
     task_manager().start_scheduler(disabler);
 }
