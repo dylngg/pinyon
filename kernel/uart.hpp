@@ -1,5 +1,4 @@
 #pragma once
-#include "interrupts.hpp"
 #include "kmalloc.hpp"
 #include "file.hpp"
 #include "wait.hpp"

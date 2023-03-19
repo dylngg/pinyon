@@ -1,6 +1,4 @@
 #pragma once
-#include "interrupts.hpp"
-#include "uart.hpp"
 #include "arch/aarch32/processor.hpp"
 #include "stack.hpp"
 #include "file.hpp"

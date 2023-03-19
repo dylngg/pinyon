@@ -1,6 +1,8 @@
+#include "uart.hpp"
 #include "tasks.hpp"
 #include "panic.hpp"
 #include "timer.hpp"
+#include "interrupts.hpp"
 
 #include <pine/limits.hpp>
 #include <pine/units.hpp>
