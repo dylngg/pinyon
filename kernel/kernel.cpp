@@ -3,7 +3,7 @@
 #include "console.hpp"
 #include "display.hpp"
 #include "interrupts.hpp"
-#include "mailbox.hpp"
+#include "device/videocore/mailbox.hpp"
 #include "tasks.hpp"
 #include "timer.hpp"
 #include "arch/aarch32/mmu.hpp"

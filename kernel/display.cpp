@@ -1,5 +1,5 @@
 #include "display.hpp"
-#include "mailbox.hpp"
+#include "device/videocore/mailbox.hpp"
 #include "panic.hpp"
 #include "data/font.hpp"
 
