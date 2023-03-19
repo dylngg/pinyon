@@ -2,7 +2,7 @@
 #elif AARCH32
 #include "console.hpp"
 #include "display.hpp"
-#include "interrupts.hpp"
+#include "device/raspi2/interrupts.hpp"
 #include "mailbox.hpp"
 #include "tasks.hpp"
 #include "timer.hpp"

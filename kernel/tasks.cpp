@@ -2,7 +2,7 @@
 #include "tasks.hpp"
 #include "panic.hpp"
 #include "timer.hpp"
-#include "interrupts.hpp"
+#include "device/raspi2/interrupts.hpp"
 
 #include <pine/limits.hpp>
 #include <pine/units.hpp>

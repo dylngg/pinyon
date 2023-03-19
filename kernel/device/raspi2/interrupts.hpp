@@ -32,16 +32,6 @@ private:
     volatile u32 disable_basic_irq;
 };
 
-class InterruptDisabler;
-
-struct InterruptsDisabledTag {
-    InterruptsDisabledTag(const InterruptDisabler&) {};
-    static InterruptsDisabledTag promise() { return InterruptsDisabledTag {}; };
-
-private:
-    InterruptsDisabledTag() = default;
-};
-
 InterruptRegisters& interrupt_registers();
 
 void interrupts_init();

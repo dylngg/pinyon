@@ -1,5 +1,5 @@
 #include "uart.hpp"
-#include "interrupts.hpp"
+#include "device/raspi2/interrupts.hpp"
 #include "kmalloc.hpp"
 #include "panic.hpp"
 #include "wait.hpp"

@@ -1,6 +1,7 @@
 #pragma once
 #include <pine/types.hpp>
 #include "arch/aarch32/processor.hpp"
+#include "interrupt_disabler.hpp"
 
 /*
  * The system timer on the BCM2835 is uh... interesting.
