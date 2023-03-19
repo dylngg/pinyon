@@ -2,6 +2,7 @@
 #include "../../interrupts.hpp"
 #include "../../kmalloc.hpp"
 #include "../../arch/aarch32/panic.hpp"
+#include "../videocore/mailbox.hpp"
 #include "../../wait.hpp"
 #include "../../panic.hpp"
 
@@ -28,6 +29,30 @@ static inline void spin(u32 count)
                  : "=r"(count)
                  : [count] "0"(count)
                  : "cc");
+}
+
+consteval Pair<unsigned, unsigned> compute_baud_divisor_register_values()
+{
+    constexpr unsigned uart_clock_speed_hz = 3000000;
+    constexpr unsigned baud_rate = 115200;
+    /*
+     * The calculation is as follows:
+     *
+     * https://developer.arm.com/documentation/ddi0183/g/programmers-model/register-descriptions/fractional-baud-rate-register--uartfbrd
+     * baud_divisor = uart_clock_speed_hz / (16 * baud_rate)
+     *
+     * So we get some number. We store the integer part in IBRD (e.g. 1 of 1.67):
+     * integer_value = (unsigned) baud_divisor
+     *
+     * We then store the fractional value in FBRD (e.g. .67 of 1.67). FBRD has
+     * a range of 0-63 (6 bits), so we do:
+     * fractional_value = (integer_value - baud_divisor) * 63.
+     */
+    double baud_divisor = static_cast<double>(uart_clock_speed_hz) / (16 * baud_rate);
+    unsigned integer_value = static_cast<unsigned>(baud_divisor);
+    double fractional_remainder = baud_divisor - static_cast<double>(integer_value);
+    unsigned fractional_value = static_cast<unsigned>(fractional_remainder * 63.0);
+    return { integer_value, fractional_value };
 }
 
 void UARTRegisters::reset()
@@ -57,16 +82,11 @@ void UARTRegisters::reset()
     /* Configure UART */
     icr = 0x7FF; // clear all pending interrupts; write 1s for 11 bits
 
-    /*
-     * We want a baud rate of 115200, speed is 250 MHz
-     *
-     * BAUDDIV = (FUARTCLK/(16 Baud rate))
-     *
-     * So we get 1.67. We store the integer in IBRD, and the fractional value
-     * in FBRD. FBRD has a range of 0-63 (6 bits), so we take (67 / 100) * 63 = ~42.
-     */
-    ibrd = 1;
-    fbrd = 42;
+    // Compute the values at compile time!
+    auto [integer_value, fractional_value] = compute_baud_divisor_register_values();
+
+    ibrd = integer_value;
+    fbrd = fractional_value;
 
     // 4: enable FIFO
     // 5/6: 0b11 - 8-bit words
