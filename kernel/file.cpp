@@ -1,4 +1,4 @@
-#include "device/raspi2/display.hpp"
+#include "device/bcm2835/display.hpp"
 #include "file.hpp"
 #include "panic.hpp"
 #include "pseudo_devices.hpp"

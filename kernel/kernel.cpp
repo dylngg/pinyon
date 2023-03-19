@@ -1,7 +1,7 @@
 #ifdef AARCH64
 #elif AARCH32
 #include "console.hpp"
-#include "device/raspi2/display.hpp"
+#include "device/bcm2835/display.hpp"
 #include "interrupts.hpp"
 #include "device/videocore/mailbox.hpp"
 #include "tasks.hpp"
