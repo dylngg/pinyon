@@ -1,5 +1,4 @@
 #include "kmalloc.hpp"
-#include "mmu.hpp"
 
 #include <pine/barrier.hpp>
 

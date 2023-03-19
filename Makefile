@@ -81,7 +81,7 @@ USER_OBJ=
 USER_ASM_OBJ=
 else
 ARCH_DEFINES=-DAARCH32
-KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/display.o $(OBJDIR)/kernel/file.o $(OBJDIR)/kernel/device/raspi2/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/mailbox.o $(OBJDIR)/kernel/mmu.o $(OBJDIR)/kernel/arch/aarch32/processor.o $(OBJDIR)/kernel/stack.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/timer.o $(OBJDIR)/kernel/device/pl011/uart.o
+KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/display.o $(OBJDIR)/kernel/file.o $(OBJDIR)/kernel/device/raspi2/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/mailbox.o $(OBJDIR)/kernel/arch/aarch32/mmu.o $(OBJDIR)/kernel/arch/aarch32/processor.o $(OBJDIR)/kernel/stack.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/timer.o $(OBJDIR)/kernel/device/pl011/uart.o
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/arch/aarch32/bootup.o $(OBJDIR)/kernel/switch.o $(OBJDIR)/kernel/arch/aarch32/vector.o
 USER_OBJ=$(OBJDIR)/userspace/shell.o $(OBJDIR)/userspace/lib.o
 USER_ASM_OBJ=$(OBJDIR)/userspace/syscall.o

@@ -8,7 +8,12 @@
 #include <pine/units.hpp>
 #include <pine/vector.hpp>
 
-#include "mmu.hpp"
+#ifdef AARCH64
+#elif AARCH32
+#include "arch/aarch32/mmu.hpp"
+#else
+#error Architecture not defined
+#endif
 
 using KernelMemoryAllocator = pine::FallbackAllocatorBinder<mmu::PageAllocator, pine::IntrusiveFreeList>;
 

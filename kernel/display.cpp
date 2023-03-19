@@ -1,7 +1,6 @@
 #include "display.hpp"
 #include "mailbox.hpp"
 #include "panic.hpp"
-#include "mmu.hpp"
 #include "data/font.hpp"
 
 #include <pine/errno.hpp>

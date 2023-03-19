@@ -1,5 +1,5 @@
 #include "mmu.hpp"
-#include "panic.hpp"
+#include "../../panic.hpp"
 
 #include <pine/c_builtins.hpp>
 #include <pine/twomath.hpp>

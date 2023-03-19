@@ -6,7 +6,7 @@
 #include "mailbox.hpp"
 #include "tasks.hpp"
 #include "timer.hpp"
-#include "mmu.hpp"
+#include "arch/aarch32/mmu.hpp"
 #include "device/pl011/uart.hpp"
 #else
 #error Architecture not defined
