@@ -1,7 +1,7 @@
 #include "display.hpp"
-#include "device/videocore/mailbox.hpp"
-#include "panic.hpp"
-#include "data/font.hpp"
+#include "../videocore/mailbox.hpp"
+#include "../../panic.hpp"
+#include "../../data/font.hpp"
 
 #include <pine/errno.hpp>
 #include <pine/c_string.hpp>
