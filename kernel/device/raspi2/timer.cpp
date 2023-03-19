@@ -1,6 +1,6 @@
 #include "timer.hpp"
-#include "interrupt_disabler.hpp"
-#include "panic.hpp"
+#include "../../interrupt_disabler.hpp"
+#include "../../panic.hpp"
 
 #include <pine/barrier.hpp>
 #include <pine/units.hpp>

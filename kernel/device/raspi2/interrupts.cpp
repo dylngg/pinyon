@@ -4,7 +4,8 @@
 #include "../../console.hpp"
 #include "../../panic.hpp"
 #include "../../tasks.hpp"
-#include "../../timer.hpp"
+#include "../../timer.hpp"  // for jiffies()
+#include "../raspi2/timer.hpp"
 #include "../pl011/uart.hpp"
 
 #include <pine/barrier.hpp>
