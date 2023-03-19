@@ -3,6 +3,18 @@
 #include <pine/print.hpp>
 #include <pine/bit.hpp>
 
+struct InterruptDisabler {
+    InterruptDisabler() __attribute__((always_inline))
+    {
+        asm volatile("cpsid i");
+    }
+
+    ~InterruptDisabler() __attribute__((always_inline))
+    {
+        asm volatile("cpsie i");
+    }
+};
+
 enum class ProcessorMode : u32 {
     User = 0b10000,
     FIQ = 0b10001,

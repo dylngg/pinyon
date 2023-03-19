@@ -1,7 +1,7 @@
 #pragma once
 #include "interrupts.hpp"
 #include "uart.hpp"
-#include "processor.hpp"
+#include "arch/aarch32/processor.hpp"
 #include "stack.hpp"
 #include "file.hpp"
 #include "kmalloc.hpp"

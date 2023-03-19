@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../processor.hpp"
+#include "processor.hpp"
 #include "../../console.hpp"
 
 #include <pine/print.hpp>

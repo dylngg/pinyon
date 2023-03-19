@@ -1,6 +1,5 @@
 #include "processor.hpp"
 
-
 void print_with(pine::Printer& printer, const CPSR& cpsr)
 {
     print_with(printer, "CPSR(mode: ");

@@ -2,8 +2,6 @@
 #include <pine/types.hpp>
 #include <pine/syscall.hpp>
 
-#include "processor.hpp"
-
 /*
  * The Rasbperry Pi has 72 IRQs. It is particularly weird because the GPU
  * shares interrupts with the CPU. Also, documentation in the BCM2835 manual
@@ -34,17 +32,7 @@ private:
     volatile u32 disable_basic_irq;
 };
 
-struct InterruptDisabler {
-    InterruptDisabler() __attribute__((always_inline))
-    {
-        asm volatile("cpsid i");
-    }
-
-    ~InterruptDisabler() __attribute__((always_inline))
-    {
-        asm volatile("cpsie i");
-    }
-};
+class InterruptDisabler;
 
 struct InterruptsDisabledTag {
     InterruptsDisabledTag(const InterruptDisabler&) {};
