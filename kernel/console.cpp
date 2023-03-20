@@ -1,7 +1,6 @@
+#include "barrier.hpp"
 #include "console.hpp"
 #include "device/pl011/uart.hpp"
-
-#include <pine/barrier.hpp>
 
 void UARTPrinter::print(pine::StringView message)
 {

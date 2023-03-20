@@ -6,8 +6,8 @@
 #include "../../panic.hpp"
 #include "../../tasks.hpp"
 #include "../../timer.hpp"
+#include "../../barrier.hpp"
 
-#include <pine/barrier.hpp>
 #include <pine/bit.hpp>
 
 extern "C" {

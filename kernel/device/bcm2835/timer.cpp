@@ -1,8 +1,8 @@
 #include "timer.hpp"
 #include "../../interrupt_disabler.hpp"
 #include "../../panic.hpp"
+#include "../../barrier.hpp"
 
-#include <pine/barrier.hpp>
 #include <pine/units.hpp>
 
 // 32 bits should ought to be enough for anyone ;)

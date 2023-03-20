@@ -3,8 +3,7 @@
 #include "../../interrupt_disabler.hpp"
 #include "../../device/pl011/uart.hpp"
 #include "../../tasks.hpp"
-
-#include <pine/barrier.hpp>
+#include "../../barrier.hpp"
 
 void InterruptRegisters::enable_timer() volatile
 {

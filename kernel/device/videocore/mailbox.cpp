@@ -1,9 +1,9 @@
 #include "mailbox.hpp"
+#include "../../barrier.hpp"
 
 #include <kernel/panic.hpp>
 
 #include <pine/twomath.hpp>
-#include <pine/barrier.hpp>
 
 MailboxRegisters& mailbox_registers()
 {
@@ -13,13 +13,13 @@ MailboxRegisters& mailbox_registers()
 
 u32 MailboxRegisters::read()
 {
-    pine::MemoryBarrier barrier {};
+    pine::MemoryBarrier::sync();
     return raw_read;
 }
 
 u32 MailboxRegisters::status()
 {
-    pine::MemoryBarrier barrier {};
+    pine::MemoryBarrier::sync();
     return raw_status;
 }
 

@@ -1,9 +1,9 @@
 #include "mmu.hpp"
 #include "../../panic.hpp"
+#include "../../barrier.hpp"
 
 #include <pine/c_builtins.hpp>
 #include <pine/twomath.hpp>
-#include <pine/barrier.hpp>
 #include <pine/page.hpp>
 
 static_assert(PageSize == mmu::L2Entry::vm_size);

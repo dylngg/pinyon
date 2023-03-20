@@ -1,4 +1,5 @@
 #include "uart.hpp"
+#include "../../barrier.hpp"
 #include "../../interrupts.hpp"
 #include "../../kmalloc.hpp"
 #include "../../arch/aarch32/panic.hpp"
@@ -7,7 +8,6 @@
 #include "../../panic.hpp"
 
 #include <pine/math.hpp>
-#include <pine/barrier.hpp>
 #include <pine/bit.hpp>
 #include <pine/types.hpp>
 

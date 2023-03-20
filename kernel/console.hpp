@@ -1,5 +1,4 @@
 #pragma once
-#include <pine/barrier.hpp>
 #include <pine/print.hpp>
 #include <pine/string_view.hpp>
 #include <pine/types.hpp>

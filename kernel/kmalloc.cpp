@@ -1,7 +1,5 @@
 #include "kmalloc.hpp"
 
-#include <pine/barrier.hpp>
-
 KernelMemoryAllocator& kernel_allocator()
 {
     static auto g_kernel_memory_allocator = KernelMemoryAllocator(&mmu::page_allocator());
