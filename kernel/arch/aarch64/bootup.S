@@ -53,14 +53,15 @@ step_down_el2:
     eret
 
 zero_out_bss:
-    mrs x0, currentel
     /* -- Zero out BSS (global or static variables) -- */
-    ldr x2, =__bss_size
-    cbz x2, preinit
+    ldr x1, =__bss_start
+    ldr x2, =__bss_end
+    b       ckzbssbnds
 zbss:
     str xzr, [x1], #8
-    sub x2, x2, #1
-    cbnz x2, zbss
+ckzbssbnds:
+    subs x0, x2, x1
+    cbnz x0, zbss
 
 preinit:
     ldr x0, =setup_vtable
