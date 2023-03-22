@@ -1,6 +1,5 @@
 #pragma once
 #include <pine/types.hpp>
-#include "../../arch/aarch32/processor.hpp"
 #include "../../interrupt_disabler.hpp"
 
 /*

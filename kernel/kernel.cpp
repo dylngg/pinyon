@@ -1,19 +1,20 @@
 #ifdef AARCH64
 #elif AARCH32
-#include "console.hpp"
-#include "device/bcm2835/display.hpp"
 #include "interrupts.hpp"
+#include "device/bcm2835/display.hpp"
 #include "device/videocore/mailbox.hpp"
 #include "tasks.hpp"
-#include "timer.hpp"
 #include "arch/aarch32/mmu.hpp"
-#include "device/pl011/uart.hpp"
 #else
 #error Architecture not defined
 #endif
 
-#include <pine/types.hpp>
+#include "console.hpp"
+#include "device/pl011/uart.hpp"
 #include "panic.hpp"
+#include "timer.hpp"
+
+#include <pine/types.hpp>
 
 extern "C" {
 void init();  // Export init symbol as C
@@ -43,7 +44,18 @@ void __cxa_pure_virtual()
 
 void init()
 {
-#ifdef AARCH32
+#ifdef AARCH64
+    uart_init();
+    console("Initializing... ");
+    console("timer ");
+    timer_init();
+    consoleln();
+
+    const char* pinyon = "\033[0;33mPinyon\033[0m";
+    const char* pine = "+\033[0;32mPine\033[0m";
+    consolef("Welcome to %s%s! (%c) %d\n", pinyon, pine, 'c', 2021);
+
+#elif AARCH32
     interrupts_init();
     uart_init();
     console("Initializing... ");

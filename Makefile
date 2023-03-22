@@ -44,7 +44,7 @@ HOSTOBJDIR=obj/host
 ifeq ($(CLANG),1)
 
 ifeq ($(AARCH64),1)
-ARCHFLAGS=--target=aarch64-none-eabi -mcpu=cortex-a53
+ARCHFLAGS=--target=aarch64-none-eabi -mcpu=cortex-a53+nofp+nosimd
 else
 ARCHFLAGS=--target=armv7-none-eabi -mcpu=cortex-a7+nofp+nosimd
 endif
@@ -76,7 +76,7 @@ PINE_HOST_OBJ=$(HOSTOBJDIR)/pine/c_string.o $(HOSTOBJDIR)/pine/malloc.o $(HOSTOB
 ifeq ($(AARCH64),1)
 ARCH_DEFINES=-DAARCH64
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/arch/aarch64/bootup.o $(OBJDIR)/kernel/arch/aarch64/vector.o
-KERNEL_OBJ=$(OBJDIR)/kernel/kernel.o
+KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/device/bcm2835/timer.o $(OBJDIR)/kernel/device/pl011/uart.o
 USER_OBJ=
 USER_ASM_OBJ=
 else

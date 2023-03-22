@@ -15,7 +15,11 @@
 #error Architecture not defined
 #endif
 
+#ifdef AARCH64
+using KernelMemoryAllocator = pine::FallbackAllocatorBinder<pine::FixedAllocation, pine::IntrusiveFreeList>;
+#else
 using KernelMemoryAllocator = pine::FallbackAllocatorBinder<mmu::PageAllocator, pine::IntrusiveFreeList>;
+#endif
 
 KernelMemoryAllocator& kernel_allocator();
 

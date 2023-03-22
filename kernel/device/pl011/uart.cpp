@@ -2,7 +2,6 @@
 #include "../../barrier.hpp"
 #include "../../interrupts.hpp"
 #include "../../kmalloc.hpp"
-#include "../../arch/aarch32/panic.hpp"
 #include "../videocore/mailbox.hpp"
 #include "../../wait.hpp"
 #include "../../panic.hpp"
@@ -160,7 +159,7 @@ void UARTRegisters::set_read_irq(size_t read_size)
 {
     // See Section 13.4 IFLS for details; essentially we can select a trigger
     // at 1/8, 1/4, 1/2, and 7/8 full levels mapped to binary
-    u32 fifo_select_bits = pine::min(read_size, 8u) >> 1; // read when we have as most as possible
+    u32 fifo_select_bits = pine::min(read_size, static_cast<size_t>(8)) >> 1; // read when we have as most as possible
     pine::overwrite_bit_range(ifls, fifo_select_bits, 3, 5);
 }
 
@@ -168,7 +167,7 @@ void UARTRegisters::set_write_irq(size_t write_size)
 {
     // See Section 13.4 IFLS for details; essentially we can select a trigger
     // at 1/8, 1/4, 1/2, and 7/8 full levels mapped to binary
-    u32 fifo_select_bits = pine::min(write_size, 8u) >> 1; // write when we have as most as possible
+    u32 fifo_select_bits = pine::min(write_size, static_cast<size_t>(8)) >> 1; // write when we have as most as possible
     pine::overwrite_bit_range(ifls, fifo_select_bits, 0, 2);
 }
 
@@ -219,8 +218,12 @@ UARTRegisters& uart_registers()
 void uart_init()
 {
     uart_registers().reset();
+#ifndef AARCH64
     interrupts_enable_uart();
+#endif
 }
+
+#ifndef AARCH64
 
 UARTRequest& uart_request()
 {
@@ -337,3 +340,5 @@ void UARTRequest::handle_irq(InterruptsDisabledTag)
     else
         uart.set_read_irq(m_capacity - m_size);
 }
+
+#endif
