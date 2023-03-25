@@ -65,8 +65,8 @@ pine::Allocation malloc(size_t);
 struct MallocStats {
     size_t heap_size = 0;
     size_t used_size = 0;
-    u32 num_mallocs = 0;
-    u32 num_frees = 0;
+    unsigned int num_mallocs = 0;
+    unsigned int num_frees = 0;
 };
 
 MallocStats memstats();

@@ -10,9 +10,9 @@ static void builtin_memstat()
 {
     auto malloc_stats = memstats();
     unsigned int pct_of_heap = (malloc_stats.used_size * 100) / malloc_stats.heap_size;
-    printf("heap size: %d bytes\n"
-           "requested: %u bytes (%u%% of heap)\n"
-           "nmallocs: %lu\nnfrees: %lu\n",
+    printf("heap size: %zu bytes\n"
+           "requested: %zu bytes (%u%% of heap)\n"
+           "nmallocs: %u\nnfrees: %u\n",
            malloc_stats.heap_size,
            malloc_stats.used_size,
            pct_of_heap,
@@ -22,11 +22,11 @@ static void builtin_memstat()
 
 static void builtin_uptime()
 {
-    auto uptime_jiffies = uptime();
-    auto uptime_seconds = uptime_jiffies >> SYS_HZ_BITS;
-    auto cputime_jiffies = cputime();
-    auto cpu_usage = cputime_jiffies * 100u / pine::max(uptime_jiffies, static_cast<decltype(cputime_jiffies)>(1));
-    printf("up %lds, usage: %lu%% (%lu / %lu jiffies)\n", uptime_seconds, cpu_usage, cputime_jiffies, uptime_jiffies);
+    unsigned uptime_jiffies = uptime();
+    unsigned uptime_seconds = uptime_jiffies >> SYS_HZ_BITS;
+    unsigned cputime_jiffies = cputime();
+    unsigned cpu_usage = cputime_jiffies * 100u / pine::max(uptime_jiffies, static_cast<decltype(cputime_jiffies)>(1));
+    printf("up %us, usage: %u%% (%u / %u jiffies)\n", uptime_seconds, cpu_usage, cputime_jiffies, uptime_jiffies);
 }
 
 static void setup_uart_as_stdio()
