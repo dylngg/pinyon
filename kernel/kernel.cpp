@@ -1,6 +1,6 @@
 #ifdef AARCH64
 #elif AARCH32
-#include "arch/interrupts.hpp"
+#include "device/interrupts.hpp"
 #include "device/bcm2835/display.hpp"
 #include "device/videocore/mailbox.hpp"
 #include "tasks.hpp"
@@ -12,7 +12,7 @@
 #include "console.hpp"
 #include "device/pl011/uart.hpp"
 #include "arch/panic.hpp"
-#include "timer.hpp"
+#include "device/timer.hpp"
 
 #include <pine/types.hpp>
 

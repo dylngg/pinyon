@@ -1,7 +1,7 @@
 #include "tasks.hpp"
 #include "arch/panic.hpp"
-#include "timer.hpp"
-#include "arch/interrupts.hpp"
+#include "device/timer.hpp"
+#include "device/interrupts.hpp"
 
 #include <pine/limits.hpp>
 #include <pine/units.hpp>

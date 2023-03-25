@@ -1,5 +1,5 @@
 #include "uart.hpp"
-#include "../../arch/interrupts.hpp"
+#include "../../device/interrupts.hpp"
 #include "../../kmalloc.hpp"
 #include "../../arch/panic.hpp"
 #include "../../wait.hpp"
