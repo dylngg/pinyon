@@ -53,13 +53,13 @@ u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2, u32 arg3)
         return pine::bit_cast<u32>(task.open(reinterpret_cast<const char*>(arg1), pine::bit_cast<FileMode>(arg2)));
 
     case Syscall::Read:
-        return pine::bit_cast<ssize_t>(task.read(pine::bit_cast<int>(arg1), reinterpret_cast<char*>(arg2), pine::bit_cast<size_t>(arg3)));
+        return pine::bit_cast<u32>(task.read(pine::bit_cast<int>(arg1), reinterpret_cast<char*>(arg2), pine::bit_cast<size_t>(arg3)));
 
     case Syscall::Write:
-        return pine::bit_cast<ssize_t>(task.write(pine::bit_cast<int>(arg1), reinterpret_cast<char*>(arg2), pine::bit_cast<size_t>(arg3)));
+        return pine::bit_cast<u32>(task.write(pine::bit_cast<int>(arg1), reinterpret_cast<char*>(arg2), pine::bit_cast<size_t>(arg3)));
 
     case Syscall::Close:
-        return pine::bit_cast<ssize_t>(task.close(pine::bit_cast<int>(arg1)));
+        return pine::bit_cast<u32>(task.close(pine::bit_cast<int>(arg1)));
 
     case Syscall::Dup:
         return pine::bit_cast<u32>(task.dup(pine::bit_cast<int>(arg1)));

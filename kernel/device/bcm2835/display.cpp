@@ -187,5 +187,5 @@ ssize_t DisplayFile::write(char* buf, size_t bytes)
 
     m_displayed_string = pine::move(*maybe_string);
     display().draw_string(m_displayed_string, DISPLAY_X_INSET, DISPLAY_Y_INSET, 0x21dd7f);
-    return bytes;
+    return static_cast<ssize_t>(bytes);  // validated by FileDescription
 }

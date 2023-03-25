@@ -29,7 +29,7 @@ enum class MailboxChannel : u32 {
 #define MAILBOX_FULL       0x80000000
 #define MAILBOX_EMPTY      0x40000000
 
-class MailboxRegisters;
+struct MailboxRegisters;
 MailboxRegisters& mailbox_registers();
 
 struct MailboxRegisters {

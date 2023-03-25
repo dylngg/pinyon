@@ -127,12 +127,12 @@ char UARTRegisters::poll_get()
 
 void UARTRegisters::clear_read_irq()
 {
-    icr &= ~(1 << UART_ICR_RXIC);
+    icr &= ~(1u << UART_ICR_RXIC);
 }
 
 void UARTRegisters::clear_write_irq()
 {
-    icr &= ~(1 << UART_ICR_TXIC);
+    icr &= ~(1u << UART_ICR_TXIC);
 }
 
 void UARTRegisters::enable_read_irq()

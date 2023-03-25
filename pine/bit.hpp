@@ -17,7 +17,7 @@ template <typename UInt, typename UInt2>
 constexpr UInt overwrite_bit_range(UInt dest, UInt2 value, int start_inclusive, int end_inclusive)
 {
     static_assert(is_unsigned<UInt> && is_unsigned<UInt2>);
-    UInt mask = ((1 << (end_inclusive - start_inclusive)) - 1) << start_inclusive;
+    UInt mask = ((1u << (end_inclusive - start_inclusive)) - 1) << start_inclusive;
     return (dest & ~mask) | (value & mask);
 }
 
