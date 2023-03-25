@@ -115,3 +115,48 @@ private:
     template <typename To, typename From>
     friend constexpr To pine::bit_cast(From);
 };
+
+struct Registers {
+    explicit Registers(u32 user_sp, u32 kernel_sp, u32 user_pc, PtrData stop_addr, ProcessorMode user_mode)
+        : cpsr(user_mode)
+        , user_sp(user_sp)
+        , user_lr(stop_addr)
+        , kernel_sp(kernel_sp)
+        , kernel_lr(stop_addr)
+        , r0(0)
+        , r1(0)
+        , r2(0)
+        , r3(0)
+        , r4(0)
+        , r5(0)
+        , r6(0)
+        , r7(0)
+        , r8(0)
+        , r9(0)
+        , r10(0)
+        , r11(0)
+        , r12(0)
+        , pc(user_pc) {};
+
+    bool is_kernel_registers() const { return user_sp == kernel_sp; };
+
+    CPSR cpsr;  // The CPSR to return to (either user or kernel, depending on if starting a task)
+    u32 user_sp;
+    u32 user_lr;
+    u32 kernel_sp;
+    u32 kernel_lr;
+    u32 r0;
+    u32 r1;
+    u32 r2;
+    u32 r3;
+    u32 r4;
+    u32 r5;
+    u32 r6;
+    u32 r7;
+    u32 r8;
+    u32 r9;
+    u32 r10;
+    u32 r11;
+    u32 r12;
+    u32 pc;     // The PC to return to (either user or kernel, depending on if starting a task)
+};

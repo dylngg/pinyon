@@ -9,12 +9,14 @@
 
 Registers construct_user_task_registers(const Stack& stack, const Stack& kernel_stack, PtrData pc)
 {
-    return Registers(stack.sp(), kernel_stack.sp(), pc, ProcessorMode::User);
+    static auto halt_addr_cached = halt_addr();
+    return Registers(stack.sp(), kernel_stack.sp(), pc, halt_addr_cached, ProcessorMode::User);
 }
 
 Registers construct_kernel_task_registers(const Stack& kernel_stack, PtrData pc)
 {
-    auto registers = Registers(kernel_stack.sp(), kernel_stack.sp(), pc, ProcessorMode::Supervisor);
+    static auto halt_addr_cached = halt_addr();
+    auto registers = Registers(kernel_stack.sp(), kernel_stack.sp(), pc, halt_addr_cached, ProcessorMode::Supervisor);
     PANIC_IF(!registers.is_kernel_registers());
     return registers;
 }
