@@ -1,5 +1,5 @@
 #pragma once
-#include "interrupt_disabler.hpp"
+#include "../interrupt_disabler.hpp"
 
 // These are implemented by the device/*/interrupts.cpp file
 

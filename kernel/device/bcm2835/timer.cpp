@@ -1,7 +1,7 @@
 #include "timer.hpp"
 #include "../../interrupt_disabler.hpp"
-#include "../../panic.hpp"
-#include "../../barrier.hpp"
+#include "../../arch/panic.hpp"
+#include "../../arch/barrier.hpp"
 
 #include <pine/units.hpp>
 

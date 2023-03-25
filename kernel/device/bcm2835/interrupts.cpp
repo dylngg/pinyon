@@ -1,9 +1,9 @@
 #include "interrupts.hpp"
-#include "timer.hpp"
-#include "../../interrupt_disabler.hpp"
 #include "../../device/pl011/uart.hpp"
+#include "../../interrupt_disabler.hpp"
 #include "../../tasks.hpp"
-#include "../../barrier.hpp"
+#include "../../arch/barrier.hpp"
+#include "timer.hpp"
 
 void InterruptRegisters::enable_timer() volatile
 {

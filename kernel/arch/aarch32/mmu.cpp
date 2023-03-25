@@ -1,6 +1,6 @@
 #include "mmu.hpp"
-#include "../../panic.hpp"
-#include "../../barrier.hpp"
+#include "../../arch/panic.hpp"
+#include "../../arch/barrier.hpp"
 
 #include <pine/c_builtins.hpp>
 #include <pine/twomath.hpp>

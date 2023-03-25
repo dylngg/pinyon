@@ -1,10 +1,10 @@
 #include "uart.hpp"
-#include "../../barrier.hpp"
-#include "../../interrupts.hpp"
+#include "../../arch/interrupts.hpp"
 #include "../../kmalloc.hpp"
-#include "../videocore/mailbox.hpp"
+#include "../../arch/panic.hpp"
 #include "../../wait.hpp"
-#include "../../panic.hpp"
+#include "../videocore/mailbox.hpp"
+#include "../../arch/barrier.hpp"
 
 #include <pine/math.hpp>
 #include <pine/bit.hpp>

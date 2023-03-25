@@ -1,6 +1,6 @@
 #include "display.hpp"
 #include "../videocore/mailbox.hpp"
-#include "../../panic.hpp"
+#include "../../arch/panic.hpp"
 #include "../../data/font.hpp"
 
 #include <pine/errno.hpp>

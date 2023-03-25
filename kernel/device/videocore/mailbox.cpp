@@ -1,7 +1,6 @@
 #include "mailbox.hpp"
-#include "../../barrier.hpp"
-
-#include <kernel/panic.hpp>
+#include "../../arch/barrier.hpp"
+#include "../../arch/panic.hpp"
 
 #include <pine/twomath.hpp>
 

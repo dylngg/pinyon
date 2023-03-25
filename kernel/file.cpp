@@ -1,6 +1,6 @@
 #include "device/bcm2835/display.hpp"
 #include "file.hpp"
-#include "panic.hpp"
+#include "arch/panic.hpp"
 #include "pseudo_devices.hpp"
 #include "device/pl011/uart.hpp"
 

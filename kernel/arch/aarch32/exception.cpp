@@ -1,12 +1,12 @@
 #include "exception.hpp"
-#include "processor.hpp"
-#include "mmu.hpp"
+#include "../../arch/interrupts.hpp"
 #include "../../interrupt_disabler.hpp"
-#include "../../interrupts.hpp"
-#include "../../panic.hpp"
+#include "../../arch/panic.hpp"
 #include "../../tasks.hpp"
 #include "../../timer.hpp"
-#include "../../barrier.hpp"
+#include "../../arch/barrier.hpp"
+#include "mmu.hpp"
+#include "processor.hpp"
 
 #include <pine/bit.hpp>
 
