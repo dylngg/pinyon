@@ -44,33 +44,13 @@ void __cxa_pure_virtual()
 
 void init()
 {
-#ifdef AARCH64
     interrupts_init();
     uart_init();
     console("Initializing... ");
-    console("timer ");
-    timer_init();
-    console("display");
-    display_init(1024, 756);
-    consoleln();
-
-    const char* pinyon = "\033[0;33mPinyon\033[0m";
-    const char* pine = "+\033[0;32mPine\033[0m";
-    consolef("Welcome to %s%s! (%c) %d\n", pinyon, pine, 'c', 2021);
-
-    auto maybe_serial = try_retrieve_serial_num_from_mailbox();
-    PANIC_IF(!maybe_serial);
-    auto serial = *maybe_serial;
-    consolef("Serial: %#lx%lx\n", static_cast<unsigned long>(serial.bottom), static_cast<unsigned long>(serial.top));
-
-    asm volatile("svc 0");
-
-#elif AARCH32
-    interrupts_init();
-    uart_init();
-    console("Initializing... ");
+#ifndef AARCH64
     console("memory ");
     mmu_init();
+#endif
     console("timer ");
     timer_init();
     console("display");
@@ -88,8 +68,7 @@ void init()
 
     consoleln("Use 'help' for a list of commands to run.");
 
+#ifndef AARCH64
     tasks_init();
-#else
-#error Architecture not defined
 #endif
 }
