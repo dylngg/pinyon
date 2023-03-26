@@ -76,7 +76,7 @@ PINE_HOST_OBJ=$(HOSTOBJDIR)/pine/c_string.o $(HOSTOBJDIR)/pine/malloc.o $(HOSTOB
 ifeq ($(AARCH64),1)
 ARCH_DEFINES=-DAARCH64
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/arch/aarch64/bootup.o $(OBJDIR)/kernel/arch/aarch64/vector.o
-KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/device/bcm2835/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/device/bcm2835/timer.o $(OBJDIR)/kernel/device/pl011/uart.o
+KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/device/bcm2835/display.o $(OBJDIR)/kernel/device/bcm2835/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/device/videocore/mailbox.o $(OBJDIR)/kernel/device/bcm2835/timer.o $(OBJDIR)/kernel/device/pl011/uart.o
 USER_OBJ=
 USER_ASM_OBJ=
 else
