@@ -59,7 +59,7 @@ void init()
 
     const char* pinyon = "\033[0;33mPinyon\033[0m";
     const char* pine = "+\033[0;32mPine\033[0m";
-    consolef("Welcome to %s%s! (%c) %d\n", pinyon, pine, 'c', 2021);
+    consolef("Welcome to %s%s! (%c) %d-%d\n", pinyon, pine, 'c', 2021, 2023);
 
     auto maybe_serial = try_retrieve_serial_num_from_mailbox();
     PANIC_IF(!maybe_serial);
