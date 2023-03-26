@@ -66,6 +66,13 @@ step_down_el2:
     orr x0, x0, #(1 << 29)   /* Disable HVC instructions */
     orr x0, x0, #(1 << 31)   /* EL1 is aarch64 */
     msr hcr_el2, x0
+
+    ldr x0, =setup_vtable
+    blr x0
+
+    ldr x0, =setup_stacks
+    blr x0
+
     adr x1, zero_out_bss
     msr elr_el2, x1
     /*
@@ -94,10 +101,6 @@ ckzbssbnds:
     cbnz x0, zbss
 
 preinit:
-    ldr x0, =setup_vtable
-    blr x0
-    ldr x0, =setup_stacks
-    blr x0
     ldr x0, =init
     blr x0
 

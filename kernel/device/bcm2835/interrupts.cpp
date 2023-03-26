@@ -1,7 +1,9 @@
 #include "interrupts.hpp"
 #include "../../device/pl011/uart.hpp"
 #include "../../interrupt_disabler.hpp"
+#ifndef AARCH64
 #include "../../tasks.hpp"
+#endif
 #include "../../arch/barrier.hpp"
 #include "timer.hpp"
 
@@ -62,9 +64,11 @@ void interrupts_handle_irq(InterruptsDisabledTag disabled_tag)
         system_timer().handle_irq(disabled_tag);
         should_reschedule = true;
     }
+#ifndef AARCH64
     if (irq.uart_pending())
         uart_request().handle_irq(disabled_tag);
 
     if (should_reschedule)
         task_manager().schedule(disabled_tag);
+#endif
 }
