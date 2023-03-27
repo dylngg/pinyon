@@ -15,7 +15,7 @@ void reset_handler(void) __attribute__((interrupt("ABORT")));
 
 void undefined_instruction_handler(PtrData old_cpsr, PtrData old_pc, PtrData old_lr);
 
-u32 software_interrupt_handler(Syscall call, u32 arg1, u32 arg2, u32 arg3);
+PtrData software_interrupt_handler(Syscall call, PtrData arg1, PtrData arg2, PtrData arg3);
 
 void prefetch_abort_handler(void) __attribute__((interrupt("ABORT")));
 
