@@ -9,7 +9,6 @@
 template <typename... Args>
 inline void panic(Args&& ... args)
 {
-    auto uart_printer = UARTPrinter();
     PtrData sp;
     PtrData lr;
     PtrData cpsr;
@@ -20,8 +19,8 @@ inline void panic(Args&& ... args)
     asm volatile("mrs %0, cpsr"
                  : "=r"(cpsr));
 
-    print_with(uart_printer, "\nKERNEL PANIC! (!!!)\n\n");
-    print_each_with(uart_printer, pine::forward<Args>(args)...);
+    consoleln("\nKERNEL PANIC! (!!!)\n\n");
+    consoleln(pine::forward<Args>(args)...);
 
     consoleln("\n\ncpsr:", CPSR::from_data(cpsr), "sp:", reinterpret_cast<void*>(sp), "lr:", reinterpret_cast<void*>(lr));
     asm volatile("b halt");
