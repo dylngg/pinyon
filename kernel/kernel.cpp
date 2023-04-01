@@ -68,6 +68,8 @@ void init()
 
     consoleln("Use 'help' for a list of commands to run.");
 
+    asm volatile("svc 0");
+
 #ifndef AARCH64
     tasks_init();
 #endif

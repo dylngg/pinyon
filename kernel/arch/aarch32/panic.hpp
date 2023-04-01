@@ -10,7 +10,7 @@ template <typename... Args>
 inline void panic(Args&& ... args)
 {
     PtrData sp;
-    PtrData lr;
+    PtrData lr;  // Collect before clobbered by calls
     PtrData cpsr;
     asm volatile("mov %0, sp"
                  : "=r"(sp));
@@ -19,9 +19,9 @@ inline void panic(Args&& ... args)
     asm volatile("mrs %0, cpsr"
                  : "=r"(cpsr));
 
-    consoleln("\nKERNEL PANIC! (!!!)\n\n");
+    consoleln("\nKERNEL PANIC! (!!!)");
     consoleln(pine::forward<Args>(args)...);
 
-    consoleln("\n\ncpsr:", CPSR::from_data(cpsr), "sp:", reinterpret_cast<void*>(sp), "lr:", reinterpret_cast<void*>(lr));
+    consoleln("cpsr:", CPSR::from_data(cpsr), "sp:", reinterpret_cast<void*>(sp), "lr:", reinterpret_cast<void*>(lr));
     asm volatile("b halt");
 }
