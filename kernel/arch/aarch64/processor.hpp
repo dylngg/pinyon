@@ -17,15 +17,15 @@ struct InterruptDisabler {
 
 // See https://developer.arm.com/documentation/ddi0595/2020-12/AArch64-Registers/ESR-EL1--Exception-Syndrome-Register--EL1-
 enum class ExceptionClass : u64 {
-    UnknownReason = 0b000000,
-    SIMDException = 0b000111,
-    SVC = 0b001111,
-    InstructionAbortEL0 = 0b100000,
-    InstructionAbort = 0b100001,
-    DataAbortEL0 = 0b100100,
-    DataAbort = 0b100101,
-    FPException = 0b101100,
-    SError = 0b101111,
+    UnknownReason = 0x0,
+    SIMDException = 0x7,
+    SVC = 0x15,
+    InstructionAbortEL0 = 0x20,
+    InstructionAbort = 0x21,
+    DataAbortEL0 = 0x24,
+    DataAbort = 0x25,
+    FPException = 0x2c,
+    SError = 0x2f,
 };
 
 struct ESR_EL1 {
@@ -64,6 +64,14 @@ struct SPSR_EL1 {
     u64 z : 1;              // 30: Zero Condition flag
     u64 n : 1;              // 31: Negative Condition bit
     u64 _5 : 32;            // 32-63: Reserved
+};
+
+struct Registers {
+    u64 xn[30];
+    u64 lr;
+    u64 zero;
+
+    friend void print_with(pine::Printer& printer, const Registers& registers);
 };
 
 static_assert(sizeof(SPSR_EL1) == 8);

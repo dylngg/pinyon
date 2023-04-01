@@ -65,7 +65,8 @@ synchronous_kernel:
     stp x28, x29, [sp, #(16 * 14)]
     stp lr, xzr, [sp, #(16 * 15)]
 
-    bl kernel_synchronous_handler
+    mov x0, sp
+    bl synchronous_kernel_handler
 
     ldp x0, x1, [sp, #(16 * 0)]
     ldp x2, x3, [sp, #(16 * 1)]

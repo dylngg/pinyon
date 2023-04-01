@@ -21,11 +21,11 @@ inline void panic(Args&& ... args)
     asm volatile("mrs %0, spsr_el1" : "=r"(spsr));
 
     consoleln("\nKERNEL PANIC! (!!!)");
-    consoleln(pine::forward<Args>(args)...);
+    console_join(pine::forward<Args>(args)...);
 
-    console_join("el: ", el >> 2, " daif: 0b", daif & 1 ? "1" : "0", daif & (1 << 1) ? "1" : "0", daif & (1 << 2) ? "1" : "0", daif & (1 << 3) ? "1" : "0"
-                 " sp: ", reinterpret_cast<void*>(sp), " lr: ", reinterpret_cast<void*>(lr), "\n");
-    console_join("spsr: ", SPSR_EL1::from_data(spsr), " ");
+    console_join("el: ", el >> 2, " daif: 0b", daif & 1 ? "1" : "0", daif & (1 << 1) ? "1" : "0", daif & (1 << 2) ? "1" : "0", daif & (1 << 3) ? "1" : "0",
+                 " spsr: ", SPSR_EL1::from_data(spsr), "\n");
+    console_join("sp: ", reinterpret_cast<void*>(sp), " lr: ", reinterpret_cast<void*>(lr), "\n");
 
     asm volatile("b halt");
 }
