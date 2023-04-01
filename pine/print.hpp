@@ -17,10 +17,9 @@
 #include "string_view.hpp"
 
 /*
- * This header defines simple conatenation based printing of arguments to some
- * "print()" function. No spaces are inserted between arguments, unlike the
- * similar look to Python's print function. The particular name of this print
- * function depends on the environment. (kernel, userspace, alien)
+ * This header defines simple concatenation based printing of arguments to some
+ * "print()" function. The particular name of this print function depends on the
+ * environment. (kernel, userspace, alien)
  *
  * The format of each argument is based on the type of each argument. More
  * specifically, the formatting is implemented with an associated
@@ -48,16 +47,29 @@ protected:
 };
 
 template <typename First>
+inline void print_each_with_spacing(Printer& printer, const First& first)
+{
+    print_with(printer, first);
+}
+
+template <typename First, typename... Args>
+inline void print_each_with_spacing(Printer& printer, const First& first, const Args&... args)
+{
+    print_each_with_spacing(printer, first);
+    print_each_with_spacing(printer, " ");
+    print_each_with_spacing(printer, args...);
+}
+
+template <typename First>
 inline void print_each_with(Printer& printer, const First& first)
 {
     print_with(printer, first);
 }
 
 template <typename First, typename... Args>
-void print_each_with(Printer& printer, const First& first, const Args&... args)
+inline void print_each_with(Printer& printer, const First& first, const Args&... args)
 {
     print_each_with(printer, first);
-    print_each_with(printer, " ");
     print_each_with(printer, args...);
 }
 

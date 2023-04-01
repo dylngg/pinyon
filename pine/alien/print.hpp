@@ -27,7 +27,7 @@ template <typename... Args>
 inline void print(Args&& ... args)
 {
     auto printer = IOOutputStream();
-    print_each_with(printer, pine::forward<Args>(args)...);
+    print_each_with_spacing(printer, pine::forward<Args>(args)...);
 }
 
 template <typename... Args>
@@ -41,7 +41,7 @@ template <typename... Args>
 inline void error(Args&& ... args)
 {
     auto printer = IOErrorStream();
-    print_each_with(printer, pine::forward<Args>(args)...);
+    print_each_with_spacing(printer, pine::forward<Args>(args)...);
 }
 
 template <typename... Args>

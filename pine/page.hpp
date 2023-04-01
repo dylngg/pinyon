@@ -111,8 +111,8 @@ struct Region {
 
     friend void print_with(pine::Printer& printer, const Region& region)
     {
-        print_each_with(printer, "(");
-        print_each_with(printer, region.offset, ",", region.length);
+        print_each_with_spacing(printer, "(");
+        print_each_with_spacing(printer, region.offset, ",", region.length);
         print_with(printer, ")");
     }
 };

@@ -17,13 +17,20 @@ template <typename... Args>
 inline void console(Args&& ... args)
 {
     auto printer = UARTPrinter();
-    print_each_with(printer, pine::forward<Args>(args)...);
+    print_each_with_spacing(printer, pine::forward<Args>(args)...);
 }
 
 template <typename... Args>
 inline void consoleln(Args&& ... args)
 {
     console(pine::forward<Args>(args)..., "\n");
+}
+
+template <typename... Args>
+inline void console_join(Args&& ... args)
+{
+    auto printer = UARTPrinter();
+    print_each_with(printer, pine::forward<Args>(args)...);
 }
 
 void consolef(const char*, ...) __attribute__((format(printf, 1, 2)));
