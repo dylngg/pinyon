@@ -128,14 +128,12 @@ debug: pinyon.elf
 	$(GDB) $<
 	killall $(QEMU)
 
-ifneq ($(AARCH64),1)
 .PHONY: trace
 trace: pinyon.elf
-	sh feed.sh | $(QEMU) -s -S -nographic $(QEMU_FLAGS) -d mmu,exec,guest_errors,cpu,in_asm,plugin,page -kernel $< 1>pinyon.out 2>&1 &
+	sh feed.sh | $(QEMU) -s -S -nographic $(QEMU_FLAGS) -d exec,cpu,in_asm,int -kernel $< 1>pinyon.out 2>&1 &
 	sleep 1  # hack
 	$(GDB) $<
 	killall $(QEMU)
-endif
 
 .PHONY: test
 test: test_pine
