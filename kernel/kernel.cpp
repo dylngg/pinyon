@@ -69,8 +69,10 @@ void init()
     consoleln("Use 'help' for a list of commands to run.");
 
     asm volatile("svc 0");
-    volatile int* i = (volatile int*)0xFFFF'FFFF'FFFF'FFFF;
-    *i = 1;
+
+    auto* file_description = file_table().open("/dev/uart0", FileMode::Write);
+    char buf[] = "Hello again!";
+    file_description->write(buf, sizeof(buf));
 
 #ifndef AARCH64
     tasks_init();

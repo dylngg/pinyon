@@ -64,10 +64,10 @@ void interrupts_handle_irq(InterruptsDisabledTag disabled_tag)
         system_timer().handle_irq(disabled_tag);
         should_reschedule = true;
     }
-#ifndef AARCH64
     if (irq.uart_pending())
         uart_request().handle_irq(disabled_tag);
 
+#ifndef AARCH64
     if (should_reschedule)
         task_manager().schedule(disabled_tag);
 #endif

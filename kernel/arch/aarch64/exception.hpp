@@ -3,4 +3,6 @@
 
 extern "C" {
 void synchronous_kernel_handler(const Registers&);
+
+void irq_handler();
 }

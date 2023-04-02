@@ -38,8 +38,6 @@
 #define GPPUD 0x3F200094
 #define GPPUDCLK0 0x3F200098
 
-#ifndef AARCH64
-
 class UARTRequest : public Waitable {
 public:
     ~UARTRequest() override = default;
@@ -73,8 +71,6 @@ public:
 
 private:
 };
-
-#endif
 
 class UARTRegisters;
 UARTRegisters& uart_registers();

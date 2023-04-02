@@ -1,4 +1,6 @@
 #include "exception.hpp"
+#include "kernel/device/interrupts.hpp"
+#include "kernel/interrupt_disabler.hpp"
 #include "panic.hpp"
 
 extern "C" {
@@ -14,7 +16,6 @@ void undefined_instruction_handler(const Registers& registers)
     panic("\033[31mUndefined instruction! halting.\033[0m\n\n", registers);
 }
 
-
 void synchronous_kernel_handler(const Registers& registers)
 {
     ESR_EL1 esr {};
@@ -28,8 +29,14 @@ void synchronous_kernel_handler(const Registers& registers)
     case ExceptionClass::FPException:
         panic("\033[31mFP or SIMD code attempted to execute! halting.\033[0m\n\n", registers);
         break;
-    case ExceptionClass::SVC:
+    case ExceptionClass::SVC: {
+        static int already_called = false;
+        if (!already_called) {
+            already_called = true;
+            asm volatile("svc 1");
+        }
         return;
+    }
     case ExceptionClass::InstructionAbortEL0:
     case ExceptionClass::InstructionAbort:
         undefined_instruction_handler(registers);
@@ -44,6 +51,11 @@ void synchronous_kernel_handler(const Registers& registers)
     default:
         panic("\033[31mUnknown exception raised! (", (PtrData) esr.ec, ") halting.\033[0m\n\n", registers);
     }
+}
+
+void irq_handler()
+{
+    interrupts_handle_irq(InterruptsDisabledTag::promise());
 }
 
 }

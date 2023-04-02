@@ -6,13 +6,18 @@
 struct InterruptDisabler {
     InterruptDisabler() __attribute__((always_inline))
     {
-        asm volatile("msr daifset, #0b0010");
+        asm volatile("msr daifset, #0b0011");
     }
 
     ~InterruptDisabler() __attribute__((always_inline))
     {
-        asm volatile("msr daifclr, #0b0010");
+        asm volatile("msr daifclr, #0b0011");
     }
+
+    InterruptDisabler(const InterruptDisabler&) = delete;
+    InterruptDisabler(InterruptDisabler&&) = delete;
+
+    static PtrData status();
 };
 
 // See https://developer.arm.com/documentation/ddi0595/2020-12/AArch64-Registers/ESR-EL1--Exception-Syndrome-Register--EL1-

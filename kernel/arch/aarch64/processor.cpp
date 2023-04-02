@@ -33,3 +33,9 @@ void print_with(pine::Printer& printer, const Registers& registers)
     print_with(printer, "\n\n");
 }
 
+PtrData InterruptDisabler::status()
+{
+    PtrData state;
+    asm volatile("mrs %0, daif" : "=r"(state));
+    return state;
+}

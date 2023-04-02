@@ -218,12 +218,8 @@ UARTRegisters& uart_registers()
 void uart_init()
 {
     uart_registers().reset();
-#ifndef AARCH64
     interrupts_enable_uart();
-#endif
 }
-
-#ifndef AARCH64
 
 UARTRequest& uart_request()
 {
@@ -245,8 +241,12 @@ ssize_t UARTFile::read(char *buf, size_t at_most_bytes)
     // set until after construction and enabling may cause an IRQ to be raised
     request.enable_irq();
 
+#ifdef AARCH64
+    while (!request.is_finished()) {};
+#else
     if (!request.is_finished())
         reschedule_while_waiting_for(request);
+#endif
 
     PANIC_IF(!request.is_finished());
     return static_cast<ssize_t>(request.size_read_or_written());
@@ -264,8 +264,12 @@ ssize_t UARTFile::write(char *buf, size_t size)
     // set until after construction and enabling may cause an IRQ to be raised
     request.enable_irq();
 
+#ifdef AARCH64
+    while (!request.is_finished()) {};
+#else
     if (!request.is_finished())
         reschedule_while_waiting_for(request);
+#endif
 
     PANIC_IF(!request.is_finished());
     return static_cast<ssize_t>(request.size_read_or_written());
@@ -340,5 +344,3 @@ void UARTRequest::handle_irq(InterruptsDisabledTag)
     else
         uart.set_read_irq(m_capacity - m_size);
 }
-
-#endif
