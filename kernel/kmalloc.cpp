@@ -2,11 +2,12 @@
 
 #include <pine/units.hpp>
 
+extern size_t __code_end;
+
 KernelMemoryAllocator& kernel_allocator()
 {
 #ifdef AARCH64
-    extern size_t __code_end;
-    static auto g_fixed_kernel_memory_allocator = pine::FixedAllocation(pine::align_up_two(__code_end, PageSize), 16u*PageSize);
+    static auto g_fixed_kernel_memory_allocator = pine::FixedAllocation(pine::align_up_two(reinterpret_cast<size_t>(&__code_end), PageSize), 32 * MiB);
     static auto g_kernel_memory_allocator = KernelMemoryAllocator(&g_fixed_kernel_memory_allocator);
 #elif AARCH32
     static auto g_kernel_memory_allocator = KernelMemoryAllocator(&mmu::page_allocator());
