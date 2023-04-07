@@ -2,7 +2,6 @@
 CLANG ?= 1
 # AARCH64 must be built with CLANG
 AARCH64 ?= 1
-
 ifeq ($(CLANG),1)
 CC=clang++
 else
@@ -76,15 +75,15 @@ PINE_HOST_OBJ=$(HOSTOBJDIR)/pine/c_string.o $(HOSTOBJDIR)/pine/malloc.o $(HOSTOB
 ifeq ($(AARCH64),1)
 ARCH_DEFINES=-DAARCH64
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/arch/aarch64/bootup.o $(OBJDIR)/kernel/arch/aarch64/vector.o
-KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/device/bcm2835/display.o $(OBJDIR)/kernel/arch/aarch64/exception.o $(OBJDIR)/kernel/device/bcm2835/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/device/videocore/mailbox.o $(OBJDIR)/kernel/arch/aarch64/processor.o $(OBJDIR)/kernel/device/bcm2835/timer.o $(OBJDIR)/kernel/device/pl011/uart.o
-USER_OBJ=
-USER_ASM_OBJ=
+KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/device/bcm2835/display.o $(OBJDIR)/kernel/arch/aarch64/exception.o $(OBJDIR)/kernel/file.o $(OBJDIR)/kernel/device/bcm2835/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/device/videocore/mailbox.o $(OBJDIR)/kernel/arch/aarch64/processor.o $(OBJDIR)/kernel/stack.o $(OBJDIR)/kernel/syscall.o $(OBJDIR)/kernel/device/bcm2835/timer.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/device/pl011/uart.o
+USER_OBJ=$(OBJDIR)/userspace/shell.o $(OBJDIR)/kernel/arch/aarch64/switch.o $(OBJDIR)/userspace/lib.o
+USER_ASM_OBJ=$(OBJDIR)/userspace/arch/aarch64/syscall.o
 else
 ARCH_DEFINES=-DAARCH32
 KERNEL_OBJ=$(OBJDIR)/kernel/console.o $(OBJDIR)/kernel/device/bcm2835/display.o $(OBJDIR)/kernel/arch/aarch32/exception.o $(OBJDIR)/kernel/file.o $(OBJDIR)/kernel/device/bcm2835/interrupts.o $(OBJDIR)/kernel/kernel.o $(OBJDIR)/kernel/kmalloc.o $(OBJDIR)/kernel/device/videocore/mailbox.o $(OBJDIR)/kernel/arch/aarch32/mmu.o $(OBJDIR)/kernel/arch/aarch32/processor.o $(OBJDIR)/kernel/stack.o $(OBJDIR)/kernel/syscall.o $(OBJDIR)/kernel/tasks.o $(OBJDIR)/kernel/device/bcm2835/timer.o $(OBJDIR)/kernel/device/pl011/uart.o
 KERNEL_ASM_OBJ=$(OBJDIR)/kernel/arch/aarch32/bootup.o $(OBJDIR)/kernel/arch/aarch32/switch.o $(OBJDIR)/kernel/arch/aarch32/vector.o
 USER_OBJ=$(OBJDIR)/userspace/shell.o $(OBJDIR)/userspace/lib.o
-USER_ASM_OBJ=$(OBJDIR)/userspace/syscall.o
+USER_ASM_OBJ=$(OBJDIR)/userspace/arch/aarch32/syscall.o
 endif
 
 TESTS=pine/test/twomath.hpp pine/test/twomath.hpp pine/test/maybe.hpp
@@ -171,6 +170,9 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)/kernel/device/videocore/
 	mkdir -p $(OBJDIR)/kernel/device/pl011/
 	mkdir -p $(OBJDIR)/userspace
+	mkdir -p $(OBJDIR)/userspace/arch
+	mkdir -p $(OBJDIR)/userspace/arch/aarch32
+	mkdir -p $(OBJDIR)/userspace/arch/aarch64
 	mkdir -p $(OBJDIR)/pine
 	mkdir -p $(OBJDIR)/pine/arch
 

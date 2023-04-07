@@ -12,7 +12,24 @@ void print_with(pine::Printer& printer, const SPSR_EL1& spsr)
     print_with(printer, buf);
 }
 
-void print_with(pine::Printer& printer, const Registers& registers)
+void print_with(pine::Printer& printer, const ProcessorMode& mode)
+{
+    const char* mode_str = "";
+    switch(mode) {
+    case ProcessorMode::EL0:
+        mode_str = "EL0";
+        break;
+    case ProcessorMode::EL1h:
+        mode_str = "EL1h";
+        break;
+    case ProcessorMode::EL1t:
+        mode_str = "EL1t";
+        break;
+    }
+    print_with(printer, mode_str);
+}
+
+void print_with(pine::Printer& printer, const ExceptionSavedRegisters& registers)
 {
     // Cast to void* to enable hexadecimal printing
     print_each_with_spacing(printer, "x0: ", (void*) registers.xn[0], "x1: ", (void*) registers.xn[1], "x2: ", (void*) registers.xn[2], "x3: ", (void*) registers.xn[3]);

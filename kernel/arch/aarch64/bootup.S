@@ -2,6 +2,8 @@
 
 .global start
 .global halt
+.global halt_addr
+.global spin_addr
 
 start:
     /* -- Disable all but one core -- */
@@ -104,7 +106,25 @@ preinit:
     ldr x0, =init
     blr x0
 
+spin:
 halt:
     wfe
     ldr x0, =halt
     br x0
+
+/*
+ * C function that returns the code address of 'halt'.
+ *
+ * Used in place of 'ldr %0, =halt' elsewhere to get around literal pool
+ * locality issues.
+ */
+halt_addr:
+    ldr x0, =halt
+    ret
+
+/*
+ * C function that returns the code address of 'spin', similar to halt_addr.
+ */
+spin_addr:
+    ldr x0, =spin
+    ret

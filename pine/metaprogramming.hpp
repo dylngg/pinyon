@@ -312,6 +312,9 @@ constexpr bool is_destructible = is_destructable_func<Value>();
 template <class Value, class... Args>
 constexpr bool is_constructible_from = all<is_destructible<Value>, is_constructible<Value, Args...>>;
 
+template <class Enum>
+using underlying_type = __underlying_type(Enum);
+
 // https://en.cppreference.com/w/cpp/concepts/convertible
 // and https://en.cppreference.com/w/cpp/types/is_convertible
 //

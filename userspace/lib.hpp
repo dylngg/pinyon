@@ -12,10 +12,10 @@
 
 // See syscall.S
 extern "C" {
-u32 syscall0(Syscall call);
-u32 syscall1(Syscall call, u32 arg1);
-u32 syscall2(Syscall call, u32 arg1, u32 arg2);
-u32 syscall3(Syscall call, u32 arg1, u32 arg2, u32 arg3);
+PtrData syscall0(Syscall call);
+PtrData syscall1(Syscall call, PtrData arg1);
+PtrData syscall2(Syscall call, PtrData arg1, PtrData arg2);
+PtrData syscall3(Syscall call, PtrData arg1, PtrData arg2, PtrData arg3);
 }
 
 constexpr int STDIN_FILENO = 0;

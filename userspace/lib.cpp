@@ -3,35 +3,47 @@
 #include <pine/c_string.hpp>
 #include <pine/units.hpp>
 #include <pine/bit.hpp>
+#include <pine/cast.hpp>
 
 using namespace pine;
 
 int open(StringView path, FileMode mode)
 {
-    auto result = syscall2(Syscall::Open, reinterpret_cast<u32>(path.data()), pine::bit_cast<u32>(mode));
-    return pine::bit_cast<int>(result);
+    auto arg1 = reinterpret_cast<PtrData>(path.data());
+    auto arg2 = from_signed_cast<PtrData>(mode);
+    auto result = syscall2(Syscall::Open, arg1, arg2);
+    return to_signed_cast<int>(result);
 }
 
 ssize_t read(int fd, char* buf, size_t at_most_bytes)
 {
-    ssize_t bytes_read = pine::bit_cast<ssize_t>(syscall3(Syscall::Read, pine::bit_cast<u32>(fd), reinterpret_cast<u32>(buf), at_most_bytes - 1));
+    auto arg1 = from_signed_cast<PtrData>(fd);
+    auto arg2 = reinterpret_cast<PtrData>(reinterpret_cast<void*>(buf));
+    auto result = syscall3(Syscall::Read, arg1, arg2, at_most_bytes - 1);
+    auto bytes_read = pine::bit_cast<ssize_t>(result);
     buf[bytes_read] = '\0';
     return bytes_read;
 }
 
 ssize_t write(int fd, const char* buf, size_t bytes)
 {
-    return pine::bit_cast<ssize_t>(syscall3(Syscall::Write, pine::bit_cast<u32>(fd), reinterpret_cast<u32>(buf), bytes));
+    auto arg1 = from_signed_cast<PtrData>(fd);
+    auto arg2 = reinterpret_cast<PtrData>(reinterpret_cast<const void*>(buf));
+    return pine::bit_cast<ssize_t>(syscall3(Syscall::Write, arg1, arg2, bytes));
 }
 
 int close(int fd)
 {
-    return pine::bit_cast<int>(syscall1(Syscall::Close, pine::bit_cast<u32>(fd)));
+    auto arg1 = from_signed_cast<PtrData>(fd);
+    auto result = syscall1(Syscall::Close, arg1);
+    return to_signed_cast<int>(result);
 }
 
 int dup(int fd)
 {
-    return pine::bit_cast<int>(syscall1(Syscall::Dup, pine::bit_cast<u32>(fd)));
+    auto arg1 = from_signed_cast<PtrData>(fd);
+    auto result = syscall1(Syscall::Dup, arg1);
+    return to_signed_cast<int>(result);
 }
 
 void yield()
@@ -46,12 +58,12 @@ void sleep(u32 secs)
 
 u32 uptime()
 {
-    return syscall0(Syscall::Uptime);
+    return static_cast<u32>(syscall0(Syscall::Uptime));
 }
 
 u32 cputime()
 {
-    return syscall0(Syscall::CPUTime);
+    return static_cast<u32>(syscall0(Syscall::CPUTime));
 }
 
 int printf(const char* fmt, ...)
@@ -138,5 +150,5 @@ MallocStats memstats()
 
 void exit(int code)
 {
-    syscall1(Syscall::Exit, code);
+    syscall1(Syscall::Exit, pine::bit_cast<PtrData>(static_cast<ptrdiff_t>(code)));
 }

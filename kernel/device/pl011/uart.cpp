@@ -241,12 +241,8 @@ ssize_t UARTFile::read(char *buf, size_t at_most_bytes)
     // set until after construction and enabling may cause an IRQ to be raised
     request.enable_irq();
 
-#ifdef AARCH64
-    while (!request.is_finished()) {};
-#else
     if (!request.is_finished())
         reschedule_while_waiting_for(request);
-#endif
 
     PANIC_IF(!request.is_finished());
     return static_cast<ssize_t>(request.size_read_or_written());
@@ -264,12 +260,8 @@ ssize_t UARTFile::write(char *buf, size_t size)
     // set until after construction and enabling may cause an IRQ to be raised
     request.enable_irq();
 
-#ifdef AARCH64
-    while (!request.is_finished()) {};
-#else
     if (!request.is_finished())
         reschedule_while_waiting_for(request);
-#endif
 
     PANIC_IF(!request.is_finished());
     return static_cast<ssize_t>(request.size_read_or_written());

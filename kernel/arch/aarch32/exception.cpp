@@ -21,6 +21,7 @@ void undefined_instruction_handler(PtrData old_cpsr_as_u32, PtrData old_pc, PtrD
           "old cpsr:", old_cpsr, "\told pc:", reinterpret_cast<void*>(old_pc), "\told lr: ", reinterpret_cast<void*>(old_lr));
 }
 
+// FIXME: We should not be assuming that call is a valid enumeration of Syscall!
 PtrData software_interrupt_handler(Syscall call, PtrData arg1, PtrData arg2, PtrData arg3)
 {
     return handle_syscall(call, arg1, arg2, arg3);

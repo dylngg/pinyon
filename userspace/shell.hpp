@@ -4,5 +4,5 @@
 
 extern "C" {
 void shell();
-u32 shell_addr();
+PtrData shell_addr();
 }

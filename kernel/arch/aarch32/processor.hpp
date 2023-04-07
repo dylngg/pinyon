@@ -1,7 +1,8 @@
 #pragma once
-#include <pine/types.hpp>
-#include <pine/print.hpp>
+#include <pine/syscall.hpp>
 #include <pine/bit.hpp>
+#include <pine/print.hpp>
+#include <pine/types.hpp>
 
 struct InterruptDisabler {
     InterruptDisabler() __attribute__((always_inline))
@@ -117,8 +118,8 @@ private:
 };
 
 struct Registers {
-    explicit Registers(u32 user_sp, u32 kernel_sp, u32 user_pc, PtrData stop_addr, ProcessorMode user_mode)
-        : cpsr(user_mode)
+    explicit Registers(u32 user_sp, u32 kernel_sp, u32 user_pc, PtrData stop_addr, PrivilegeLevel level)
+        : cpsr(level == PrivilegeLevel::Kernel ? ProcessorMode::Supervisor : ProcessorMode::User)
         , user_sp(user_sp)
         , user_lr(stop_addr)
         , kernel_sp(kernel_sp)

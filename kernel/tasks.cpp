@@ -10,13 +10,13 @@
 Registers construct_user_task_registers(const Stack& stack, const Stack& kernel_stack, PtrData pc)
 {
     static auto halt_addr_cached = halt_addr();
-    return Registers(stack.sp(), kernel_stack.sp(), pc, halt_addr_cached, ProcessorMode::User);
+    return Registers(stack.sp(), kernel_stack.sp(), pc, halt_addr_cached, PrivilegeLevel::Userspace);
 }
 
 Registers construct_kernel_task_registers(const Stack& kernel_stack, PtrData pc)
 {
     static auto halt_addr_cached = halt_addr();
-    auto registers = Registers(kernel_stack.sp(), kernel_stack.sp(), pc, halt_addr_cached, ProcessorMode::Supervisor);
+    auto registers = Registers(kernel_stack.sp(), kernel_stack.sp(), pc, halt_addr_cached, PrivilegeLevel::Kernel);
     PANIC_IF(!registers.is_kernel_registers());
     return registers;
 }
@@ -35,7 +35,7 @@ Task::Task(KString name, Heap heap, Stack kernel_stack, pine::Maybe<Stack> user_
 {
 }
 
-pine::Maybe<Task> Task::try_create(const char* name, u32 pc, CreateFlags flags)
+pine::Maybe<Task> Task::try_create(const char* name, PtrData pc, CreateFlags flags)
 {
     auto maybe_kernel_stack = Stack::try_create(8 * PageSize);
     if (!maybe_kernel_stack)
@@ -231,9 +231,9 @@ void TaskManager::start_scheduler(InterruptsDisabledTag disabled_tag)
 }
 
 extern "C" {
-u32 spin_addr();
+PtrData spin_addr();
 [[noreturn]] void spin();
-u32 shell_addr(); // forward declare; in userspace/shell.hpp
+PtrData shell_addr(); // forward declare; in userspace/shell.hpp
 }
 
 TaskManager::TaskManager()
@@ -241,7 +241,7 @@ TaskManager::TaskManager()
     , m_running_task_index(0)
 {
     // The compiler will literally give us null if we try and get the address
-    // of a function via (void*) or (u32) casts... undefined behavior?
+    // of a function via (void*) or (PtrData) casts... undefined behavior?
     //
     // Well anyways this is our hack
     auto spin_task_addr = spin_addr();

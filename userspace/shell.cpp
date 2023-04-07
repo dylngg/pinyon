@@ -118,8 +118,8 @@ void shell()
     exit(0);
 }
 
-u32 shell_addr() {
-    u32 addr;
+PtrData shell_addr() {
+    PtrData addr;
     asm volatile("ldr %0, =shell"
                  : "=r"(addr));
     return addr;

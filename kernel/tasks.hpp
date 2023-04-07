@@ -1,5 +1,5 @@
 #pragma once
-#include "arch/aarch32/processor.hpp"
+#include "arch/processor.hpp"
 #include "stack.hpp"
 #include "file.hpp"
 #include "kmalloc.hpp"
@@ -16,7 +16,7 @@
 
 extern "C" {
 // In bootup.S
-u32 halt_addr();
+PtrData halt_addr();
 // In switch.S
 void task_switch(Registers* to_save_registers, bool is_kernel_task_save, const Registers* new_registers, bool is_kernel_task_new);
 }
@@ -47,7 +47,7 @@ public:
         CreateKernelTask = 1,
     };
 
-    static pine::Maybe<Task> try_create(const char* name, u32 pc, CreateFlags flags);
+    static pine::Maybe<Task> try_create(const char* name, PtrData pc, CreateFlags flags);
     Task(const Task& other) = delete;
     Task(Task&& other) = default;
     Task& operator=(Task&& other) = default;

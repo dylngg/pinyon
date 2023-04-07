@@ -10,7 +10,7 @@
 
 #define PANIC_MESSAGE_IF(cond, message) \
     if ((cond))                         \
-        panic(__FILE__, ":", __LINE__, " ", __PRETTY_FUNCTION__, "\t\"", #cond, "\" condition failed.", message);
+        panic(__FILE__, ":", __LINE__, " ", __PRETTY_FUNCTION__, "\t\"", #cond, "\" condition failed. ", message, "\n\n");
 #define PANIC_IF(cond) \
     if ((cond))        \
         PANIC_MESSAGE_IF((cond), "");

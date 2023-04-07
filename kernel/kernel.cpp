@@ -1,6 +1,5 @@
 #ifdef AARCH64
 #elif AARCH32
-#include "tasks.hpp"
 #include "arch/aarch32/mmu.hpp"
 #else
 #error Architecture not defined
@@ -13,6 +12,7 @@
 #include "device/pl011/uart.hpp"
 #include "device/timer.hpp"
 #include "device/videocore/mailbox.hpp"
+#include "tasks.hpp"
 
 #include <pine/types.hpp>
 
@@ -68,13 +68,5 @@ void init()
 
     consoleln("Use 'help' for a list of commands to run.");
 
-    asm volatile("svc 0");
-
-    auto* file_description = file_table().open("/dev/uart0", FileMode::Write);
-    char buf[] = "Hello again!";
-    file_description->write(buf, sizeof(buf));
-
-#ifndef AARCH64
     tasks_init();
-#endif
 }

@@ -1,7 +1,12 @@
 #pragma once
 #include <pine/types.hpp>
 
-enum class Syscall : u32 {
+enum class PrivilegeLevel {
+    Userspace,
+    Kernel,
+};
+
+enum class Syscall {
     Yield = 0,
     Sleep,
     Open,

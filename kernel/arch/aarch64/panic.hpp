@@ -24,7 +24,7 @@ inline void panic(Args&& ... args)
     console_join(pine::forward<Args>(args)...);
 
     console_join("el: ", el >> 2, " daif: 0b", daif & 1 ? "1" : "0", daif & (1 << 1) ? "1" : "0", daif & (1 << 2) ? "1" : "0", daif & (1 << 3) ? "1" : "0",
-                 " spsr: ", SPSR_EL1::from_data(spsr), "\n");
+                 " spsr: ", SPSR_EL1::spsr(), "\n");
     console_join("sp: ", reinterpret_cast<void*>(sp), " lr: ", reinterpret_cast<void*>(lr), "\n");
 
     asm volatile("b halt");
