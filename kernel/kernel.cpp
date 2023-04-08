@@ -66,7 +66,5 @@ void init()
     auto serial = *maybe_serial;
     consolef("Serial: %#lx%lx\n", static_cast<unsigned long>(serial.bottom), static_cast<unsigned long>(serial.top));
 
-    consoleln("Use 'help' for a list of commands to run.");
-
     tasks_init();
 }

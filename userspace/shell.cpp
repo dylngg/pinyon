@@ -67,6 +67,7 @@ void shell()
         exit(1);
     }
 
+    printf("Use 'help' for a list of commands to run.");
     for (;;) {
         printf("# ");
         ssize_t amount_read = read(STDIN_FILENO, &buf[0], 1024);
