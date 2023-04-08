@@ -253,7 +253,7 @@ Pair<PageRegion, AllocationCost> PageAllocatorBackend::trim_aligned_region(PageR
         curr_region = reserved_region;
     }
 
-    return { curr_region, (end_depth - start_depth) * IntrusiveFreeList::max_overhead_per_allocation() };
+    return { curr_region, (start_depth - curr_depth) * IntrusiveFreeList::max_overhead_per_allocation() };
 }
 
 Pair<PageRegion, AllocationCost> PageAllocatorBackend::remove_and_trim_pages(ManualLinkedList<PageRegion>::Node* node, size_t min_pages)
