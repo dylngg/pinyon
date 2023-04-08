@@ -62,7 +62,7 @@ public:
     u32 cputime();
     void* sbrk(size_t increase);
 
-    void reschedule_while_waiting_for(const Waitable&);
+    void reschedule_while_waiting_for(InterruptsDisabledTag disabled_tag, const Waitable&);
 
     bool is_kernel_task() const { return m_registers.is_kernel_registers(); }
 
@@ -110,7 +110,7 @@ public:
     void start_scheduler(InterruptsDisabledTag);
     void schedule(InterruptsDisabledTag);
     void exit_running_task(InterruptsDisabledTag, int code);
-    Task& running_task() { return m_tasks[m_running_task_index]; }
+    Task& running_task(InterruptsDisabledTag) { return m_tasks[m_running_task_index]; }
 
 private:
     TaskManager(const TaskManager&) = delete;

@@ -38,9 +38,7 @@ PtrData handle_syscall(PtrData call_data, PtrData arg1, PtrData arg2, PtrData ar
     }
 
     auto& task_mgr = task_manager();
-    auto& task = task_mgr.running_task();
-
-    //consolef("Handling syscall %u with args %u\n", syscall_id, arg);
+    auto& task = task_mgr.running_task(InterruptDisabler {});
 
     switch (*maybe_syscall) {
     case Syscall::Exit: {

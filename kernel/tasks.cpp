@@ -112,7 +112,8 @@ bool Task::SleepWaitable::is_finished() const
 
 void Task::sleep(u32 secs)
 {
-    reschedule_while_waiting_for(SleepWaitable(secs));
+    InterruptDisabler disabler;
+    reschedule_while_waiting_for(disabler, SleepWaitable(secs));
 }
 
 int Task::open(pine::StringView path, FileMode mode)
@@ -181,7 +182,8 @@ void Task::update_state()
 
 u32 Task::cputime()
 {
-    if (&(task_manager().running_task()) == this) // if we're scheduled
+    InterruptDisabler disabler {};
+    if (&(task_manager().running_task(disabler)) == this) // if we're scheduled
         return m_cpu_jiffies + jiffies() - m_jiffies_when_scheduled;
 
     return m_cpu_jiffies;
@@ -189,15 +191,15 @@ u32 Task::cputime()
 
 void reschedule_while_waiting_for(const Waitable& wait_for)
 {
-    task_manager().running_task().reschedule_while_waiting_for(wait_for);
+    InterruptDisabler disabler {};
+    task_manager().running_task(disabler).reschedule_while_waiting_for(disabler, wait_for);
 }
 
-void Task::reschedule_while_waiting_for(const Waitable& wait_for)
+void Task::reschedule_while_waiting_for(InterruptsDisabledTag disabled_tag, const Waitable& wait_for)
 {
     m_state = State::Waiting;
     m_waiting_for = &wait_for;
-    InterruptDisabler disabler {};
-    task_manager().schedule(disabler);
+    task_manager().schedule(disabled_tag);
 }
 
 Task& TaskManager::pick_next_task()
@@ -216,7 +218,7 @@ Task& TaskManager::pick_next_task()
 
 void TaskManager::schedule(InterruptsDisabledTag disabled_tag)
 {
-    auto& curr_task = running_task();
+    auto& curr_task = running_task(disabled_tag);
 
     auto& to_run_task = pick_next_task();
     if (&to_run_task == &curr_task)
@@ -267,7 +269,7 @@ bool TaskManager::try_create_task(const char* name, PtrData start_addr, Task::Cr
 
 void TaskManager::exit_running_task(InterruptsDisabledTag disabler, int code)
 {
-    consoleln(running_task().name(), "has exited with code:", code);
+    consoleln(running_task(disabler).name(), "has exited with code:", code);
     m_tasks.remove(m_running_task_index);
     pick_next_task().start(nullptr, false, disabler);
 }
