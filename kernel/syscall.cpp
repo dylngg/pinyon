@@ -3,18 +3,46 @@
 #include "syscall.hpp"
 #include "tasks.hpp"
 
-#include <pine/limits.hpp>
 #include <pine/cast.hpp>
 
-PtrData handle_syscall(Syscall call, PtrData arg1, PtrData arg2, PtrData arg3)
+pine::Maybe<Syscall> validate_syscall(PtrData call_data)
 {
+    static_assert(pine::is_signed<pine::underlying_type<Syscall>>);
+
+    auto syscall_signed = pine::bit_cast<ptrdiff_t>(call_data);
+    if (syscall_signed < static_cast<ptrdiff_t>(Syscall::Yield) || syscall_signed > static_cast<ptrdiff_t>(Syscall::Exit)) {
+        return {};
+    }
+    return { static_cast<Syscall>(call_data) };
+}
+
+pine::Maybe<FileMode> validate_file_mode(PtrData file_mode_data)
+{
+    static_assert(pine::is_signed<pine::underlying_type<FileMode>>);
+
+    auto arg2_signed = pine::bit_cast<ptrdiff_t>(file_mode_data);
+    if (arg2_signed < static_cast<ptrdiff_t>(FileMode::Read) || arg2_signed > static_cast<ptrdiff_t>(FileMode::ReadWrite)) {
+        return {};
+    }
+    return { static_cast<FileMode>(file_mode_data) };
+}
+
+PtrData handle_syscall(PtrData call_data, PtrData arg1, PtrData arg2, PtrData arg3)
+{
+    auto conversion_error = from_signed_cast<PtrData>(-1);
+
+    auto maybe_syscall = validate_syscall(call_data);
+    if (!maybe_syscall) {
+        consoleln("kernel:\tUnknown syscall data ", call_data);
+        return conversion_error;
+    }
+
     auto& task_mgr = task_manager();
     auto& task = task_mgr.running_task();
-    auto conversion_error = from_signed_cast<PtrData>(1);
 
     //consolef("Handling syscall %u with args %u\n", syscall_id, arg);
 
-    switch (call) {
+    switch (*maybe_syscall) {
     case Syscall::Exit: {
         InterruptDisabler disabler;
         if (!fits_within<int>(arg1)) {
@@ -40,12 +68,11 @@ PtrData handle_syscall(Syscall call, PtrData arg1, PtrData arg2, PtrData arg3)
 
     case Syscall::Open: {
         auto arg1_char = reinterpret_cast<const char*>(arg1);
-        auto arg2_signed = pine::bit_cast<ptrdiff_t>(arg2);
-        static_assert(pine::is_signed<pine::underlying_type<FileMode>>);
-        if (arg2_signed < static_cast<ptrdiff_t>(FileMode::Read) || arg2_signed > static_cast<ptrdiff_t>(FileMode::ReadWrite)) {
+        auto maybe_file_mode = validate_file_mode(arg2);
+        if (!maybe_file_mode) {
             return conversion_error;
         }
-        int fd = task.open(arg1_char, static_cast<FileMode>(arg2_signed));
+        int fd = task.open(arg1_char, *maybe_file_mode);
         return from_signed_cast<PtrData>(fd);
     }
 
@@ -89,9 +116,6 @@ PtrData handle_syscall(Syscall call, PtrData arg1, PtrData arg2, PtrData arg3)
 
     case Syscall::CPUTime:
         return static_cast<PtrData>(task.cputime());
-
-    default:
-        consoleln("kernel:\tUnknown syscall number ", static_cast<PtrData>(call));
     }
 
     return 0;

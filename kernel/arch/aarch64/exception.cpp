@@ -37,8 +37,7 @@ void unknown_exception_handler(ESR_EL1 esr, const ExceptionSavedRegisters& regis
 
 extern "C" {
 
-// FIXME: We should not be assuming that call is a valid enumeration of Syscall!
-void synchronous_userspace_handler(Syscall call, PtrData arg1, PtrData arg2, PtrData arg3, ExceptionSavedRegisters& registers)
+void synchronous_userspace_handler(PtrData call, PtrData arg1, PtrData arg2, PtrData arg3, ExceptionSavedRegisters& registers)
 {
     ESR_EL1 esr {};
     asm volatile("mrs %0, esr_el1" : "=r"(esr));
