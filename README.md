@@ -1,6 +1,6 @@
 # Pinyon
 
-Pinyon is a really basic toy ARMv7 kernel targeting the Raspberry Pi 2. It presently has the following features:
+Pinyon is a toy ARMv7 and AArch64 kernel targeting the Raspberry Pi 2 and 3. It presently has the following features:
 
 - [x] Booting
 - [x] UART console output
@@ -17,35 +17,30 @@ Pinyon is a really basic toy ARMv7 kernel targeting the Raspberry Pi 2. It prese
 
 GNU Make is required for building. On MacOS, the default `make` that comes with XCode developer tools seems to work.
 
-You can obtain the ARM EABI GCC Toolchain with the following commands if using MacPorts on MacOS:
+For `AARCH64=0` (ARMv7) the ARM GNU toolchain is required. This can be obtained from [ARM's website](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads).
 
-```bash
-port install arm-none-eabi-binutils   # @2.34_1
-port install arm-none-eabi-gcc        # @9.2.0_1
-port install arm-none-eabi-gdb        # @7.9*
-port install qemu +target_arm +usb +cocoa
-```
-
-Otherwise, the GCC toolchain can be obtained from [ARM's website](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads) and QEMU from [QEMU's website](https://www.qemu.org/download/#macos).
-
-If the GCC toolchain is downloaded from ARM, you will either need it in your `$PATH`, or you can edit the `CC` macro in the [Makefile](Makefile).
+If the GCC toolchain is downloaded from ARM, you will either need it in your `$PATH`.
 
 ```
 $ export PATH="$PATH:/your/path/to/arm-none-eabi-gcc/bin"
 ```
 
-_\*Note: It appears that as of writing, the `arm-none-eabi-gdb` port in MacPorts does not build successfully. The `arm-none-eabi-gdb` binary in the GCC toolchain provided by ARM appears to work_
+Otherwise, for `AARCH64=1` Clang and LLVM is required. The default `clang++` that comes with XCode developer tools works for compilation, however, `llvm-objcopy` and `ld.lld` will have to be downloaded.
+
+QEMU is required and be downloaded from [QEMU's website](https://www.qemu.org/download/#macos).
 
 ## Running
 
 Building and running is straightforward:
 
 ```bash
-make            # build
-make run        # build and run
+make            # build aarch64
+AARCH64=0 make  # build armv7
 ```
 
-Note that the background emulator window is not used.
+```
+make run        # after building
+```
 
 ## Using
 

@@ -1,6 +1,6 @@
-# Whether or not to build with Clang
+# Whether or not to build with Clang (both armv7 and aarch64 are supported)
 CLANG ?= 1
-# AARCH64 must be built with CLANG
+# AARCH64 must be built with CLANG=1
 AARCH64 ?= 1
 ifeq ($(CLANG),1)
 CC=clang++
@@ -9,8 +9,8 @@ CC=arm-none-eabi-g++
 endif
 
 ifeq ($(CLANG),1)
-LD=ld.lld-mp-14
-OBJCOPY=llvm-objcopy-mp-14
+LD=ld.lld
+OBJCOPY=llvm-objcopy
 else
 LD=arm-none-eabi-ld
 OBJCOPY=arm-none-eabi-objcopy
