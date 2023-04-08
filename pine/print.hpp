@@ -181,39 +181,44 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
             break;
         }
 
-        case 'u':
-            [[fallthrough]];
-        case 'd': {
-            constexpr int bufsize = limits<unsigned long>::characters10 + 1; // max int possible here
+        case 'u': {
+            constexpr int bufsize = limits<size_t>::characters10 + 1; // max int possible here
             char digits[bufsize]; // FIXME: Replace with Buffer<>/Array<>
             bzero(digits, bufsize);
 
-            if (type_ch == 'u') {
-                switch (mod) {
-                case ArgModifiers::Long:
-                    to_strbuf(digits, bufsize, va_arg(rest, unsigned long));
-                    break;
-                case ArgModifiers::SizeT:
-                    to_strbuf(digits, bufsize, va_arg(rest, size_t));
-                    break;
-                case ArgModifiers::None:
-                    to_strbuf(digits, bufsize, va_arg(rest, unsigned int));
-                    break;
-                }
-            } else {
-                switch (mod) {
-                case ArgModifiers::Long:
-                    to_strbuf(digits, bufsize, va_arg(rest, long));
-                    break;
-                case ArgModifiers::SizeT:
-                    // signed size_t; mostly to keep compiler happy about exhaustive switches
-                    static_assert(sizeof(intptr_t) == sizeof(size_t));
-                    to_strbuf(digits, bufsize, va_arg(rest, intptr_t));
-                    break;
-                case ArgModifiers::None:
-                    to_strbuf(digits, bufsize, va_arg(rest, int));
-                    break;
-                }
+            switch (mod) {
+            case ArgModifiers::Long:
+                to_strbuf(digits, bufsize, va_arg(rest, unsigned long));
+                break;
+            case ArgModifiers::SizeT:
+                to_strbuf(digits, bufsize, va_arg(rest, size_t));
+                break;
+            case ArgModifiers::None:
+                to_strbuf(digits, bufsize, va_arg(rest, unsigned int));
+                break;
+            }
+
+            if (!try_add_string(digits))
+                return false;
+            break;
+        }
+        case 'd': {
+            constexpr int bufsize = limits<ssize_t>::characters10 + 1; // max int possible here
+            char digits[bufsize]; // FIXME: Replace with Buffer<>/Array<>
+            bzero(digits, bufsize);
+
+            switch (mod) {
+            case ArgModifiers::Long:
+                to_strbuf(digits, bufsize, va_arg(rest, long));
+                break;
+            case ArgModifiers::SizeT:
+                // signed size_t; mostly to keep compiler happy about exhaustive switches
+                static_assert(sizeof(ssize_t) == sizeof(size_t));
+                to_strbuf(digits, bufsize, va_arg(rest, ssize_t));
+                break;
+            case ArgModifiers::None:
+                to_strbuf(digits, bufsize, va_arg(rest, int));
+                break;
             }
 
             if (!try_add_string(digits))
@@ -222,7 +227,7 @@ size_t vfnprintf(TryAddStringFunc& try_add_string, const char* fmt, va_list rest
         }
 
         case 'x': {
-            constexpr int bufsize = limits<unsigned long>::digits16 + 3; // max int possible here; + 0x + \0
+            constexpr int bufsize = limits<size_t>::digits16 + 3; // max int possible here; + 0x + \0
             char hex[bufsize]; // FIXME: Replace with Buffer<>/Array<>
             char* hex_start = hex;
             size_t hex_bufsize = bufsize;
